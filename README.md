@@ -57,11 +57,28 @@ make migration m="description"   # new Alembic migration
 
 Requirements: Docker, [uv](https://docs.astral.sh/uv/), Node 20+ and pnpm.
 
+## Calendars and ILIAS deadlines
+
+The worker fetches ICS calendars every 30 minutes (`ILIAS_ICS_URL`, `CALENDAR_ICS_FEEDS` in `.env`)
+and mirrors their events for the Today page and the calendar view of the Tasks tab. Entries of the
+ILIAS feed that end in "(Abgabetermin)" become tasks with `source=ilias` instead: a sync never
+duplicates them, only changes title and deadline (area, priority, planned day and status stay yours),
+and cancels a deadline that disappears instead of deleting it.
+
+## Training
+
+The Training tab imports the Gym Day strength export (`daily_strength.csv`), either uploaded there or
+shared from the phone (the installed PWA is a share target for CSV files). Importing the same or an
+overlapping export again changes nothing. It shows volume per week, the push/pull/legs split and the
+progression per exercise (estimated 1RM, top weight, reps). Exercises renamed in Gym Day can be merged
+so their progression continues in one line.
+
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
 built-in login. Tools: `get_today`, `list_tasks`, `get_deadlines`, `get_task`, `list_areas`,
-`add_task`, `quick_add`, `update_task`, `complete_task`; prompts: `daily_brief`, `weekly_review`.
+`get_calendar`, `training_summary`, `exercise_progress`, `add_task`, `quick_add`, `update_task`,
+`complete_task`; prompts: `daily_brief`, `weekly_review`.
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 
 ## Deployment

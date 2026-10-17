@@ -29,10 +29,22 @@ export default defineConfig({
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // POST so files can be shared too (Gym Day export); share-target-sw.js handles it.
         share_target: {
           action: '/share',
-          method: 'GET',
-          params: { title: 'title', text: 'text', url: 'url' },
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [
+              {
+                name: 'file',
+                accept: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/csv', '.csv'],
+              },
+            ],
+          },
         },
         shortcuts: [{ name: 'Neue Aufgabe', url: '/?neu=1' }],
       },
@@ -41,6 +53,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        importScripts: ['share-target-sw.js'],
       },
     }),
   ],

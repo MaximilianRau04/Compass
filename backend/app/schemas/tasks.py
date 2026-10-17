@@ -3,6 +3,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.tasks import TaskPriority, TaskSource, TaskStatus
+from app.schemas.calendar import CalendarEventRead
 from app.services.recurrence import validate_rrule
 
 
@@ -133,3 +134,4 @@ class TodayOverview(BaseModel):
     scheduled: list[TaskRead]
     upcoming: list[TaskRead]
     done_today: list[TaskRead]
+    events: list[CalendarEventRead]

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router'
 import { useToday } from '../api/tasks'
 import type { Task } from '../api/types'
 import { CompassDial } from '../components/CompassDial'
+import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
 import { QuickAdd } from '../components/QuickAdd'
 import { TaskItem } from '../components/TaskItem'
@@ -50,7 +51,7 @@ export function TodayPage() {
         <QuickAdd today={today} autoFocus={params.get('neu') === '1'} />
       </div>
 
-      {visible.length === 0 && data.done_today.length === 0 && (
+      {visible.length === 0 && data.done_today.length === 0 && data.events.length === 0 && (
         <p className="max-w-md text-muted">
           {emptyBefore}
           <code className="font-mono text-ink">{t('today.emptyCode')}</code>
@@ -59,6 +60,17 @@ export function TodayPage() {
       )}
 
       <div className="space-y-8">
+        {data.events.length > 0 && (
+          <section>
+            <SectionLabel count={data.events.length}>{t('today.events')}</SectionLabel>
+            <ul className="divide-y divide-rule/60">
+              {data.events.map((event) => (
+                <EventItem key={event.id} event={event} />
+              ))}
+            </ul>
+          </section>
+        )}
+
         {visible.map((section) => (
           <section key={section.key}>
             <SectionLabel count={section.tasks.length} tone={section.tone}>

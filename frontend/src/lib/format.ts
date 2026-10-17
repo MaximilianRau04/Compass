@@ -1,4 +1,4 @@
-import type { Task } from '../api/types'
+import type { CalendarEvent, Task } from '../api/types'
 import type { Translate } from '../i18n/context'
 
 const RRULE_WEEKDAY: Record<string, number> = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 }
@@ -89,4 +89,43 @@ export const AREA_BG: Record<string, string> = {
   amber: 'bg-area-amber',
   rose: 'bg-area-rose',
   slate: 'bg-area-slate',
+}
+
+export function addDays(value: string, days: number): string {
+  const date = parseDate(value)
+  date.setDate(date.getDate() + days)
+  return toIsoDate(date)
+}
+
+/** Local calendar day (YYYY-MM-DD) of an ISO timestamp. */
+export function localDay(timestamp: string): string {
+  return toIsoDate(new Date(timestamp))
+}
+
+export function clockTime(timestamp: string, locale: string): string {
+  return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+}
+
+/** "14:00–15:30", "ganztägig" or just the start time for point-in-time entries. */
+export function eventTime(event: CalendarEvent, t: Translate, locale: string): string {
+  if (event.all_day) return t('event.allDay')
+  const start = clockTime(event.starts_at, locale)
+  if (!event.ends_at || event.ends_at === event.starts_at) return start
+  return `${start}–${clockTime(event.ends_at, locale)}`
+}
+
+/** Whether an event covers the given local day (all-day ends are exclusive). */
+export function eventOnDay(event: CalendarEvent, day: string): boolean {
+  const start = localDay(event.starts_at)
+  if (!event.ends_at || !event.all_day) return start === day
+  return start <= day && day < localDay(event.ends_at)
+}
+
+/** 950, 12.3K, 1.2M */
+export function compact(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+}
+
+export function decimal(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)
 }

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.tasks import Area, Task, TaskEvent, TaskPriority, TaskSource, TaskStatus
 from app.schemas.tasks import QuickAddPreview, TaskCreate, TaskUpdate, TodayOverview
+from app.services.calendar import events_between
 from app.services.clock import local_today, local_tz, utc_now
 from app.services.quick_add import parse_quick_add
 from app.services.recurrence import next_occurrence
@@ -144,6 +145,7 @@ def today_overview(session: Session, today: date | None = None) -> TodayOverview
             "scheduled": _sorted(scheduled),
             "upcoming": _sorted(upcoming),
             "done_today": sorted(done_today, key=lambda t: t.completed_at or start),
+            "events": events_between(session, today, today + timedelta(days=1)),
         },
         from_attributes=True,
     )
@@ -197,21 +199,42 @@ def update_task(session: Session, task: Task, data: TaskUpdate, actor: str = "we
     return task
 
 
-def set_status(session: Session, task: Task, status: TaskStatus, actor: str = "web") -> Task:
+def sync_fields(session: Session, task: Task, fields: dict[str, Any], actor: str) -> bool:
+    """Set fields owned by an external source (e.g. an ILIAS deadline). Records the changes as
+    one "synced" event. Returns whether anything changed."""
+    diff = {}
+    for field, value in fields.items():
+        old = getattr(task, field)
+        if old != value:
+            diff[field] = {"from": _jsonable(old), "to": _jsonable(value)}
+            setattr(task, field, value)
+    if diff:
+        _event(session, task, "synced", actor, diff)
+    return bool(diff)
+
+
+def set_status(
+    session: Session,
+    task: Task,
+    status: TaskStatus,
+    actor: str = "web",
+    extra: dict | None = None,
+) -> Task:
     previous = task.status
     if previous == status:
         return task
     task.status = status
     if status == TaskStatus.done:
         task.completed_at = utc_now()
-        _event(session, task, "completed", actor)
+        _event(session, task, "completed", actor, extra)
         _spawn_next(session, task, actor)
     else:
         task.completed_at = None
         type_ = {TaskStatus.cancelled: "cancelled"}.get(status, "reopened")
         if previous in ACTIVE and status in ACTIVE:
             type_ = "status_changed"
-        _event(session, task, type_, actor, {"from": previous.value, "to": status.value})
+        payload = {"from": previous.value, "to": status.value, **(extra or {})}
+        _event(session, task, type_, actor, payload)
     session.flush()
     return task
 

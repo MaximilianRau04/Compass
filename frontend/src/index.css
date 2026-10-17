@@ -22,6 +22,7 @@
   --color-brass-ink: var(--brass-ink);
   --color-signal: var(--signal);
   --color-sea: var(--sea);
+  --color-chart: var(--chart);
 
   --color-area-blue: var(--area-blue);
   --color-area-violet: var(--area-violet);
@@ -41,6 +42,8 @@
   --brass-ink: #ffffff;
   --signal: #d1343b;
   --sea: #2f7d72;
+  /* Data marks: more chroma than --sea so bars and lines do not read gray (validated). */
+  --chart: #0e8a7a;
 
   --area-blue: #2f5f8a;
   --area-violet: #5d4e8c;
@@ -62,6 +65,7 @@
     --brass-ink: #14202b;
     --signal: #f06a6f;
     --sea: #5fb8a9;
+    --chart: #22a892;
 
     --area-blue: #7aa7d4;
     --area-violet: #a497d6;

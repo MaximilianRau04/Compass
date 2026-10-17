@@ -6,6 +6,7 @@ import type { MessageKey } from '../i18n/messages'
 const NAV: { to: string; label: MessageKey; icon: string }[] = [
   { to: '/', label: 'nav.today', icon: 'M12 3v2M12 19v2M3 12h2M19 12h2M12 8l2 4-2 4-2-4z' },
   { to: '/aufgaben', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
+  { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12' },
 ]
 
 function Icon({ d }: { d: string }) {

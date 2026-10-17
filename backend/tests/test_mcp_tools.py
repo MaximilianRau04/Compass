@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 from mcp import Client
 
+from app.ingestion import calendar, gymday
 from app.mcp import db as mcp_db
 from app.mcp.server import mcp
 from app.models.oauth import AuditLog
@@ -48,9 +49,14 @@ async def test_tools_are_listed_with_annotations(client):
         "quick_add",
         "update_task",
         "complete_task",
+        "get_calendar",
+        "training_summary",
+        "exercise_progress",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
+    for name in ("get_calendar", "training_summary", "exercise_progress"):
+        assert tools[name].annotations.read_only_hint is True
 
 
 @pytest.mark.anyio
@@ -139,3 +145,66 @@ async def test_helpful_errors_and_failed_writes_are_audited(client, session):
 async def test_prompts(client):
     prompts = {p.name for p in (await client.list_prompts()).prompts}
     assert prompts == {"daily_brief", "weekly_review"}
+
+
+@pytest.mark.anyio
+async def test_calendar_and_today_events(client, session):
+    today = local_today()
+    day = f"{today:%Y%m%d}"
+    feed = (
+        "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\n"
+        f"BEGIN:VEVENT\nUID:l1\nSUMMARY:Vorlesung\nDTSTART;TZID=Europe/Berlin:{day}T140000\n"
+        f"DTEND;TZID=Europe/Berlin:{day}T153000\nLOCATION:V38\nEND:VEVENT\n"
+        f"BEGIN:VEVENT\nUID:h1\nSUMMARY:Feiertag\nDTSTART;VALUE=DATE:{day}\nEND:VEVENT\n"
+        "END:VCALENDAR\n"
+    ).encode()
+    calendar.sync_feed(session, "uni", feed, today)
+
+    result = await call(client, "get_calendar", days=3)
+    events = result["events"]
+    assert [e["title"] for e in events] == ["Feiertag", "Vorlesung"]
+    assert events[0] == {
+        "title": "Feiertag",
+        "start": today.isoformat(),
+        "end": today.isoformat(),
+        "all_day": True,
+        "location": None,
+        "calendar": "uni",
+    }
+    assert events[1]["start"] == f"{today.isoformat()} 14:00"
+    assert events[1]["end"] == f"{today.isoformat()} 15:30"
+
+    day_view = await call(client, "get_today")
+    assert [e["title"] for e in day_view["events"]] == ["Feiertag", "Vorlesung"]
+
+
+@pytest.mark.anyio
+async def test_training_tools(client, session):
+    def when(days_ago: int) -> str:
+        return f"{local_today() - timedelta(days=days_ago):%Y-%m-%d} 18:00:00"
+
+    csv = "\n".join(
+        [
+            '"Date","Workout name","Exercise","Set","Weight","Reps","Distance","Duration",'
+            '"Measurement unit","Notes"',
+            f'"{when(8)}","Pull","Latzug mit engem Griff","1","65","10","","","kg",',
+            f'"{when(1)}","Pull","Latzug mit engem Griff","1","70","10","","","kg",',
+            f'"{when(1)}","Pull","Klimmzüge","1","","8","","","kg",',
+        ]
+    ).encode()
+    gymday.import_csv(session, csv)
+
+    summary = await call(client, "training_summary", weeks=4)
+    assert summary["sessions"] == 2
+    assert summary["split"]["pull"] == 2
+    assert summary["recent"][0]["exercises"] == 2
+
+    progress = await call(client, "exercise_progress", exercise="latzug")
+    assert progress["exercise"] == "Latzug mit engem Griff"
+    assert [p["top_weight_kg"] for p in progress["sessions"]] == [65, 70]
+
+    bodyweight = await call(client, "exercise_progress", exercise="Klimmzüge")
+    assert bodyweight["bodyweight"] is True
+    assert bodyweight["sessions"][0]["max_reps"] == 8
+
+    assert "No exercise" in await call_error(client, "exercise_progress", exercise="Kreuzheben")

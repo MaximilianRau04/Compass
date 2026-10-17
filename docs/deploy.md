@@ -148,7 +148,7 @@ over the public address. Remove it afterwards.
 
 ```bash
 make deploy
-curl -s -H 'Host: compass.example.com' http://127.0.0.1/api/health    # on the server
+curl -s http://127.0.0.1:8080/api/health    # on the server, straight to Compass's Caddy
 ```
 
 Check from a VPN client:
@@ -299,6 +299,30 @@ Every write through MCP is recorded in the `audit_log` table. To log out all cli
 docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.prod.yml exec mcp \
   python -c "from app.mcp.oauth import revoke_all_tokens; print(revoke_all_tokens())"
 ```
+
+## 6. Calendars and ILIAS deadlines
+
+Add the subscription URLs to `.env` on the server and run `make deploy` (the worker picks them up on
+start and then syncs every `CALENDAR_SYNC_MINUTES`):
+
+| Variable | Value |
+|---|---|
+| `ILIAS_ICS_URL` | the subscription link of your ILIAS calendar (calendar → subscribe / export) |
+| `CALENDAR_ICS_FEEDS` | further calendars as `name=url` pairs separated by spaces, e.g. a Google Calendar "secret address in iCal format" |
+
+These URLs carry a secret token: anyone with the link can read the calendar. They only live in `.env`,
+and sync errors are logged without them.
+
+Check the first sync in the Tasks tab (calendar view, "fetch now") or on the server with
+`curl -u <user> -X POST http://127.0.0.1:8080/api/calendar/sync` (straight to Compass's Caddy, which
+asks for the login). Run it twice: the second run must report `"created": 0` for the deadlines, otherwise the feed's UIDs are not
+stable.
+
+## Sharing the Gym Day export from the phone
+
+The installed PWA is a share target for CSV files. After an update that changed the share target,
+Android may need a day to refresh the installed app. If Compass does not show up when sharing the export,
+remove the app from the home screen and install it again from the browser.
 
 ## Updating
 

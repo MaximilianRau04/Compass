@@ -19,7 +19,7 @@ const RECURRENCE_PRESETS = [
 
 const STATUSES: TaskStatus[] = ['open', 'in_progress', 'done', 'cancelled']
 const PRIORITIES: TaskPriority[] = ['low', 'normal', 'high', 'urgent']
-const EVENT_TYPES = ['created', 'updated', 'completed', 'reopened', 'cancelled', 'status_changed'] as const
+const EVENT_TYPES = ['created', 'updated', 'synced', 'completed', 'reopened', 'cancelled', 'status_changed'] as const
 
 type Draft = {
   title: string
@@ -266,7 +266,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
                   {(EVENT_TYPES as readonly string[]).includes(event.type)
                     ? t(`event.${event.type as (typeof EVENT_TYPES)[number]}`)
                     : event.type}
-                  {event.type === 'updated' && `: ${Object.keys(event.payload).join(', ')}`}
+                  {(event.type === 'updated' || event.type === 'synced') && `: ${Object.keys(event.payload).join(', ')}`}
                   {event.actor !== 'web' && ` (${event.actor})`}
                 </span>
               </li>
