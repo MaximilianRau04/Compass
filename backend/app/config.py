@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -51,10 +52,13 @@ class Settings(BaseSettings):
         feeds: dict[str, str] = {}
         if self.ilias_ics_url.strip():
             feeds["ilias"] = self.ilias_ics_url.strip()
-        for pair in self.calendar_ics_feeds.split():
+        for number, pair in enumerate(self.calendar_ics_feeds.split(), start=1):
             name, sep, url = pair.partition("=")
-            if not sep or not name or not url:
-                raise ValueError(f"CALENDAR_ICS_FEEDS: expected name=url, got {pair!r}")
+            # Never echo the entry: the URL carries a secret token and errors end up in logs.
+            if not sep or not url or not re.fullmatch(r"[A-Za-z0-9_-]+", name):
+                raise ValueError(
+                    f"CALENDAR_ICS_FEEDS: entry {number} is not name=url (e.g. google=https://...)"
+                )
             if name == "ilias":
                 raise ValueError('CALENDAR_ICS_FEEDS: "ilias" is reserved, use ILIAS_ICS_URL')
             feeds[name.lower()] = url

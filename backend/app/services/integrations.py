@@ -30,5 +30,11 @@ def record_failure(session: Session, name: str, error: str) -> None:
     state.last_error = error[:2000]
 
 
+def clear(session: Session, name: str) -> None:
+    state = session.get(IntegrationState, name)
+    if state is not None:
+        session.delete(state)
+
+
 def list_states(session: Session) -> list[IntegrationState]:
     return list(session.scalars(select(IntegrationState).order_by(IntegrationState.name)))

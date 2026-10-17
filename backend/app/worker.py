@@ -21,10 +21,18 @@ def heartbeat() -> None:
 
 
 def sync_calendars() -> None:
-    if not get_settings().calendar_feeds:
+    settings = get_settings()
+    if not settings.ilias_ics_url.strip() and not settings.calendar_ics_feeds.strip():
         log.debug("no calendar feeds configured")
         return
     calendar.sync_all(SessionLocal)
+
+
+def feed_names() -> str:
+    try:
+        return ", ".join(get_settings().calendar_feeds) or "none"
+    except ValueError as exc:
+        return f"invalid configuration ({exc})"
 
 
 def main() -> None:
@@ -42,7 +50,7 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
     )
-    log.info("worker started, calendar feeds: %s", ", ".join(settings.calendar_feeds) or "none")
+    log.info("worker started, calendar feeds: %s", feed_names())
     heartbeat()
     scheduler.start()
 

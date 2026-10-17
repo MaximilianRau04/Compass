@@ -268,3 +268,28 @@ def test_deadline_suffix_only_counts_for_the_ilias_feed(session):
     )
     assert ilias_tasks(session) == []
     assert session.scalar(select(CalendarEvent).where(CalendarEvent.uid == "x")) is not None
+
+
+def test_invalid_feed_setting_never_shows_the_url():
+    secret = "https://calendar.example/ical/private-SECRET/basic.ics"
+    for value in (secret, f"ok=https://a.example {secret}", f"https://x.example/?a=b {secret}"):
+        with pytest.raises(ValueError) as exc:
+            _ = Settings(calendar_ics_feeds=value).calendar_feeds
+        assert "SECRET" not in str(exc.value)
+        assert "private" not in str(exc.value)
+
+
+def test_sync_all_reports_a_broken_setting_instead_of_crashing(session, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "ilias_ics_url", "")
+    monkeypatch.setattr(settings, "calendar_ics_feeds", "https://calendar.example/private-SECRET")
+
+    results = calendar.sync_all(lambda: nullcontext(session), fetch=lambda url: ics())
+    assert "entry 1 is not name=url" in results["config"]
+    state = session.get(IntegrationState, "calendar:config")
+    assert state.last_error and "SECRET" not in state.last_error
+
+    monkeypatch.setattr(settings, "calendar_ics_feeds", "google=https://calendar.example/x")
+    results = calendar.sync_all(lambda: nullcontext(session), fetch=lambda url: ics())
+    assert results["google"]["events"] == 0
+    assert session.get(IntegrationState, "calendar:config") is None

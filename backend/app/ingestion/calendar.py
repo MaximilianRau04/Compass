@@ -30,6 +30,7 @@ FUTURE_DAYS = 180
 MAX_FEED_BYTES = 10 * 1024 * 1024
 MAX_RAW_CHARS = 20_000
 UTC = ZoneInfo("UTC")
+CONFIG_STATE = "calendar:config"
 
 Fetcher = Callable[[str], bytes]
 
@@ -181,7 +182,19 @@ def sync_all(session_factory, fetch: Fetcher = fetch_ics) -> dict[str, dict | st
     """Sync every configured feed in its own transaction, so one broken feed does not stop the
     others. Returns the stats (or the error) per feed."""
     results: dict[str, dict | str] = {}
-    for feed, url in get_settings().calendar_feeds.items():
+    # A broken setting is reported like a failed feed instead of stopping the worker.
+    with session_factory() as session:
+        try:
+            feeds = get_settings().calendar_feeds
+        except ValueError as exc:
+            log.error("calendar config: %s", exc)
+            integrations.record_failure(session, CONFIG_STATE, str(exc))
+            session.commit()
+            return {"config": str(exc)}
+        integrations.clear(session, CONFIG_STATE)
+        session.commit()
+
+    for feed, url in feeds.items():
         name = f"calendar:{feed}"
         try:
             data = fetch(url)
