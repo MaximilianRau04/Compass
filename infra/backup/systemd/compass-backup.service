@@ -1,0 +1,11 @@
+[Unit]
+Description=Compass database backup (pg_dump)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Adjust user and path to your setup (see docs/deploy.md).
+User=compass
+WorkingDirectory=/opt/compass
+ExecStart=/opt/compass/infra/backup/pg-backup.sh

@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource-variable/instrument-sans';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Palette: a nautical chart. Paper, ink, brass for actions, signal red only for overdue. */
+@theme {
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-brass: var(--brass);
+  --color-brass-ink: var(--brass-ink);
+  --color-signal: var(--signal);
+  --color-sea: var(--sea);
+
+  --color-area-blue: var(--area-blue);
+  --color-area-violet: var(--area-violet);
+  --color-area-teal: var(--area-teal);
+  --color-area-amber: var(--area-amber);
+  --color-area-rose: var(--area-rose);
+  --color-area-slate: var(--area-slate);
+}
+
+:root {
+  --paper: #eef2f0;
+  --paper-raised: #f8faf9;
+  --ink: #14202b;
+  --muted: #5e6b74;
+  --rule: #d3dbd8;
+  --brass: #b07d2b;
+  --brass-ink: #ffffff;
+  --signal: #d1343b;
+  --sea: #2f7d72;
+
+  --area-blue: #2f5f8a;
+  --area-violet: #5d4e8c;
+  --area-teal: #2f7d72;
+  --area-amber: #9a6a1f;
+  --area-rose: #a3445a;
+  --area-slate: #5e6b74;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1a24;
+    --paper-raised: #15232f;
+    --ink: #e4ebe8;
+    --muted: #8d9aa3;
+    --rule: #26384a;
+    --brass: #d3a04e;
+    --brass-ink: #14202b;
+    --signal: #f06a6f;
+    --sea: #5fb8a9;
+
+    --area-blue: #7aa7d4;
+    --area-violet: #a497d6;
+    --area-teal: #5fb8a9;
+    --area-amber: #d3a04e;
+    --area-rose: #e08a9e;
+    --area-slate: #8d9aa3;
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* In the base layer so utilities like focus-visible:outline-none can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

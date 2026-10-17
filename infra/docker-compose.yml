@@ -1,0 +1,79 @@
+name: compass
+
+x-backend: &backend
+  build: ../backend
+  env_file: ../.env
+  environment:
+    POSTGRES_HOST: db
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER missing in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB missing in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"
+
+  worker:
+    <<: *backend
+    command: python -m app.worker
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  mcp:
+    <<: *backend
+    # Separate process: the only part of Compass that is reachable without the VPN.
+    command: uvicorn app.mcp.app:app --host 0.0.0.0 --port 8001 --proxy-headers --forwarded-allow-ips=*
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  caddy:
+    build: ../frontend
+    environment:
+      COMPASS_SITE_ADDRESS: ${COMPASS_SITE_ADDRESS:-:80}
+      COMPASS_BASIC_AUTH_USER: ${COMPASS_BASIC_AUTH_USER:?COMPASS_BASIC_AUTH_USER missing in .env}
+      COMPASS_BASIC_AUTH_HASH: ${COMPASS_BASIC_AUTH_HASH:?COMPASS_BASIC_AUTH_HASH missing in .env}
+      COMPASS_TLS_MODE: ${COMPASS_TLS_MODE:-off}
+      COMPASS_MCP_SITE_ADDRESS: ${COMPASS_MCP_SITE_ADDRESS:-:8081}
+      COMPASS_MCP_ALLOWED_IPS: ${COMPASS_MCP_ALLOWED_IPS:-0.0.0.0/0 ::/0}
+      NETCUP_CUSTOMER_NUMBER: ${NETCUP_CUSTOMER_NUMBER:-}
+      NETCUP_API_KEY: ${NETCUP_API_KEY:-}
+      NETCUP_API_PASSWORD: ${NETCUP_API_PASSWORD:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${COMPASS_HTTP_PORT:-8080}:80"
+      - "${COMPASS_MCP_HTTP_PORT:-127.0.0.1:8081}:8081"
+    depends_on:
+      - api
+      - mcp
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

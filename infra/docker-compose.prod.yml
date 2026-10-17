@@ -1,0 +1,12 @@
+# Production: use the images built by CI instead of building on the server.
+services:
+  api:
+    image: ghcr.io/maximilianrau04/compass-api:${COMPASS_VERSION:-latest}
+  worker:
+    image: ghcr.io/maximilianrau04/compass-api:${COMPASS_VERSION:-latest}
+  mcp:
+    image: ghcr.io/maximilianrau04/compass-api:${COMPASS_VERSION:-latest}
+  caddy:
+    image: ghcr.io/maximilianrau04/compass-web:${COMPASS_VERSION:-latest}
+    # No extra ports: Caddy stays on COMPASS_HTTP_PORT (localhost). A reverse proxy in front
+    # terminates TLS and forwards the Compass hostname there (see docs/deploy.md).

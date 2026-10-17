@@ -1,0 +1,79 @@
+{
+	admin off
+	# Requests arrive through the reverse proxy in the VM (and the Docker gateway). Trusting private
+	# ranges keeps the original client in X-Forwarded-For, so client_ip and the login throttle see it.
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+# TLS modes, selected with COMPASS_TLS_MODE
+(tls-off) {
+}
+
+(tls-netcup) {
+	# Let's Encrypt via DNS challenge, works although the server is only reachable in the VPN.
+	# netcup DNS is slow to propagate, so the first certificate can take 10 to 15 minutes.
+	tls {
+		dns netcup {
+			customer_number {env.NETCUP_CUSTOMER_NUMBER}
+			api_key {env.NETCUP_API_KEY}
+			api_password {env.NETCUP_API_PASSWORD}
+		}
+		propagation_timeout 900s
+		propagation_delay 600s
+		resolvers 1.1.1.1
+	}
+}
+
+{$COMPASS_SITE_ADDRESS::80} {
+	import tls-{$COMPASS_TLS_MODE:off}
+	encode zstd gzip
+
+	# Everyone in the tailnet can reach the server, so the app needs its own login.
+	# /api/health stays open for monitoring.
+	@protected not path /api/health
+	basic_auth @protected {
+		{$COMPASS_BASIC_AUTH_USER} {$COMPASS_BASIC_AUTH_HASH}
+	}
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+}
+
+# MCP endpoint for Claude, protected by OAuth instead of basic auth.
+# Exposes /mcp plus the OAuth endpoints and the owner login page of the MCP service.
+{$COMPASS_MCP_SITE_ADDRESS::8081} {
+	import tls-{$COMPASS_TLS_MODE:off}
+	encode zstd gzip
+	request_body {
+		max_size 1MB
+	}
+	# Optional: only let the given ranges call the machine-to-machine endpoints (e.g. Anthropic's
+	# outbound range 160.79.104.0/21). The login page stays reachable for your browser.
+	@blocked {
+		path /mcp /mcp/* /token /register /revoke
+		not client_ip {$COMPASS_MCP_ALLOWED_IPS:0.0.0.0/0 ::/0}
+	}
+	respond @blocked 403
+	reverse_proxy mcp:8001
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

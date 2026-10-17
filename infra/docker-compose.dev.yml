@@ -1,0 +1,6 @@
+# Local development: expose Postgres on localhost so the API and tests
+# can run outside Docker (uv run uvicorn / uv run pytest).
+services:
+  db:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"

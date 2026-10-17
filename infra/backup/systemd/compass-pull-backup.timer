@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull Compass backups whenever the PC is on (catches up after downtime)
+
+[Timer]
+OnCalendar=*-*-* 09,15,21:00
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

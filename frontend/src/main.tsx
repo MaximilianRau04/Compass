@@ -1,0 +1,41 @@
+import './index.css'
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import { Toaster } from 'sonner'
+
+import { Layout } from './components/Layout'
+import { I18nProvider } from './i18n/I18nProvider'
+import { SharePage } from './pages/Share'
+import { TasksPage } from './pages/Tasks'
+import { TodayPage } from './pages/Today'
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 } },
+})
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <I18nProvider>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<TodayPage />} />
+            <Route path="aufgaben" element={<TasksPage />} />
+            <Route path="share" element={<SharePage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          className: '!bg-paper-raised !text-ink !border-rule !font-sans',
+        }}
+      />
+    </QueryClientProvider>
+    </I18nProvider>
+  </StrictMode>,
+)
