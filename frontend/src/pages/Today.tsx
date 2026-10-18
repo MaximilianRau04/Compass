@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 
+import { useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
-import type { Task } from '../api/types'
+import type { HealthSummary, Task } from '../api/types'
 import { CompassDial } from '../components/CompassDial'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
@@ -11,11 +12,33 @@ import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { longDate } from '../lib/format'
+import { addDays, clockTime, longDate } from '../lib/format'
+import { hours } from '../lib/health'
+
+/** Last night's sleep in one line, only while it is current (woke up today or yesterday). */
+function LastNight({ summary, today }: { summary: HealthSummary | undefined; today: string }) {
+  const { t, locale } = useI18n()
+  const night = summary?.last_night
+  if (!night || night.local_date < addDays(today, -1)) return null
+  const resting = summary.days.find((d) => d.date === night.local_date)?.resting_hr
+  return (
+    <Link to="/schlaf" className="block rounded-md border border-rule bg-paper-raised px-3 py-2.5 hover:border-ink">
+      <span className="text-xs text-muted">{t('today.lastNight')}</span>
+      <span className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+        <span className="text-2xl font-semibold">{hours(night.asleep_minutes)}</span>
+        <span className="font-mono text-[12px] text-muted">
+          {clockTime(night.start_at, locale)}–{clockTime(night.end_at, locale)}
+          {resting != null && ` · ${t('today.restingHr', { bpm: resting })}`}
+        </span>
+      </span>
+    </Link>
+  )
+}
 
 export function TodayPage() {
   const { t, locale } = useI18n()
   const { data, isPending, error } = useToday()
+  const health = useHealthSummary(7)
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
 
@@ -60,6 +83,8 @@ export function TodayPage() {
       )}
 
       <div className="space-y-8">
+        <LastNight summary={health.data} today={today} />
+
         {data.events.length > 0 && (
           <section>
             <SectionLabel count={data.events.length}>{t('today.events')}</SectionLabel>

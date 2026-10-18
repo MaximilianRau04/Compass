@@ -180,6 +180,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
             <span className="ml-2 font-mono text-[11px] text-muted">{relativeDay(localDay(session.started_at), today, t, locale)}</span>
           </span>
           <span className="font-mono text-[11px] text-muted">
+            {session.duration_minutes !== null && `${t('training.duration', { n: session.duration_minutes })} · `}
             {t('training.exercisesN', { n: session.exercises })} · {t('training.setsN', { n: session.sets })} ·{' '}
             {compact(session.volume_kg, locale)} kg
           </span>

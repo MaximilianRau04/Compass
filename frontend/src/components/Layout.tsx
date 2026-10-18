@@ -8,6 +8,7 @@ const NAV: { to: string; label: MessageKey; icon: string }[] = [
   { to: '/aufgaben', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
   { to: '/kalender', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12' },
+  { to: '/schlaf', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z' },
 ]
 
 function Icon({ d }: { d: string }) {

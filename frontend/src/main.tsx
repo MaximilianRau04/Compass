@@ -10,6 +10,7 @@ import { Layout } from './components/Layout'
 import { I18nProvider } from './i18n/I18nProvider'
 import { CalendarPage } from './pages/Calendar'
 import { SharePage } from './pages/Share'
+import { SleepPage } from './pages/Sleep'
 import { TasksPage } from './pages/Tasks'
 import { TodayPage } from './pages/Today'
 import { TrainingPage } from './pages/Training'
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="aufgaben" element={<TasksPage />} />
             <Route path="kalender" element={<CalendarPage />} />
             <Route path="training" element={<TrainingPage />} />
+            <Route path="schlaf" element={<SleepPage />} />
             <Route path="share" element={<SharePage />} />
           </Route>
         </Routes>

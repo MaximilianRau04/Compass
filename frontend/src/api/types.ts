@@ -172,3 +172,65 @@ export interface ImportResult {
   first: string
   last: string
 }
+
+export type SleepStage = 'deep' | 'light' | 'rem' | 'awake' | 'awake_in_bed' | 'out_of_bed' | 'sleeping' | 'unknown'
+
+export interface SleepNight {
+  id: number
+  local_date: string
+  start_at: string
+  end_at: string
+  in_bed_minutes: number
+  asleep_minutes: number
+  deep_minutes: number | null
+  light_minutes: number | null
+  rem_minutes: number | null
+  awake_minutes: number | null
+  source_app: string
+}
+
+export interface SleepNightDetail extends SleepNight {
+  stages: { start: string; end: string; stage: SleepStage }[]
+  heart_rate: { time: string; bpm: number }[]
+}
+
+export interface DailyMetrics {
+  date: string
+  steps: number | null
+  kcal_burned: number | null
+  resting_hr: number | null
+  hr_min: number | null
+  hr_avg: number | null
+  hr_max: number | null
+  sleep_minutes: number | null
+}
+
+export interface Workout {
+  id: string
+  source_app: string
+  start_at: string
+  end_at: string
+  duration_minutes: number
+  title: string | null
+  exercise: string | null
+  gymday_duplicate: boolean
+}
+
+export interface HealthSummary {
+  since: string
+  until: string
+  last_night: SleepNightDetail | null
+  nights: SleepNight[]
+  days: DailyMetrics[]
+  averages: {
+    sleep_minutes: number | null
+    deep_minutes: number | null
+    light_minutes: number | null
+    rem_minutes: number | null
+    awake_minutes: number | null
+    resting_hr: number | null
+    steps: number | null
+  }
+  workouts: Workout[]
+  sync: { last_run_at: string | null; last_success_at: string | null; last_error: string | null; device: string | null } | null
+}
