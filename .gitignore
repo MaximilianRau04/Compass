@@ -28,3 +28,6 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# Commit the server last deployed (infra/deploy/auto-deploy.sh)
+.deployed

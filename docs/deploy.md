@@ -326,6 +326,35 @@ remove the app from the home screen and install it again from the browser.
 
 ## Updating
 
+### Automatically
+
+A timer on the server checks `main` every two minutes. Once CI has pushed the images for the newest
+commit, it pulls the commit, writes a database dump, and restarts the changed containers. If CI fails, no
+images appear and the server stays on the old version. One-time setup:
+
+```bash
+cd /opt/compass
+sudo cp infra/deploy/systemd/compass-deploy.{service,timer} /etc/systemd/system/
+sudo sed -i "s/^User=compass/User=$USER/" /etc/systemd/system/compass-deploy.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now compass-deploy.timer
+```
+
+Follow it with `journalctl -u compass-deploy -f`. The deployed commit is in `/opt/compass/.deployed`.
+To pause automatic updates, run `sudo systemctl stop compass-deploy.timer`.
+
+To roll back, stop the timer and start the images of an older commit (CI tags every image with its
+commit). Then push a revert to `main` and start the timer again:
+
+```bash
+sudo systemctl stop compass-deploy.timer
+COMPASS_VERSION=<sha> docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+```
+
+A rollback does not undo database migrations; the dump written before each update has the old state.
+
+### By hand
+
 Push to `main` and wait for CI to finish. Then run on the server:
 
 ```bash
