@@ -318,6 +318,22 @@ Check the first sync in the Tasks tab (calendar view, "fetch now") or on the ser
 asks for the login). Run it twice: the second run must report `"created": 0` for the deadlines, otherwise the feed's UIDs are not
 stable.
 
+## 7. Health Connect bridge on the phone
+
+Sleep and health data arrive from the Android app in `android/` (build and setup in its README).
+It posts to `/api/ingest/healthconnect` on the dashboard address. That path is exempt from the
+basic auth in Caddy and needs a bearer token instead:
+
+| Variable | Value |
+|---|---|
+| `HEALTHCONNECT_TOKEN` | output of `openssl rand -hex 32`; empty disables the endpoint (503) |
+| `HEALTHCONNECT_GYMDAY_APPS` | package of Gym Day (default `com.anthonyng.workoutapp`), for the session durations |
+
+After `make deploy`, check the token from the laptop:
+`curl -H "Authorization: Bearer <token>" https://<dashboard host>/api/ingest/healthconnect`
+must answer `{"ok": true, ...}`. Enter the same address and token in the app. The phone reaches the
+server over the VPN like the dashboard, nothing new becomes public.
+
 ## Sharing the Gym Day export from the phone
 
 The installed PWA is a share target for CSV files. After an update that changed the share target,

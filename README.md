@@ -31,6 +31,7 @@ The interface is available in German and English (switch in the navigation). On 
 |---|---|
 | `backend/` | FastAPI API, worker (APScheduler) and MCP server for Claude. Python 3.12, uv, SQLAlchemy 2, Alembic |
 | `frontend/` | React + TypeScript + Vite, served from the Caddy image |
+| `android/` | Health Connect bridge app (Kotlin), pushes sleep and health data to the API |
 | `infra/` | Docker Compose, Caddyfile |
 | `data/` | Local raw data exports, not committed |
 
@@ -73,11 +74,25 @@ overlapping export again changes nothing. It shows volume per week, the push/pul
 progression per exercise (estimated 1RM, top weight, reps). Exercises renamed in Gym Day can be merged
 so their progression continues in one line.
 
+## Sleep and health
+
+Sleep, steps, heart rate and workouts come from the watch (Zepp) through Health Connect. Health Connect
+only lives on the phone, so a small Android app (`android/`, see its README) pushes the changes every
+hour to `/api/ingest/healthconnect`, protected by its own token (`HEALTHCONNECT_TOKEN`) instead of the
+dashboard login. Every record is stored as it arrived; derived from it are sleep sessions with stages
+(a night counts for the day of waking up), heart rate samples and daily metrics. When two apps write the
+same steps or sleep, a day takes the source with the larger total instead of adding them up.
+
+The Sleep tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
+from other apps than Gym Day. Gym Day writes its sessions (without sets) to Health Connect as well;
+Compass matches them with the sessions from the CSV export to fill in the duration in the Training tab.
+Nutrition and weight are already received and stored, they get their own views in a later phase.
+
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
 built-in login. Tools: `get_today`, `list_tasks`, `get_deadlines`, `get_task`, `list_areas`,
-`get_calendar`, `training_summary`, `exercise_progress`, `add_task`, `quick_add`, `update_task`,
+`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `add_task`, `quick_add`, `update_task`,
 `complete_task`; prompts: `daily_brief`, `weekly_review`.
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 
