@@ -6,8 +6,8 @@ arrive any number of times (the app retries after network errors), an edited rec
 old version, a deletion marks the record as deleted and removes what was derived from it.
 
 Every record is kept as it arrived (`health_records.raw`). Derived from it: sleep sessions with
-stages, heart rate samples, the daily metrics of each touched day and the duration of Gym Day
-sessions. Nutrition and weight are only stored for now (phase 5).
+stages, heart rate samples, the daily metrics of each touched day, the duration of Gym Day
+sessions, and the meals and weights of each touched day (app.services.nutrition).
 """
 
 import logging
@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.models.health import HealthRecord, HeartRateSample, SleepSession
 from app.schemas.health import IngestPayload, IngestRecord
-from app.services import health, integrations
+from app.services import health, integrations, nutrition
 from app.services.clock import local_tz, utc_now
 
 log = logging.getLogger("compass.healthconnect")
@@ -173,6 +173,7 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
     session.flush()
 
     health.recompute_days(session, touched)
+    nutrition.rebuild_from_healthconnect(session, touched)
     if exercise_touched and touched:
         health.match_gymday_sessions(session, min(touched), max(touched))
 

@@ -41,7 +41,7 @@ export default defineConfig({
             files: [
               {
                 name: 'file',
-                accept: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/csv', '.csv'],
+                accept: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/csv', '.csv', 'application/zip', '.zip'],
               },
             ],
           },

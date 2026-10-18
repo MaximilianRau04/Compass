@@ -129,3 +129,15 @@ export function compact(value: number, locale: string): string {
 export function decimal(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)
 }
+
+/** Toggle button style for range and metric pickers. */
+export const pill = (active: boolean) =>
+  [
+    'rounded-full border px-3 py-1 text-sm transition-colors',
+    active ? 'border-ink bg-ink text-paper' : 'border-rule text-muted hover:border-ink hover:text-ink',
+  ].join(' ')
+
+/** Every day of the range, oldest first, so missing days show as gaps and not as zero. */
+export function rangeDays(since: string, until: string): string[] {
+  return Array.from({ length: daysBetween(since, until) + 1 }, (_, i) => addDays(since, i))
+}

@@ -84,15 +84,18 @@ export function ColumnChart({
   tooltip,
   format,
   ariaLabel,
+  target,
 }: {
   data: BarDatum[]
   tooltip: (d: BarDatum) => ReactNode
   format: (value: number) => string
   ariaLabel: string
+  /** Reference line, e.g. a daily goal. */
+  target?: { value: number; label: string }
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
-  const max = Math.max(...data.map((d) => d.value), 1)
+  const max = Math.max(...data.map((d) => d.value), target ? target.value * 1.05 : 0, 1)
   const ticks = niceTicks(0, max)
   const top = ticks[ticks.length - 1]
   const innerW = Math.max(0, width - PAD.left - PAD.right)
@@ -149,6 +152,31 @@ export function ColumnChart({
             )
           })}
           <line x1={PAD.left} x2={width - PAD.right} y1={y(0)} y2={y(0)} stroke="var(--muted)" strokeOpacity={0.5} strokeWidth={1} />
+          {target && (
+            <g className="pointer-events-none">
+              <line
+                x1={PAD.left}
+                x2={width - PAD.right}
+                y1={y(target.value)}
+                y2={y(target.value)}
+                stroke="var(--ink)"
+                strokeOpacity={0.7}
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+              {/* A halo in the surface color keeps the label legible where it crosses columns. */}
+              <text
+                x={PAD.left + 4}
+                y={y(target.value) - 5}
+                stroke="var(--paper)"
+                strokeWidth={3}
+                paintOrder="stroke"
+                className="fill-ink font-mono text-[10px]"
+              >
+                {target.label}
+              </text>
+            </g>
+          )}
         </svg>
       )}
       {hover !== null && (
@@ -173,6 +201,7 @@ export function LineChart({
   format,
   ariaLabel,
   dayLabel,
+  gapDays,
 }: {
   data: LinePoint[]
   tooltip: (p: LinePoint) => ReactNode
@@ -180,6 +209,8 @@ export function LineChart({
   ariaLabel: string
   /** Label days instead of months, for ranges of a few weeks. */
   dayLabel?: (date: string) => string
+  /** Break the line where two points are further apart than this (no data in between). */
+  gapDays?: number
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
@@ -198,8 +229,18 @@ export function LineChart({
   const x = (time: number) => PAD.left + (t1 === t0 ? innerW / 2 : ((time - t0) / (t1 - t0)) * innerW)
   const y = (v: number) => PAD.top + innerH - ((v - ticks[0]) / (ticks[ticks.length - 1] - ticks[0])) * innerH
   const points = data.map((p, i) => [x(times[i]), y(p.value)] as const)
-  const line = points.map(([px, py], i) => `${i ? 'L' : 'M'}${px},${py}`).join('')
-  const area = `${line}L${points[points.length - 1][0]},${PAD.top + innerH}L${points[0][0]},${PAD.top + innerH}Z`
+  // Segments between gaps; each gets its own line and area.
+  const segments: (readonly [number, number])[][] = []
+  points.forEach((point, i) => {
+    const gap = gapDays !== undefined && i > 0 && times[i] - times[i - 1] > gapDays * 86_400_000
+    if (i === 0 || gap) segments.push([])
+    segments[segments.length - 1].push(point)
+  })
+  const line = segments.map((seg) => seg.map(([px, py], i) => `${i ? 'L' : 'M'}${px},${py}`).join('')).join('')
+  const bottom = PAD.top + innerH
+  const area = segments
+    .map((seg) => `${seg.map(([px, py], i) => `${i ? 'L' : 'M'}${px},${py}`).join('')}L${seg[seg.length - 1][0]},${bottom}L${seg[0][0]},${bottom}Z`)
+    .join('')
   const end = points[points.length - 1]
 
   const onMove = (event: React.PointerEvent<SVGRectElement>) => {

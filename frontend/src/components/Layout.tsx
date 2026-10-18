@@ -9,6 +9,7 @@ const NAV: { to: string; label: MessageKey; icon: string }[] = [
   { to: '/kalender', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12' },
   { to: '/schlaf', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z' },
+  { to: '/ernaehrung', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3' },
 ]
 
 function Icon({ d }: { d: string }) {

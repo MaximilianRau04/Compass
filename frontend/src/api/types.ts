@@ -234,3 +234,49 @@ export interface HealthSummary {
   workouts: Workout[]
   sync: { last_run_at: string | null; last_success_at: string | null; last_error: string | null; device: string | null } | null
 }
+
+export type MealName = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'unknown'
+export type GoalMetric = 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g'
+
+export interface NutritionDay {
+  date: string
+  source: 'healthconnect' | 'mfp_export'
+  kcal: number
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  fiber_g: number | null
+  sugar_g: number | null
+  sodium_mg: number | null
+  meals: { meal: MealName; kcal: number; protein_g: number | null; carbs_g: number | null; fat_g: number | null }[]
+}
+
+export interface WeightPoint {
+  date: string
+  kg: number
+  source: string
+}
+
+export interface NutritionSummary {
+  since: string
+  until: string
+  days: NutritionDay[]
+  goals: Partial<Record<GoalMetric, number>>
+  averages: { kcal: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null; fiber_g: number | null; sugar_g: number | null }
+  weeks: { week_start: string; days_tracked: number; kcal: number; protein_g: number | null }[]
+  protein_goal_days: number | null
+  weight: WeightPoint | null
+  weight_change: number | null
+}
+
+export interface MfpImportResult {
+  meals_created: number
+  meals_updated: number
+  meals_unchanged: number
+  days: number
+  weights: number
+  weights_created: number
+  first: string
+  last: string
+  ignored_files: string[]
+}

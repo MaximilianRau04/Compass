@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.config import get_settings
 from app.ingestion import gymday, healthconnect
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
+from app.models.nutrition import BodyWeight, NutritionMeal
 from app.models.training import TrainingSession
 from app.schemas.health import IngestPayload
 from app.services.clock import local_today
@@ -356,3 +357,7 @@ def test_bridge_app_output_is_accepted(session):
     sleep = session.scalar(select(SleepSession).where(SleepSession.record_id == "sleep-1"))
     assert (sleep.light_minutes, sleep.deep_minutes) == (60, 420)
     assert session.get(HealthRecord, "meal-1").raw["data"]["meal_type"] == "breakfast"
+    meal = session.scalar(select(NutritionMeal).where(NutritionMeal.source == "healthconnect"))
+    assert (meal.meal, meal.kcal, meal.protein_g) == ("breakfast", 650, 40)
+    weight = session.scalar(select(BodyWeight).where(BodyWeight.source == "healthconnect"))
+    assert float(weight.kg) == 78.7

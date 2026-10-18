@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
+import { useNutritionSummary } from '../api/nutrition'
 import { useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
-import type { HealthSummary, Task } from '../api/types'
+import type { HealthSummary, NutritionSummary, Task } from '../api/types'
 import { CompassDial } from '../components/CompassDial'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
@@ -14,6 +15,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { addDays, clockTime, longDate } from '../lib/format'
 import { hours } from '../lib/health'
+import { grams, kcal } from '../lib/nutrition'
 
 /** Last night's sleep in one line, only while it is current (woke up today or yesterday). */
 function LastNight({ summary, today }: { summary: HealthSummary | undefined; today: string }) {
@@ -35,10 +37,32 @@ function LastNight({ summary, today }: { summary: HealthSummary | undefined; tod
   )
 }
 
+/** Calories and protein logged today against the goals; hidden until something is logged. */
+function NutritionToday({ summary, today }: { summary: NutritionSummary | undefined; today: string }) {
+  const { t, locale } = useI18n()
+  const day = summary?.days.find((d) => d.date === today)
+  if (!summary || !day) return null
+  const { kcal: kcalGoal, protein_g: proteinGoal } = summary.goals
+  return (
+    <Link to="/ernaehrung" className="block rounded-md border border-rule bg-paper-raised px-3 py-2.5 hover:border-ink">
+      <span className="text-xs text-muted">{t('today.nutrition')}</span>
+      <span className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+        <span className="text-2xl font-semibold">{kcal(day.kcal, locale)}</span>
+        <span className="font-mono text-[12px] text-muted">
+          {kcalGoal && `${t('nutrition.ofGoal', { goal: Math.round(kcalGoal).toLocaleString(locale) })} · `}
+          {day.protein_g !== null && t('today.protein', { g: grams(day.protein_g) })}
+          {day.protein_g !== null && proteinGoal && ` / ${grams(proteinGoal)}`}
+        </span>
+      </span>
+    </Link>
+  )
+}
+
 export function TodayPage() {
   const { t, locale } = useI18n()
   const { data, isPending, error } = useToday()
   const health = useHealthSummary(7)
+  const food = useNutritionSummary(7)
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
 
@@ -75,7 +99,7 @@ export function TodayPage() {
       </div>
 
       {visible.length === 0 && data.done_today.length === 0 && data.events.length === 0 && (
-        <p className="max-w-md text-muted">
+        <p className="mb-8 max-w-md text-muted">
           {emptyBefore}
           <code className="font-mono text-ink">{t('today.emptyCode')}</code>
           {emptyAfter}
@@ -83,7 +107,10 @@ export function TodayPage() {
       )}
 
       <div className="space-y-8">
-        <LastNight summary={health.data} today={today} />
+        <div className="grid gap-2 empty:hidden sm:grid-cols-2">
+          <LastNight summary={health.data} today={today} />
+          <NutritionToday summary={food.data} today={today} />
+        </div>
 
         {data.events.length > 0 && (
           <section>

@@ -86,13 +86,27 @@ same steps or sleep, a day takes the source with the larger total instead of add
 The Sleep tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
 from other apps than Gym Day. Gym Day writes its sessions (without sets) to Health Connect as well;
 Compass matches them with the sessions from the CSV export to fill in the duration in the Training tab.
-Nutrition and weight are already received and stored, they get their own views in a later phase.
+Nutrition and weight from Health Connect feed the Nutrition tab (below).
+
+## Nutrition
+
+MyFitnessPal writes every meal to Health Connect, so meals arrive with the bridge app like sleep does.
+Compass sums them per day and meal (breakfast, lunch, dinner, snacks). If two apps write nutrition for
+the same day, the one with more calories counts instead of both. The MFP data export (the zip MFP
+mails, or its CSV files) fills in the past: upload it in the Nutrition tab or share it from the phone.
+Importing it again changes nothing, and for days that also have Health Connect data, those win. Days
+without entries were not logged and stay empty in the charts, never 0 kcal. The export's weight file
+fills the weight history; new weights come from Health Connect.
+
+Daily goals for calories and protein apply from the day they are set, so earlier days keep the goal
+they had. The Nutrition tab shows today against the goals, calories and protein per day, average
+macros and the full weight history.
 
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
 built-in login. Tools: `get_today`, `list_tasks`, `get_deadlines`, `get_task`, `list_areas`,
-`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `add_task`, `quick_add`, `update_task`,
+`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `add_task`, `quick_add`, `update_task`,
 `complete_task`; prompts: `daily_brief`, `weekly_review`.
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 

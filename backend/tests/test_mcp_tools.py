@@ -54,10 +54,18 @@ async def test_tools_are_listed_with_annotations(client):
         "training_summary",
         "exercise_progress",
         "sleep_summary",
+        "nutrition_summary",
+        "set_nutrition_goal",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
-    for name in ("get_calendar", "training_summary", "exercise_progress", "sleep_summary"):
+    for name in (
+        "get_calendar",
+        "training_summary",
+        "exercise_progress",
+        "sleep_summary",
+        "nutrition_summary",
+    ):
         assert tools[name].annotations.read_only_hint is True
 
 
@@ -224,3 +232,23 @@ async def test_sleep_summary(client, session):
     assert last["asleep_minutes"] == 450
     assert summary["avg_steps"] == 8000
     assert summary["last_sync"] is not None
+
+
+@pytest.mark.anyio
+async def test_nutrition_summary_and_goal(client, session):
+    today = local_today()
+    meal = record("m", "nutrition", at(today, "12:00"), at(today, "12:00"))
+    meal["data"] = {"meal_type": "lunch", "energy_kcal": 700, "protein_g": 45}
+    ingest(session, [meal])
+
+    goal = await call(client, "set_nutrition_goal", metric="protein_g", value=170)
+    assert (goal["metric"], goal["value"]) == ("protein_g", 170)
+
+    summary = await call(client, "nutrition_summary", days=7)
+    assert summary["goals"] == {"protein_g": 170}
+    [day] = summary["days"]
+    assert day["meals_kcal"] == {"lunch": 700}
+    assert day["protein_g"] == 45
+
+    error = await call_error(client, "set_nutrition_goal", metric="kcal", value=-5)
+    assert "greater than 0" in error
