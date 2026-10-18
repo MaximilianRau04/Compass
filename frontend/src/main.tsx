@@ -8,6 +8,7 @@ import { Toaster } from 'sonner'
 
 import { Layout } from './components/Layout'
 import { I18nProvider } from './i18n/I18nProvider'
+import { CalendarPage } from './pages/Calendar'
 import { SharePage } from './pages/Share'
 import { TasksPage } from './pages/Tasks'
 import { TodayPage } from './pages/Today'
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')!).render(
           <Route element={<Layout />}>
             <Route index element={<TodayPage />} />
             <Route path="aufgaben" element={<TasksPage />} />
+            <Route path="kalender" element={<CalendarPage />} />
             <Route path="training" element={<TrainingPage />} />
             <Route path="share" element={<SharePage />} />
           </Route>

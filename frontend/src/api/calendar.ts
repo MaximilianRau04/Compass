@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, post } from './client'
 import { keys as taskKeys } from './tasks'
@@ -15,6 +15,8 @@ export function useCalendar(start: string, end: string) {
     queryKey: calendarKeys.range(start, end),
     queryFn: () => api<CalendarEvent[]>(`/calendar?start=${start}&end=${end}`),
     staleTime: 5 * 60_000,
+    // Keep the last range on screen while the next one loads, so paging does not flash empty.
+    placeholderData: keepPreviousData,
   })
 }
 

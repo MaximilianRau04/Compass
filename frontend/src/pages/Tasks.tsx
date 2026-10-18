@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Navigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { useAreas, useTasks, useTodayDate, useUpdateTask } from '../api/tasks'
 import type { Task, TaskStatus } from '../api/types'
-import { CalendarAgenda } from '../components/CalendarAgenda'
 import { SectionLabel } from '../components/Layout'
 import { QuickAdd } from '../components/QuickAdd'
 import { TaskItem } from '../components/TaskItem'
@@ -13,10 +12,10 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { AREA_BG, daysBetween } from '../lib/format'
 
-type View = 'list' | 'board' | 'calendar'
+type View = 'list' | 'board'
 
-// The view lives in the URL (?ansicht=kalender), so it survives reloads and can be linked.
-const VIEW_PARAM: Record<View, string> = { list: 'liste', board: 'board', calendar: 'kalender' }
+// The view lives in the URL (?ansicht=board), so it survives reloads and can be linked.
+const VIEW_PARAM: Record<View, string> = { list: 'liste', board: 'board' }
 type Scope = 'active' | 'done' | 'cancelled'
 
 const SCOPES: Record<Scope, { label: MessageKey; status: TaskStatus[] }> = {
@@ -61,18 +60,16 @@ export function TasksPage() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<Task | null>(null)
 
-  const status =
-    view === 'board'
-      ? (['open', 'in_progress', 'done'] as TaskStatus[])
-      : view === 'calendar'
-        ? SCOPES.active.status
-        : SCOPES[scope].status
+  const status = view === 'board' ? (['open', 'in_progress', 'done'] as TaskStatus[]) : SCOPES[scope].status
   const tasks = useTasks({ status, areaId, q: q.trim() || undefined })
   const areas = useAreas()
   const today = useTodayDate()
   const update = useUpdateTask()
 
   const list = tasks.data ?? []
+
+  // The calendar used to be a view of this page; old links and bookmarks still lead there.
+  if (params.get('ansicht') === 'kalender') return <Navigate to="/kalender" replace />
 
   return (
     <>
@@ -84,9 +81,6 @@ export function TasksPage() {
           </button>
           <button type="button" className={toggle(view === 'board')} onClick={() => setView('board')}>
             {t('tasks.board')}
-          </button>
-          <button type="button" className={toggle(view === 'calendar')} onClick={() => setView('calendar')}>
-            {t('cal.view')}
           </button>
         </div>
       </header>
@@ -127,7 +121,7 @@ export function TasksPage() {
       </div>
 
       {tasks.error && <p className="text-signal">{t('tasks.loadError', { message: tasks.error.message })}</p>}
-      {tasks.isSuccess && list.length === 0 && view !== 'calendar' && (
+      {tasks.isSuccess && list.length === 0 && (
         <p className="text-muted">
           {q || areaId ? t('tasks.emptyFiltered') : t('tasks.empty')}
         </p>
@@ -194,8 +188,6 @@ export function TasksPage() {
           })}
         </div>
       )}
-
-      {view === 'calendar' && <CalendarAgenda tasks={list} today={today} onOpen={setOpen} />}
 
       <TaskSheet task={open} onClose={() => setOpen(null)} />
     </>

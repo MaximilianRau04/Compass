@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 
 import { type Lang, useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -6,6 +6,7 @@ import type { MessageKey } from '../i18n/messages'
 const NAV: { to: string; label: MessageKey; icon: string }[] = [
   { to: '/', label: 'nav.today', icon: 'M12 3v2M12 19v2M3 12h2M19 12h2M12 8l2 4-2 4-2-4z' },
   { to: '/aufgaben', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
+  { to: '/kalender', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12' },
 ]
 
@@ -45,6 +46,8 @@ function LanguageSwitch() {
 
 export function Layout() {
   const { t } = useI18n()
+  // The calendar grid needs the room; text pages stay at a readable width.
+  const wide = useLocation().pathname.startsWith('/kalender')
   return (
     <div className="relative min-h-dvh sm:flex">
       <LanguageSwitch />
@@ -78,7 +81,7 @@ export function Layout() {
           </NavLink>
         ))}
       </nav>
-      <main className="mx-auto w-full max-w-3xl px-4 pt-16 pb-44 sm:px-10 sm:pt-10 sm:pb-16">
+      <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-16 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
         <Outlet />
       </main>
     </div>

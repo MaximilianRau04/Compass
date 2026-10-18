@@ -293,3 +293,12 @@ def test_sync_all_reports_a_broken_setting_instead_of_crashing(session, monkeypa
     results = calendar.sync_all(lambda: nullcontext(session), fetch=lambda url: ics())
     assert results["google"]["events"] == 0
     assert session.get(IntegrationState, "calendar:config") is None
+
+
+def test_a_new_export_timestamp_is_not_a_change(session):
+    def export(dtstamp: str) -> bytes:
+        return ics(vevent("m", "Meeting", stamp(TODAY, "0900"), extra=f"DTSTAMP:{dtstamp}"))
+
+    calendar.sync_feed(session, "google", export("20261017T190000Z"), TODAY)
+    again = calendar.sync_feed(session, "google", export("20261017T193000Z"), TODAY)
+    assert again["updated"] == 0

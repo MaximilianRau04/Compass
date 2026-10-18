@@ -77,6 +77,14 @@ def _text(component, name: str) -> str | None:
     return text or None
 
 
+def _raw(component) -> str:
+    """The event as ICS text, without DTSTAMP: some servers (Google) stamp every export with
+    the current time, which would make every sync look like a change."""
+    text = component.to_ical().decode("utf-8", "replace")
+    lines = [line for line in text.splitlines() if not line.startswith("DTSTAMP")]
+    return "\n".join(lines)[:MAX_RAW_CHARS]
+
+
 def parse_ics(data: bytes, start: date, end: date) -> list[ParsedEvent]:
     """All event occurrences that overlap [start, end) in local days."""
     tz = local_tz()
@@ -108,7 +116,7 @@ def parse_ics(data: bytes, start: date, end: date) -> list[ParsedEvent]:
                 all_day=all_day,
                 recurring=component.get("RRULE") is not None
                 or component.get("RECURRENCE-ID") is not None,
-                raw=component.to_ical().decode("utf-8", "replace")[:MAX_RAW_CHARS],
+                raw=_raw(component),
             )
         )
     return events
