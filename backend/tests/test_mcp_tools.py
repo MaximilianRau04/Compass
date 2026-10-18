@@ -9,6 +9,7 @@ from app.mcp import db as mcp_db
 from app.mcp.server import mcp
 from app.models.oauth import AuditLog
 from app.services.clock import local_today
+from tests.test_healthconnect import at, ingest, night, record
 
 
 @pytest.fixture
@@ -52,10 +53,11 @@ async def test_tools_are_listed_with_annotations(client):
         "get_calendar",
         "training_summary",
         "exercise_progress",
+        "sleep_summary",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
-    for name in ("get_calendar", "training_summary", "exercise_progress"):
+    for name in ("get_calendar", "training_summary", "exercise_progress", "sleep_summary"):
         assert tools[name].annotations.read_only_hint is True
 
 
@@ -208,3 +210,17 @@ async def test_training_tools(client, session):
     assert bodyweight["sessions"][0]["max_reps"] == 8
 
     assert "No exercise" in await call_error(client, "exercise_progress", exercise="Kreuzheben")
+
+
+@pytest.mark.anyio
+async def test_sleep_summary(client, session):
+    today = local_today()
+    noon = at(today, "12:00")
+    ingest(session, [night(), record("st", "steps", noon, noon, count=8000)])
+    summary = await call(client, "sleep_summary", days=7)
+    [last] = summary["nights"]
+    assert last["date"] == today.isoformat()
+    assert (last["bedtime"], last["wake_time"]) == ("23:00", "07:00")
+    assert last["asleep_minutes"] == 450
+    assert summary["avg_steps"] == 8000
+    assert summary["last_sync"] is not None

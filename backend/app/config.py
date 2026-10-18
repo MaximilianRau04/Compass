@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Area for new ILIAS deadline tasks (slug); empty or unknown means no area.
     ilias_deadline_area: str = "uni"
 
+    # Health Connect bridge app on the phone. It sends this token as a bearer token to
+    # /api/ingest/healthconnect, which is not behind the basic auth. Empty disables the endpoint.
+    healthconnect_token: str = ""
+    # Apps whose Health Connect exercise sessions are Gym Day sessions (they give the duration of
+    # the sessions from the CSV export). Space separated package names.
+    healthconnect_gymday_apps: str = "com.anthonyng.workoutapp"
+
     @property
     def owner_password_hash(self) -> str:
         # In .env every $ of the bcrypt hash is written as $$ for Docker Compose.
@@ -45,6 +52,10 @@ class Settings(BaseSettings):
     @property
     def mcp_resource_url(self) -> str:
         return self.mcp_public_url.rstrip("/") + "/mcp"
+
+    @property
+    def gymday_apps(self) -> set[str]:
+        return set(self.healthconnect_gymday_apps.split())
 
     @property
     def calendar_feeds(self) -> dict[str, str]:

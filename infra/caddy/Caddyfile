@@ -31,8 +31,9 @@
 	encode zstd gzip
 
 	# Everyone in the tailnet can reach the server, so the app needs its own login.
-	# /api/health stays open for monitoring.
-	@protected not path /api/health
+	# /api/health stays open for monitoring. /api/ingest/* is for the Health Connect bridge on
+	# the phone and checks its own bearer token (HEALTHCONNECT_TOKEN) in the API.
+	@protected not path /api/health /api/ingest/*
 	basic_auth @protected {
 		{$COMPASS_BASIC_AUTH_USER} {$COMPASS_BASIC_AUTH_HASH}
 	}

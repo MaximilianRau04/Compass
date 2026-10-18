@@ -45,8 +45,11 @@ class TrainingSession(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     workout_name: Mapped[str] = mapped_column(String(120))
-    # Filled later from Health Connect; the Gym Day export has no duration.
+    # The Gym Day export has no duration; it comes from the matching Health Connect session.
     duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    health_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("health_records.id", ondelete="SET NULL"), unique=True
+    )
     source: Mapped[str] = mapped_column(String(40), default="gymday")
 
     sets: Mapped[list["ExerciseSet"]] = relationship(

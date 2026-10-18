@@ -1,0 +1,100 @@
+[
+  {
+    "data": {"stages": [
+      {
+        "stage": "light",
+        "start": "2026-10-17T21:00:00Z",
+        "end": "2026-10-17T22:00:00Z"
+      },
+      {
+        "stage": "deep",
+        "start": "2026-10-17T22:00:00Z",
+        "end": "2026-10-18T05:00:00Z"
+      }
+    ]},
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-18T05:00:00Z",
+    "id": "sleep-1",
+    "source": "",
+    "type": "sleep",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {"count": 1234},
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-17T21:10:00Z",
+    "id": "steps-1",
+    "source": "",
+    "type": "steps",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {"samples": [
+      {
+        "time": "2026-10-17T21:00:00Z",
+        "bpm": 58
+      },
+      {
+        "time": "2026-10-17T21:01:00Z",
+        "bpm": 61
+      }
+    ]},
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-17T21:02:00Z",
+    "id": "hr-1",
+    "source": "",
+    "type": "heart_rate",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {"bpm": 52},
+    "start": "2026-10-17T21:00:00Z",
+    "id": "rhr-1",
+    "source": "",
+    "type": "resting_heart_rate",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {
+      "exercise": "strength_training",
+      "title": "Leg day",
+      "exercise_type": 70
+    },
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-17T22:15:00Z",
+    "id": "ex-1",
+    "source": "",
+    "type": "exercise",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {
+      "meal_type": "breakfast",
+      "protein_g": 40,
+      "energy_kcal": 650
+    },
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-17T21:15:00Z",
+    "id": "meal-1",
+    "source": "",
+    "type": "nutrition",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {"kg": 78.7},
+    "start": "2026-10-17T21:00:00Z",
+    "id": "weight-1",
+    "source": "",
+    "type": "weight",
+    "last_modified": "1970-01-01T00:00:00Z"
+  },
+  {
+    "data": {"kcal": 2400},
+    "start": "2026-10-17T21:00:00Z",
+    "end": "2026-10-18T05:00:00Z",
+    "id": "kcal-1",
+    "source": "",
+    "type": "total_calories",
+    "last_modified": "1970-01-01T00:00:00Z"
+  }
+]

@@ -5,6 +5,9 @@ x-backend: &backend
   env_file: ../.env
   environment:
     POSTGRES_HOST: db
+    # Inside the Docker network Postgres always listens on 5432. POSTGRES_PORT in .env is only the
+    # published port on localhost (docker-compose.dev.yml), e.g. 5433 next to a system Postgres.
+    POSTGRES_PORT: "5432"
   depends_on:
     db:
       condition: service_healthy

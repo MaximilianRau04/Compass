@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSession
-from app.services import integrations
+from app.services import health, integrations
 from app.services.clock import local_tz
 
 REQUIRED = {"Date", "Workout name", "Exercise", "Set", "Weight", "Reps", "Measurement unit"}
@@ -177,7 +177,9 @@ def import_csv(session: Session, data: bytes) -> dict:
             unchanged += 1
     session.flush()
 
+    # Health Connect may already have the duration of these sessions.
     tz = local_tz()
+    health.match_gymday_sessions(session, first.astimezone(tz).date(), last.astimezone(tz).date())
     stats = {
         "rows": len(rows),
         "sessions_created": sessions_created,
