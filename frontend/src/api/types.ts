@@ -106,6 +106,7 @@ export interface SessionBrief {
   sets: number
   volume_kg: number
   duration_minutes: number | null
+  source: 'gymday' | 'healthconnect'
 }
 
 export interface TrainingWeek {

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from statistics import mean
 
-from sqlalchemy import Integer, func, select
+from sqlalchemy import Integer, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -17,6 +17,8 @@ from app.services.clock import local_today, local_tz, utc_now
 # A Gym Day session from the CSV and its Health Connect entry are the same session when the CSV
 # timestamp lies within the Health Connect session, give or take this much.
 GYMDAY_SLACK = timedelta(hours=1)
+# Source of a training session that only exists in Health Connect (no sets from the CSV).
+HEALTHCONNECT_SESSION = "healthconnect"
 
 
 def _day_bounds(first: date, last: date) -> tuple[datetime, datetime]:
@@ -139,18 +141,22 @@ def recompute_days(session: Session, days: set[date]) -> None:
 def match_gymday_sessions(session: Session, first: date, last: date) -> int:
     """Link Gym Day sessions from the CSV to their Health Connect entry and take its duration.
 
-    The CSV has a timestamp but no duration; Gym Day writes the session (start and end, no sets)
-    to Health Connect. Pairs are matched one to one, closest start first. Returns the number of
-    linked sessions in the range."""
+    The CSV has a timestamp but no duration; Gym Day writes every session (name, start and end,
+    no sets) to Health Connect, also without a Premium export. Pairs are matched one to one,
+    closest start first. A Health Connect session without a CSV session becomes a training
+    session of its own without sets (source "healthconnect"); once a CSV import brings its sets,
+    the CSV session takes over and the placeholder goes away. Returns the number of sessions
+    with a Health Connect entry in the range."""
     apps = get_settings().gymday_apps
     start, end = _day_bounds(first - timedelta(days=1), last + timedelta(days=1))
-    trainings = list(
+    in_range = list(
         session.scalars(
             select(TrainingSession).where(
                 TrainingSession.started_at >= start, TrainingSession.started_at < end
             )
         )
     )
+    trainings = [t for t in in_range if t.source != HEALTHCONNECT_SESSION]
     records = list(
         session.scalars(
             select(HealthRecord).where(
@@ -162,17 +168,25 @@ def match_gymday_sessions(session: Session, first: date, last: date) -> int:
             )
         )
     )
+    # Placeholders in the range plus those of records in the slack just outside it.
+    placeholders = {
+        t.health_record_id: t
+        for t in session.scalars(
+            select(TrainingSession).where(
+                TrainingSession.source == HEALTHCONNECT_SESSION,
+                or_(
+                    and_(TrainingSession.started_at >= start, TrainingSession.started_at < end),
+                    TrainingSession.health_record_id.in_([r.id for r in records]),
+                ),
+            )
+        )
+    }
     pairs = sorted(
         (abs(r.start_at - t.started_at), t.id, r.id)
         for t in trainings
         for r in records
         if r.start_at - GYMDAY_SLACK <= t.started_at <= r.end_at + GYMDAY_SLACK
     )
-    by_id = {r.id: r for r in records}
-    for t in trainings:
-        t.health_record_id = None
-    session.flush()
-
     linked: dict[int, str] = {}
     used: set[str] = set()
     for _, training_id, record_id in pairs:
@@ -180,14 +194,38 @@ def match_gymday_sessions(session: Session, first: date, last: date) -> int:
             continue
         linked[training_id] = record_id
         used.add(record_id)
+
+    # Placeholders whose record is gone or now belongs to a CSV session go first, so the
+    # record id is free (it is unique on training_sessions).
+    by_id = {r.id: r for r in records}
+    for record_id in list(placeholders):
+        if record_id not in by_id or record_id in used:
+            session.delete(placeholders.pop(record_id))
+    for t in trainings:
+        t.health_record_id = None
+    session.flush()
+
     for t in trainings:
         record = by_id.get(linked.get(t.id, ""))
         t.health_record_id = record.id if record else None
-        t.duration_minutes = (
-            round((record.end_at - record.start_at).total_seconds() / 60) if record else None
-        )
+        t.duration_minutes = _minutes_between(record) if record else None
+    for record in records:
+        if record.id in used:
+            continue
+        placeholder = placeholders.get(record.id)
+        if placeholder is None:
+            placeholder = TrainingSession(source=HEALTHCONNECT_SESSION, health_record_id=record.id)
+            session.add(placeholder)
+        title = ((record.raw.get("data") or {}).get("title") or "").strip()
+        placeholder.started_at = record.start_at
+        placeholder.workout_name = title[:120] or "Training"
+        placeholder.duration_minutes = _minutes_between(record)
     session.flush()
-    return len(linked)
+    return len(records)
+
+
+def _minutes_between(record: HealthRecord) -> int:
+    return round((record.end_at - record.start_at).total_seconds() / 60)
 
 
 # --- Reading -----------------------------------------------------------------------------------

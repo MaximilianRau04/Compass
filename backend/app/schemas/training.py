@@ -12,6 +12,7 @@ class SessionBrief(BaseModel):
     sets: int
     volume_kg: float
     duration_minutes: int | None
+    source: str = Field(description="gymday (CSV with sets) or healthconnect (session only)")
 
 
 class WeekRead(BaseModel):

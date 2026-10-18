@@ -138,6 +138,7 @@ class SessionOut(BaseModel):
     sets: int
     volume_kg: float
     duration_minutes: int | None = Field(description="From Health Connect, if Gym Day wrote it")
+    with_sets: bool = Field(description="False: only known from Health Connect, no sets logged")
 
 
 class TrainingSummaryOut(BaseModel):
@@ -314,6 +315,7 @@ def _session_out(s: TrainingSession) -> SessionOut:
         sets=len(s.sets),
         volume_kg=round(sum(training.set_volume(x) for x in s.sets)),
         duration_minutes=s.duration_minutes,
+        with_sets=bool(s.sets),
     )
 
 

@@ -86,6 +86,8 @@ same steps or sleep, a day takes the source with the larger total instead of add
 The Sleep tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
 from other apps than Gym Day. Gym Day writes its sessions (without sets) to Health Connect as well;
 Compass matches them with the sessions from the CSV export to fill in the duration in the Training tab.
+A session that is only in Health Connect (no export, e.g. without Gym Day Premium) still shows up there,
+with name, duration and split but without sets; a later export with its sets takes its place.
 Nutrition and weight from Health Connect feed the Nutrition tab (below).
 
 ## Nutrition

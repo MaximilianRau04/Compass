@@ -131,16 +131,33 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
   const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const detail = useSessionDetail(open ? session.id : null)
+  const when = relativeDay(localDay(session.started_at), today, t, locale)
+  const duration = session.duration_minutes !== null ? `${t('training.duration', { n: session.duration_minutes })} · ` : ''
+  // Known only from Health Connect: name and duration, nothing to expand.
+  if (session.sets === 0) {
+    return (
+      <li className="flex items-baseline justify-between gap-3 py-2.5">
+        <span>
+          <span className="font-medium">{session.workout_name}</span>
+          <span className="ml-2 font-mono text-[11px] text-muted">{when}</span>
+        </span>
+        <span className="font-mono text-[11px] text-muted" title={t('training.withoutSetsHint')}>
+          {duration}
+          {t('training.withoutSets')}
+        </span>
+      </li>
+    )
+  }
   return (
     <li className="py-2.5">
       <details onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
           <span>
             <span className="font-medium">{session.workout_name}</span>
-            <span className="ml-2 font-mono text-[11px] text-muted">{relativeDay(localDay(session.started_at), today, t, locale)}</span>
+            <span className="ml-2 font-mono text-[11px] text-muted">{when}</span>
           </span>
           <span className="font-mono text-[11px] text-muted">
-            {session.duration_minutes !== null && `${t('training.duration', { n: session.duration_minutes })} · `}
+            {duration}
             {t('training.exercisesN', { n: session.exercises })} · {t('training.setsN', { n: session.sets })} ·{' '}
             {compact(session.volume_kg, locale)} kg
           </span>
@@ -271,7 +288,7 @@ export function TrainingPage() {
         <Stat
           label={t('training.lastSession')}
           value={relativeDay(localDay(last.started_at), today, t, locale)}
-          note={`${last.workout_name} · ${t('training.setsN', { n: last.sets })}`}
+          note={`${last.workout_name} · ${last.sets ? t('training.setsN', { n: last.sets }) : t('training.withoutSets')}`}
         />
       </div>
 

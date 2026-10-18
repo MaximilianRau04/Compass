@@ -38,6 +38,7 @@ def brief(s: TrainingSession) -> SessionBrief:
         sets=len(s.sets),
         volume_kg=round(sum(training.set_volume(x) for x in s.sets)),
         duration_minutes=s.duration_minutes,
+        source=s.source,
     )
 
 

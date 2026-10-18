@@ -334,6 +334,17 @@ After `make deploy`, check the token from the laptop:
 must answer `{"ok": true, ...}`. Enter the same address and token in the app. The phone reaches the
 server over the VPN like the dashboard, nothing new becomes public.
 
+A sync only derives the days it changes. When a release derives something new from the records
+(for example meals, or Gym Day sessions without an export), recompute it once for the records that
+are already stored:
+
+```bash
+docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.prod.yml \
+  exec api python -m app.cli rebuild-health
+```
+
+It prints the number of days and Gym Day sessions and can be run again at any time.
+
 ## Sharing the Gym Day export from the phone
 
 The installed PWA is a share target for CSV files. After an update that changed the share target,

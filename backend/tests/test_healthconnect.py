@@ -12,6 +12,7 @@ from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, Sleep
 from app.models.nutrition import BodyWeight, NutritionMeal
 from app.models.training import TrainingSession
 from app.schemas.health import IngestPayload
+from app.services import health
 from app.services.clock import local_today
 
 UTC = ZoneInfo("UTC")
@@ -288,7 +289,107 @@ def test_gymday_match_ignores_other_apps_and_far_sessions(session):
             record("morning", "exercise", at(day, "07:00"), at(day, "08:00"), source=GYMDAY),
         ],
     )
-    assert session.scalar(select(TrainingSession)).duration_minutes is None
+    csv_session = session.scalar(select(TrainingSession).where(TrainingSession.source == "gymday"))
+    assert csv_session.duration_minutes is None
+    # The far Gym Day entry is a session of its own (without sets), not the CSV one's duration.
+    [extra] = session.scalars(
+        select(TrainingSession).where(TrainingSession.source == "healthconnect")
+    ).all()
+    assert (extra.health_record_id, extra.duration_minutes) == ("morning", 60)
+
+
+def test_gymday_sessions_without_export_become_sessions_without_sets(client, session):
+    day = local_today() - timedelta(days=1)
+    ingest(
+        session,
+        [
+            record(
+                "gd", "exercise", at(day, "18:00"), at(day, "19:05"), source=GYMDAY, title="Leg"
+            ),
+            record("zepp", "exercise", at(day, "17:58"), at(day, "19:00")),
+        ],
+    )
+    [placeholder] = session.scalars(select(TrainingSession)).all()
+    assert (placeholder.source, placeholder.workout_name) == ("healthconnect", "Leg")
+    assert placeholder.duration_minutes == 65
+
+    sessions = client.get("/api/training/sessions").json()
+    assert [(s["workout_name"], s["split"], s["sets"], s["source"]) for s in sessions] == [
+        ("Leg", "legs", 0, "healthconnect")
+    ]
+    summary = client.get("/api/training/summary?weeks=4").json()
+    assert summary["sessions"] == 1
+    assert summary["split"]["legs"] == 1
+    # The Zepp recording of the same session is still a duplicate, not a second training.
+    [zepp] = health.workouts(session, day, day)
+    assert zepp.gymday_duplicate is True
+
+    # Sending the record again does not create a second placeholder.
+    ingest(
+        session,
+        [record("gd", "exercise", at(day, "18:00"), at(day, "19:10"), source=GYMDAY, title="Leg")],
+    )
+    [placeholder] = session.scalars(select(TrainingSession)).all()
+    assert placeholder.duration_minutes == 70
+
+    # The CSV with the sets arrives later: it takes over, nothing is duplicated.
+    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    [training] = session.scalars(select(TrainingSession)).all()
+    assert (training.source, training.health_record_id, training.duration_minutes) == (
+        "gymday",
+        "gd",
+        70,
+    )
+    assert len(training.sets) == 1
+
+
+def test_deleted_gymday_entry_removes_its_placeholder(session):
+    day = local_today()
+    ingest(session, [record("gd", "exercise", at(day, "18:00"), at(day, "19:00"), source=GYMDAY)])
+    assert session.scalar(select(TrainingSession)).workout_name == "Training"  # no title
+    ingest(session, deleted=["gd"])
+    assert session.scalar(select(TrainingSession)) is None
+
+
+def test_rebuild_derives_records_stored_before_a_release(session):
+    """Records that arrived before meals or placeholders were derived get them from the CLI."""
+    from app.cli import rebuild_health
+    from app.services import nutrition
+
+    day = local_today() - timedelta(days=2)
+    for r in [
+        record("gd", "exercise", at(day, "18:00"), at(day, "19:00"), source=GYMDAY, title="Pull"),
+        record(
+            "meal",
+            "nutrition",
+            at(day, "12:00"),
+            at(day, "12:00"),
+            meal_type="lunch",
+            energy_kcal=800,
+        ),
+        record("st", "steps", at(day, "10:00"), at(day, "11:00"), count=5000),
+    ]:
+        parsed = IngestPayload.model_validate({"records": [r]}).records[0]
+        session.add(
+            HealthRecord(
+                id=parsed.id,
+                type=parsed.type,
+                source_app=parsed.source,
+                start_at=parsed.start,
+                end_at=parsed.end or parsed.start,
+                local_date=healthconnect.local_day(parsed),
+                raw=parsed.model_dump(mode="json"),
+            )
+        )
+    session.flush()
+
+    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1}
+    assert session.scalar(select(TrainingSession)).workout_name == "Pull"
+    assert nutrition.days(session, day, day)[0].kcal == 800
+    assert session.get(DailyMetrics, day).steps == 5000
+    # Running it again changes nothing.
+    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1}
+    assert len(session.scalars(select(TrainingSession)).all()) == 1
 
 
 def test_summary_endpoint(client, session):
@@ -337,8 +438,6 @@ def test_summary_endpoint(client, session):
 
 
 def test_zepp_workout_during_gymday_session_is_a_duplicate(session):
-    from app.services import health
-
     day = local_today()
     gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
     ingest(session, [record("zepp", "exercise", at(day, "17:58"), at(day, "19:00"))])
