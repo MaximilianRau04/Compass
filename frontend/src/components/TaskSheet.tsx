@@ -1,7 +1,9 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 
+import { useNotes } from '../api/notes'
 import { useAreas, useTaskEvents, useUpdateTask } from '../api/tasks'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../api/types'
 import { useI18n } from '../i18n/context'
@@ -90,6 +92,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(task))
   const areas = useAreas()
   const events = useTaskEvents(task.id)
+  const notes = useNotes({ taskId: task.id })
   const update = useUpdateTask()
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const pending = changes(task, draft)
@@ -223,6 +226,21 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
         </label>
         <textarea id="notes" value={draft.notes} onChange={(e) => set('notes', e.target.value)} rows={3} className={field} />
       </div>
+
+      {notes.data && notes.data.length > 0 && (
+        <div>
+          <span className={label}>{t('notes.title')}</span>
+          <ul className="space-y-0.5 text-sm">
+            {notes.data.map((note) => (
+              <li key={note.id}>
+                <Link to={`/notizen?id=${note.id}`} onClick={onClose} className="text-brass hover:underline">
+                  {note.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 pt-1">
         {task.status === 'cancelled' ? (

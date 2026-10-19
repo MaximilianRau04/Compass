@@ -7,6 +7,7 @@ from app.api import (
     ingest,
     mail,
     news,
+    notes,
     nutrition,
     sleep,
     tasks,
@@ -23,4 +24,5 @@ router.include_router(sleep.router)
 router.include_router(nutrition.router)
 router.include_router(mail.router)
 router.include_router(news.router)
+router.include_router(notes.router)
 router.include_router(ingest.router)

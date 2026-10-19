@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
+import { useCreateNote } from '../api/notes'
 import { useImportMfp } from '../api/nutrition'
 import { useTodayDate } from '../api/tasks'
 import { useImportGymDay } from '../api/training'
@@ -66,8 +67,39 @@ function SharedFile({ name }: { name: string }) {
   )
 }
 
+/** Shared text or link as a note: the shared title as title, the rest as text. */
+function SaveAsNote({ title, text }: { title: string; text: string }) {
+  const { t } = useI18n()
+  const navigate = useNavigate()
+  const create = useCreateNote()
+  // Without a shared title, the first line (shortened) is the title and the text stays whole.
+  const heading = title || text.split('\n')[0].slice(0, 120)
+  return (
+    <button
+      type="button"
+      disabled={create.isPending || !text}
+      onClick={() =>
+        create.mutate(
+          { title: heading, body: title || heading !== text ? text : '', source: 'share' },
+          {
+            onSuccess: (note) => {
+              toast.success(t('quick.noteCreated', { title: note.title }))
+              navigate(`/notizen?id=${note.id}`)
+            },
+            onError: (error) => toast.error(error.message),
+          },
+        )
+      }
+      className="mt-4 rounded-md border border-brass px-4 py-2 text-sm text-brass hover:bg-brass/10 disabled:opacity-50"
+    >
+      {t('share.asNote')}
+    </button>
+  )
+}
+
 /** Target of the Android share sheet (Web Share Target): shared text or links become a task,
- * a shared Gym Day export is imported as training data, a MyFitnessPal export as nutrition. */
+ * or a note, a shared Gym Day export is imported as training data, a MyFitnessPal export as
+ * nutrition. */
 export function SharePage() {
   const { t } = useI18n()
   const [params] = useSearchParams()
@@ -76,6 +108,8 @@ export function SharePage() {
 
   const parts = ['title', 'text', 'url'].map((key) => params.get(key)?.trim()).filter(Boolean) as string[]
   const text = [...new Set(parts)].join(' ')
+  const sharedTitle = params.get('title')?.trim() ?? ''
+  const noteBody = [...new Set(['text', 'url'].map((key) => params.get(key)?.trim()).filter(Boolean))].filter((v) => v !== sharedTitle).join('\n\n')
   const file = params.get('file')
 
   return (
@@ -87,6 +121,7 @@ export function SharePage() {
         <>
           <p className="mb-6 text-muted">{t('share.hint')}</p>
           <QuickAdd today={today} initialText={text} autoFocus onCreated={() => navigate('/')} />
+          <SaveAsNote title={noteBody ? sharedTitle : ''} text={noteBody || text} />
         </>
       )}
     </>

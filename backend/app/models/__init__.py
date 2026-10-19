@@ -4,6 +4,7 @@ from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, Sleep
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
 from app.models.news import Brief, NewsInterest, NewsItem
+from app.models.notes import Note
 from app.models.nutrition import BodyWeight, Goal, NutritionMeal
 from app.models.oauth import AuditLog, OAuthClient, OAuthCode, OAuthRequest, OAuthToken
 from app.models.tasks import Area, Task, TaskEvent
@@ -27,6 +28,7 @@ __all__ = [
     "IntegrationState",
     "NewsInterest",
     "NewsItem",
+    "Note",
     "NutritionMeal",
     "OAuthClient",
     "OAuthCode",

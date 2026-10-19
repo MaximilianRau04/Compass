@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { useQuickNote } from '../api/notes'
 import { useQuickAdd, useQuickAddPreview } from '../api/tasks'
 import { useI18n } from '../i18n/context'
 import { AREA_TEXT, recurrenceLabel, relativeDay, shortTime } from '../lib/format'
+
+// "notiz: ..." or "note: ..." makes a note instead of a task.
+const NOTE_PREFIX = /^\s*(?:notiz|note)\s*:\s*/i
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -29,9 +33,11 @@ export function QuickAdd({
   const [text, setText] = useState(initialText)
   const input = useRef<HTMLInputElement>(null)
   const debounced = useDebounced(text, 250)
-  const preview = useQuickAddPreview(debounced)
+  const isNote = NOTE_PREFIX.test(text)
+  const preview = useQuickAddPreview(isNote ? '' : debounced)
   const create = useQuickAdd()
-  const p = text.trim() ? preview.data : undefined
+  const createNote = useQuickNote()
+  const p = text.trim() && !isNote ? preview.data : undefined
 
   useEffect(() => {
     if (autoFocus) input.current?.focus()
@@ -52,7 +58,18 @@ export function QuickAdd({
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!text.trim() || create.isPending) return
+    if (!text.trim() || create.isPending || createNote.isPending) return
+    if (isNote) {
+      createNote.mutate(text, {
+        onSuccess: (note) => {
+          setText('')
+          toast.success(t('quick.noteCreated', { title: note.title }))
+          onCreated?.()
+        },
+        onError: (error) => toast.error(error.message),
+      })
+      return
+    }
     create.mutate(text, {
       onSuccess: (task) => {
         setText('')
@@ -64,6 +81,7 @@ export function QuickAdd({
   }
 
   const chips: { label: string; className?: string }[] = []
+  if (isNote) chips.push({ label: t('quick.asNote'), className: 'text-brass' })
   if (p) {
     if (p.due_date) {
       const time = p.due_time ? ` ${shortTime(p.due_time)}` : ''
@@ -99,7 +117,7 @@ export function QuickAdd({
         />
         <button
           type="submit"
-          disabled={!text.trim() || create.isPending}
+          disabled={!text.trim() || create.isPending || createNote.isPending}
           className="rounded-md bg-brass px-3 py-1.5 font-display text-sm font-semibold tracking-wide text-brass-ink uppercase transition-opacity disabled:opacity-30"
         >
           {t('quick.submit')}
@@ -108,7 +126,7 @@ export function QuickAdd({
       {/* Only show the preview when something besides the title was recognized. */}
       {text.trim() && chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-rule px-3 py-2 font-mono text-[11px] text-muted">
-          <span className="text-ink">{p?.title || '…'}</span>
+          <span className="text-ink">{isNote ? text.replace(NOTE_PREFIX, '') || '…' : p?.title || '…'}</span>
           {chips.map((chip) => (
             <span key={chip.label} className={chip.className}>
               {chip.label}

@@ -360,3 +360,42 @@ export interface Interests {
   likes: Interest[]
   dislikes: Interest[]
 }
+
+export interface Note {
+  id: number
+  title: string
+  body: string
+  area_id: number | null
+  area: Area | null
+  tags: string[]
+  pinned: boolean
+  archived: boolean
+  source: 'manual' | 'claude' | 'share'
+  task_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteListItem {
+  id: number
+  title: string
+  snippet: string
+  area: Area | null
+  tags: string[]
+  pinned: boolean
+  archived: boolean
+  source: Note['source']
+  task_id: number | null
+  updated_at: string
+}
+
+export interface NoteDraft {
+  title?: string
+  body?: string
+  area_id?: number | null
+  tags?: string[]
+  pinned?: boolean
+  archived?: boolean
+  task_id?: number | null
+  source?: 'manual' | 'share'
+}

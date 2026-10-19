@@ -11,6 +11,7 @@ import { I18nProvider } from './i18n/I18nProvider'
 import { CalendarPage } from './pages/Calendar'
 import { MailPage } from './pages/Mail'
 import { NewsPage } from './pages/News'
+import { NotesPage } from './pages/Notes'
 import { NutritionPage } from './pages/Nutrition'
 import { SharePage } from './pages/Share'
 import { SleepPage } from './pages/Sleep'
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="kalender" element={<CalendarPage />} />
             <Route path="mail" element={<MailPage />} />
             <Route path="news" element={<NewsPage />} />
+            <Route path="notizen" element={<NotesPage />} />
             <Route path="training" element={<TrainingPage />} />
             <Route path="schlaf" element={<SleepPage />} />
             <Route path="ernaehrung" element={<NutritionPage />} />
