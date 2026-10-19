@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import SessionLocal, engine
 from app.ingestion import calendar
+from app.ingestion import mail as mail_sync
 
 log = logging.getLogger("compass.worker")
 
@@ -26,6 +27,19 @@ def sync_calendars() -> None:
         log.debug("no calendar feeds configured")
         return
     calendar.sync_all(SessionLocal)
+
+
+def sync_mail() -> None:
+    try:
+        accounts = get_settings().mail_accounts
+    except ValueError as exc:
+        log.warning("mail: %s", exc)
+        return
+    if not accounts:
+        log.debug("no mail accounts configured")
+        return
+    for account, result in mail_sync.sync_all(SessionLocal).items():
+        log.info("mail %s: %s", account, result)
 
 
 def feed_names() -> str:
@@ -46,6 +60,15 @@ def main() -> None:
         minutes=settings.calendar_sync_minutes,
         id="calendars",
         # Aware, so the first run is now and not misread in the scheduler's time zone.
+        next_run_time=datetime.now(ZoneInfo(settings.timezone)),
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        sync_mail,
+        "interval",
+        minutes=settings.mail_sync_minutes,
+        id="mail",
         next_run_time=datetime.now(ZoneInfo(settings.timezone)),
         max_instances=1,
         coalesce=True,

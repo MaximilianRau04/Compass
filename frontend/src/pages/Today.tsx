@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
+import { useMailOverview } from '../api/mail'
 import { useNutritionSummary } from '../api/nutrition'
 import { useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
-import type { HealthSummary, NutritionSummary, Task } from '../api/types'
+import type { HealthSummary, MailOverview, NutritionSummary, Task } from '../api/types'
 import { CompassDial } from '../components/CompassDial'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
@@ -58,11 +59,39 @@ function NutritionToday({ summary, today }: { summary: NutritionSummary | undefi
   )
 }
 
+/** Important mails of the last two weeks: count and the newest three. */
+function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
+  const { t } = useI18n()
+  if (!overview || overview.important === 0) return null
+  return (
+    <section>
+      <Link to="/mail" className="block hover:text-ink">
+        <SectionLabel count={overview.important}>{t('today.mail')}</SectionLabel>
+      </Link>
+      <p className="mt-1 font-mono text-[11px] text-muted">
+        {t('today.mailCount', { n: overview.important, unread: overview.unread_important })}
+      </p>
+      <ul className="mt-1 divide-y divide-rule/60">
+        {overview.top.map((m) => (
+          <li key={m.id} className="py-2">
+            <Link to="/mail" className="block">
+              <span className={m.seen ? '' : 'font-semibold'}>{m.from_name ?? m.from_addr}</span>
+              <span className="text-muted"> · {m.subject}</span>
+              {m.summary && <span className="block truncate text-sm text-muted">{m.summary}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function TodayPage() {
   const { t, locale } = useI18n()
   const { data, isPending, error } = useToday()
   const health = useHealthSummary(7)
   const food = useNutritionSummary(7)
+  const mail = useMailOverview()
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
 
@@ -111,6 +140,8 @@ export function TodayPage() {
           <LastNight summary={health.data} today={today} />
           <NutritionToday summary={food.data} today={today} />
         </div>
+
+        <ImportantMail overview={mail.data} />
 
         {data.events.length > 0 && (
           <section>

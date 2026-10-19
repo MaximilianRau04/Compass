@@ -345,6 +345,54 @@ docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compo
 
 It prints the number of days and Gym Day sessions and can be run again at any time.
 
+## 8. Mails
+
+The worker reads the configured mailboxes every `MAIL_SYNC_MINUTES` over IMAP, read-only (`EXAMINE`,
+`BODY.PEEK`): nothing is marked as read, moved or deleted. Only sender, subject, time and the triage
+(priority, summary, suggested task) are stored, never the text.
+
+**Server `.env`:**
+
+| Variable | Value |
+|---|---|
+| `UNI_IMAP_*`, `GMAIL_IMAP_*`, `DOMAIN_IMAP_*` | host, port, user, password per account; an account is active when host and user are set. Gmail needs an app password (Google account → Security → App passwords, requires 2FA) |
+| `ANTHROPIC_API_KEY` | for accounts with `MAIL_TRIAGE_<ACCOUNT>=claude` (default for Gmail and own domain), model `MAIL_CLAUDE_MODEL` (default `claude-haiku-4-5`). Without a key these accounts get rule priorities only |
+| `MAIL_TRIAGE_UNI` | `local` (default): uni mails contain data of third parties and are summarised on the laptop, see below |
+| `MAIL_TRIAGE_TOKEN` | output of `openssl rand -hex 32`, the same value goes into the laptop's `.env` |
+
+After `make deploy`, "Fetch now" in the Mail tab runs the first sync (the last `MAIL_LOOKBACK_DAYS` days).
+Gmail and own domain are summarised right away, up to 40 mails per run; uni mails show "waiting for the
+laptop" until the local triage ran.
+
+**Local triage on the laptop** (uni mails, the text stays on the laptop):
+
+The server cannot reach the laptop, so the laptop asks: it fetches the list of pending mails from
+`/api/ingest/mail/pending`, reads their text from the uni mailbox itself, lets Ollama triage them and sends
+only the result back.
+
+```bash
+sudo systemctl enable --now ollama          # Ollama service, listens on localhost only
+ollama pull qwen2.5:7b                      # about 4.7 GB; any model with JSON output works (OLLAMA_MODEL)
+```
+
+In the laptop's `.env` (the one in the repo checkout): `UNI_IMAP_*` (already there for development),
+`COMPASS_URL=https://<dashboard host>`, `MAIL_TRIAGE_TOKEN` (same as on the server), optionally
+`OLLAMA_MODEL`. Test once by hand, then install the timer (every 15 minutes while the laptop is on, catches
+up after sleep):
+
+```bash
+cd backend && uv run python -m app.mail.local_triage     # prints e.g. {"pending": 3, "applied": 3, "failed": 0}
+mkdir -p ~/.config/systemd/user
+sed "s|@REPO@|$(git rev-parse --show-toplevel)|" infra/laptop/compass-mail-triage.service \
+  > ~/.config/systemd/user/compass-mail-triage.service
+cp infra/laptop/compass-mail-triage.timer ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now compass-mail-triage.timer
+journalctl --user -u compass-mail-triage -n 20            # last runs
+```
+
+The model reads untrusted text. A mail that tries to give instructions to an AI is detected with a pattern
+check (independent of what the model says), marked with a warning and never ranked below "normal".
+
 ## Sharing the Gym Day export from the phone
 
 The installed PWA is a share target for CSV files. After an update that changed the share target,

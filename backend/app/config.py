@@ -1,7 +1,19 @@
 import re
+from dataclasses import dataclass, field
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+@dataclass(frozen=True)
+class MailAccount:
+    name: str
+    host: str
+    port: int
+    user: str
+    password: str = field(repr=False)
+    folders: tuple[str, ...]
+    triage: str
 
 
 class Settings(BaseSettings):
@@ -43,6 +55,64 @@ class Settings(BaseSettings):
     # Apps whose Health Connect exercise sessions are Gym Day sessions (they give the duration of
     # the sessions from the CSV export). Space separated package names.
     healthconnect_gymday_apps: str = "com.anthonyng.workoutapp"
+
+    # Mail accounts (IMAP, read-only). An account is active when host and user are set.
+    uni_imap_host: str = ""
+    uni_imap_port: int = 993
+    uni_imap_user: str = ""
+    uni_imap_password: str = ""
+    gmail_imap_host: str = "imap.gmail.com"
+    gmail_imap_port: int = 993
+    gmail_imap_user: str = ""
+    gmail_imap_password: str = ""
+    domain_imap_host: str = ""
+    domain_imap_port: int = 993
+    domain_imap_user: str = ""
+    domain_imap_password: str = ""
+    # Space separated folders per account; Exchange also lists calendars etc. as folders.
+    mail_folders: str = "INBOX"
+    mail_sync_minutes: int = 15
+    # The first sync of an account looks this far back.
+    mail_lookback_days: int = 14
+    # Who summarises an account's mails: "claude" (Anthropic API, on the server), "local" (Ollama
+    # on the laptop, see app.mail.local_triage) or "rules" (no model, priority from headers only).
+    # Uni mails contain personal data of third parties, so they default to the local model.
+    mail_triage_uni: str = "local"
+    mail_triage_gmail: str = "claude"
+    mail_triage_domain: str = "claude"
+    anthropic_api_key: str = ""
+    mail_claude_model: str = "claude-haiku-4-5"
+    # Laptop side of the local triage.
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5:7b"
+    compass_url: str = ""
+    # Bearer token of the local triage runner for /api/ingest/mail/*. Empty disables it.
+    mail_triage_token: str = ""
+
+    @property
+    def mail_accounts(self) -> dict[str, "MailAccount"]:
+        """Configured accounts by name (uni, gmail, domain)."""
+        out = {}
+        for name in ("uni", "gmail", "domain"):
+            host = getattr(self, f"{name}_imap_host").strip()
+            user = getattr(self, f"{name}_imap_user").strip()
+            if not host or not user:
+                continue
+            triage = getattr(self, f"mail_triage_{name}").strip().lower()
+            if triage not in ("claude", "local", "rules"):
+                raise ValueError(f"MAIL_TRIAGE_{name.upper()}: use claude, local or rules")
+            if triage == "claude" and not self.anthropic_api_key:
+                triage = "rules"
+            out[name] = MailAccount(
+                name=name,
+                host=host,
+                port=getattr(self, f"{name}_imap_port"),
+                user=user,
+                password=getattr(self, f"{name}_imap_password"),
+                folders=tuple(self.mail_folders.split()) or ("INBOX",),
+                triage=triage,
+            )
+        return out
 
     @property
     def owner_password_hash(self) -> str:

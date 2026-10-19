@@ -56,6 +56,7 @@ async def test_tools_are_listed_with_annotations(client):
         "sleep_summary",
         "nutrition_summary",
         "set_nutrition_goal",
+        "list_important_mails",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
@@ -65,6 +66,7 @@ async def test_tools_are_listed_with_annotations(client):
         "exercise_progress",
         "sleep_summary",
         "nutrition_summary",
+        "list_important_mails",
     ):
         assert tools[name].annotations.read_only_hint is True
 

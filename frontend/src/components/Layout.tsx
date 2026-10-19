@@ -1,16 +1,20 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 
 import { type Lang, useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 
-const NAV: { to: string; label: MessageKey; icon: string }[] = [
+// On the phone the bottom bar has room for five entries; `more` ones sit behind "More" there.
+const NAV: { to: string; label: MessageKey; icon: string; more?: boolean }[] = [
   { to: '/', label: 'nav.today', icon: 'M12 3v2M12 19v2M3 12h2M19 12h2M12 8l2 4-2 4-2-4z' },
   { to: '/aufgaben', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
   { to: '/kalender', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
-  { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12' },
-  { to: '/schlaf', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z' },
-  { to: '/ernaehrung', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3' },
+  { to: '/mail', label: 'nav.mail', icon: 'M4 6h16v12H4zM4 7l8 6 8-6' },
+  { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12', more: true },
+  { to: '/schlaf', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', more: true },
+  { to: '/ernaehrung', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3', more: true },
 ]
+const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01'
 
 function Icon({ d }: { d: string }) {
   return (
@@ -46,6 +50,49 @@ function LanguageSwitch() {
   )
 }
 
+function MoreMenu() {
+  const { t } = useI18n()
+  const { pathname } = useLocation()
+  const [open, setOpen] = useState(false)
+  const items = NAV.filter((item) => item.more)
+  const active = items.some((item) => pathname.startsWith(item.to))
+  return (
+    <div className="relative flex flex-1 sm:hidden">
+      {open && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 cursor-default" onClick={() => setOpen(false)} />}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen(!open)}
+        className={['flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px]', active || open ? 'text-ink' : 'text-muted'].join(' ')}
+      >
+        <span className={active ? 'text-brass' : ''}>
+          <Icon d={MORE_ICON} />
+        </span>
+        {t('nav.more')}
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-2 bottom-full mb-2 w-48 rounded-md border border-rule bg-paper-raised p-1 shadow-lg">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                ['flex items-center gap-3 rounded px-3 py-2.5 text-sm', isActive ? 'bg-paper text-ink' : 'text-muted hover:text-ink'].join(' ')
+              }
+            >
+              <Icon d={item.icon} />
+              {t(item.label)}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Layout() {
   const { t } = useI18n()
   // The calendar grid needs the room; text pages stay at a readable width.
@@ -67,7 +114,8 @@ export function Layout() {
             end={item.to === '/'}
             className={({ isActive }) =>
               [
-                'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] sm:flex-none sm:flex-row sm:gap-3 sm:rounded-md sm:px-2 sm:py-2 sm:text-sm',
+                item.more ? 'hidden sm:flex' : 'flex',
+                'flex-1 flex-col items-center gap-0.5 py-2 text-[11px] sm:flex-none sm:flex-row sm:gap-3 sm:rounded-md sm:px-2 sm:py-2 sm:text-sm',
                 isActive ? 'text-ink sm:bg-paper-raised' : 'text-muted hover:text-ink',
               ].join(' ')
             }
@@ -82,6 +130,7 @@ export function Layout() {
             )}
           </NavLink>
         ))}
+        <MoreMenu />
       </nav>
       <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-16 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
         <Outlet />

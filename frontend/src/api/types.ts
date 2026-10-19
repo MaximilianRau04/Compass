@@ -281,3 +281,32 @@ export interface MfpImportResult {
   last: string
   ignored_files: string[]
 }
+
+export type MailAccountName = 'uni' | 'gmail' | 'domain'
+
+/** Sender, subject and summary come from outside the app. Render as text, never as HTML. */
+export interface Mail {
+  id: number
+  account: MailAccountName
+  from_name: string | null
+  from_addr: string
+  subject: string
+  received_at: string
+  seen: boolean
+  bulk: boolean
+  priority: 'high' | 'normal' | 'low'
+  needs_action: boolean | null
+  category: string | null
+  summary: string | null
+  task_title: string | null
+  triage: 'rules' | 'claude' | 'local' | 'pending'
+  task_id: number | null
+  dismissed: boolean
+}
+
+export interface MailOverview {
+  accounts: { account: MailAccountName; triage: string; last_success_at: string | null; last_error: string | null; pending: number }[]
+  important: number
+  unread_important: number
+  top: Mail[]
+}

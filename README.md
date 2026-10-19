@@ -104,11 +104,26 @@ Daily goals for calories and protein apply from the day they are set, so earlier
 they had. The Nutrition tab shows today against the goals, calories and protein per day, average
 macros and the full weight history.
 
+## Mail
+
+The worker reads the inboxes of up to three accounts (university, Gmail, own domain) over IMAP, strictly
+read-only: nothing is marked as read, moved or deleted, and the mail text is never stored. Every mail gets
+a priority from its headers at once (mailing lists and no-reply senders are unimportant, deadline words
+in the subject important). A model then adds priority, whether something is to do, a short summary and a
+suggested task: Claude Haiku on the server for Gmail and the own domain, a local Ollama model on the
+laptop for university mails, which contain data of third parties (`app/mail/local_triage.py`; the laptop
+reads the text itself and sends only the result). The Mail tab sorts by importance, turns a mail into a
+task with one click and hides mails from the list; the Today page shows the important ones.
+
+Mail content is untrusted: the model only returns fixed fields, links are stripped, and mails that try to
+instruct an AI are flagged by a pattern check and never ranked below normal. The MCP tool marks every
+field as external content.
+
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
 built-in login. Tools: `get_today`, `list_tasks`, `get_deadlines`, `get_task`, `list_areas`,
-`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `add_task`, `quick_add`, `update_task`,
+`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `list_important_mails`, `add_task`, `quick_add`, `update_task`,
 `complete_task`; prompts: `daily_brief`, `weekly_review`.
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 
