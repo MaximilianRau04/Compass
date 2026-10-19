@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
 import { useMailOverview } from '../api/mail'
+import { useBriefs, useNewsOverview, useTodayBrief } from '../api/news'
 import { useNutritionSummary } from '../api/nutrition'
 import { useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
-import type { HealthSummary, MailOverview, NutritionSummary, Task } from '../api/types'
+import type { Brief, HealthSummary, MailOverview, NewsOverview, NutritionSummary, Task } from '../api/types'
 import { CompassDial } from '../components/CompassDial'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
+import { Markdown } from '../components/Markdown'
 import { QuickAdd } from '../components/QuickAdd'
 import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
@@ -86,12 +88,73 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
   )
 }
 
+/** The daily brief a Claude routine saved this morning; folded away once read. */
+function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
+  const { t, locale } = useI18n()
+  if (!brief) return null
+  return (
+    <details open className="rounded-md border border-rule bg-paper-raised px-4 py-3">
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
+        <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
+        <span className="font-mono text-[11px] text-muted">{clockTime(brief.updated_at, locale)}</span>
+      </summary>
+      <Markdown text={brief.body} className="mt-2" />
+    </details>
+  )
+}
+
+/** Today's texts of other routines (any kind but the daily brief and the news report). */
+function OtherBriefs({ briefs, today }: { briefs: Brief[] | undefined; today: string }) {
+  const { locale } = useI18n()
+  const others = (briefs ?? []).filter((b) => b.local_date === today && b.kind !== 'daily' && b.kind !== 'news')
+  if (others.length === 0) return null
+  return (
+    <div className="space-y-2">
+      {others.map((brief) => (
+        <details key={brief.id} className="rounded-md border border-rule px-4 py-3">
+          <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
+            <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
+            <span className="font-mono text-[11px] text-muted">{clockTime(brief.updated_at, locale)}</span>
+          </summary>
+          <Markdown text={brief.body} className="mt-2" />
+        </details>
+      ))}
+    </div>
+  )
+}
+
+/** The three best personal news items of the last 36 hours. */
+function TopNews({ overview }: { overview: NewsOverview | undefined }) {
+  const { t } = useI18n()
+  if (!overview || overview.top.length === 0) return null
+  return (
+    <section>
+      <Link to="/news" className="block hover:text-ink">
+        <SectionLabel>{t('today.news')}</SectionLabel>
+      </Link>
+      <ul className="mt-1 divide-y divide-rule/60">
+        {overview.top.map((item) => (
+          <li key={item.id} className="py-2">
+            <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-brass">
+              {item.title}
+            </a>
+            <span className="font-mono text-[11px] text-muted"> · {item.feed}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function TodayPage() {
   const { t, locale } = useI18n()
   const { data, isPending, error } = useToday()
   const health = useHealthSummary(7)
   const food = useNutritionSummary(7)
   const mail = useMailOverview()
+  const brief = useTodayBrief()
+  const briefs = useBriefs()
+  const news = useNewsOverview()
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
 
@@ -136,12 +199,16 @@ export function TodayPage() {
       )}
 
       <div className="space-y-8">
+        <DailyBrief brief={brief.data} />
+        <OtherBriefs briefs={briefs.data} today={today} />
+
         <div className="grid gap-2 empty:hidden sm:grid-cols-2">
           <LastNight summary={health.data} today={today} />
           <NutritionToday summary={food.data} today={today} />
         </div>
 
         <ImportantMail overview={mail.data} />
+        <TopNews overview={news.data} />
 
         {data.events.length > 0 && (
           <section>

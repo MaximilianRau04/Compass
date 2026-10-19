@@ -89,6 +89,43 @@ class Settings(BaseSettings):
     # Bearer token of the local triage runner for /api/ingest/mail/*. Empty disables it.
     mail_triage_token: str = ""
 
+    # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
+    # General items are shown as they come; personal ones are ranked by the interest profile.
+    news_feeds: str = (
+        "general:tagesschau=https://www.tagesschau.de/index~rss2.xml "
+        "general:heise=https://www.heise.de/rss/heise-top-atom.xml "
+        "personal:hn=https://hnrss.org/frontpage?points=100 "
+        "personal:lobsters=https://lobste.rs/rss "
+        "personal:simonw=https://simonwillison.net/atom/everything/ "
+        "personal:localllama=https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day "
+        "personal:golem=https://www.golem.de/rss.php?feed=ATOM1.0 "
+        "personal:bleeping=https://www.bleepingcomputer.com/feed/ "
+        "personal:thehackernews=https://feeds.feedburner.com/TheHackersNews"
+    )
+    news_sync_minutes: int = 60
+    # Items older than this are removed; the learned profile keeps what their thumbs taught.
+    news_keep_days: int = 30
+
+    @property
+    def news_feed_list(self) -> list[tuple[str, str, str]]:
+        """(stream, name, url) per configured feed."""
+        out = []
+        for number, entry in enumerate(self.news_feeds.split(), start=1):
+            stream, _, rest = entry.partition(":")
+            name, sep, url = rest.partition("=")
+            if (
+                stream not in ("general", "personal")
+                or not sep
+                or not url.startswith(("https://", "http://"))
+                or not re.fullmatch(r"[a-z0-9_-]{1,40}", name)
+            ):
+                raise ValueError(
+                    f"NEWS_FEEDS: entry {number} is not stream:name=url "
+                    "(e.g. personal:hn=https://hnrss.org/frontpage)"
+                )
+            out.append((stream, name, url))
+        return out
+
     @property
     def mail_accounts(self) -> dict[str, "MailAccount"]:
         """Configured accounts by name (uni, gmail, domain)."""

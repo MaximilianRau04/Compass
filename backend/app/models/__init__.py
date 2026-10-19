@@ -3,6 +3,7 @@ from app.models.calendar import CalendarEvent
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
+from app.models.news import Brief, NewsInterest, NewsItem
 from app.models.nutrition import BodyWeight, Goal, NutritionMeal
 from app.models.oauth import AuditLog, OAuthClient, OAuthCode, OAuthRequest, OAuthToken
 from app.models.tasks import Area, Task, TaskEvent
@@ -13,6 +14,7 @@ __all__ = [
     "AuditLog",
     "Base",
     "BodyWeight",
+    "Brief",
     "CalendarEvent",
     "DailyMetrics",
     "Email",
@@ -23,6 +25,8 @@ __all__ = [
     "HealthRecord",
     "HeartRateSample",
     "IntegrationState",
+    "NewsInterest",
+    "NewsItem",
     "NutritionMeal",
     "OAuthClient",
     "OAuthCode",

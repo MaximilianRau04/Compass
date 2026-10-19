@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.db import SessionLocal, engine
 from app.ingestion import calendar
 from app.ingestion import mail as mail_sync
+from app.ingestion import news as news_sync
 
 log = logging.getLogger("compass.worker")
 
@@ -47,6 +48,12 @@ def sync_mail() -> None:
         log.info("mail %s: %s", account, result)
 
 
+def sync_news() -> None:
+    results = news_sync.sync_all(SessionLocal)
+    failed = [feed for feed, result in results.items() if isinstance(result, str)]
+    log.info("news: %d feeds, failed: %s", len(results), ", ".join(failed) or "none")
+
+
 def feed_names() -> str:
     try:
         return ", ".join(get_settings().calendar_feeds) or "none"
@@ -75,6 +82,16 @@ def main() -> None:
         "interval",
         minutes=settings.mail_sync_minutes,
         id="mail",
+        next_run_time=datetime.now(ZoneInfo(settings.timezone)),
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
+    )
+    scheduler.add_job(
+        sync_news,
+        "interval",
+        minutes=settings.news_sync_minutes,
+        id="news",
         next_run_time=datetime.now(ZoneInfo(settings.timezone)),
         max_instances=1,
         coalesce=True,

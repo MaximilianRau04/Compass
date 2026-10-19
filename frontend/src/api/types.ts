@@ -310,3 +310,53 @@ export interface MailOverview {
   unread_important: number
   top: Mail[]
 }
+
+/** Title and summary come from RSS feeds. Render as text, never as HTML. */
+export interface NewsItem {
+  id: number
+  feed: string
+  stream: 'general' | 'personal'
+  url: string
+  title: string
+  summary: string | null
+  published_at: string
+  feedback: 1 | -1 | null
+  score: number
+  topics: string[]
+  trending: string[]
+}
+
+export interface Trend {
+  term: string
+  feeds: string[]
+  count: number
+}
+
+/** Written by Claude (partly from web content). Rendered by the Markdown component as text. */
+export interface Brief {
+  id: number
+  kind: string
+  local_date: string
+  title: string | null
+  body: string
+  actor: string
+  updated_at: string
+}
+
+export interface NewsOverview {
+  feeds: { feed: string; stream: string | null; last_success_at: string | null; last_error: string | null; items: number | null }[]
+  trends: Trend[]
+  top: NewsItem[]
+  report: Brief | null
+}
+
+export interface Interest {
+  term: string
+  weight: number
+}
+
+export interface Interests {
+  topics: Interest[]
+  likes: Interest[]
+  dislikes: Interest[]
+}
