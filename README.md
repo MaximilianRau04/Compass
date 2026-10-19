@@ -125,7 +125,7 @@ or delete; read mails stay unread. With it, the Compass prompt `sort_mails` lets
 on demand (`mails_to_triage`, `save_mail_triage`) without an API key:
 
 ```bash
-claude mcp add --scope user mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
+claude mcp add --scope user uni-mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
 ```
 
 ## MCP server
