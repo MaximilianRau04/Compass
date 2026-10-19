@@ -57,6 +57,8 @@ async def test_tools_are_listed_with_annotations(client):
         "nutrition_summary",
         "set_nutrition_goal",
         "list_important_mails",
+        "mails_to_triage",
+        "save_mail_triage",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
@@ -156,7 +158,7 @@ async def test_helpful_errors_and_failed_writes_are_audited(client, session):
 @pytest.mark.anyio
 async def test_prompts(client):
     prompts = {p.name for p in (await client.list_prompts()).prompts}
-    assert prompts == {"daily_brief", "weekly_review"}
+    assert prompts == {"daily_brief", "weekly_review", "sort_mails"}
 
 
 @pytest.mark.anyio

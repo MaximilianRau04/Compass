@@ -14,6 +14,11 @@ from app.ingestion import mail as mail_sync
 
 log = logging.getLogger("compass.worker")
 
+# APScheduler drops a run that starts more than 1 s late by default. The first run is due "now",
+# but the worker connects to the database before the scheduler starts, so it was always dropped
+# and the first sync only came one interval later.
+MISFIRE_GRACE_SECONDS = 300
+
 
 def heartbeat() -> None:
     with engine.connect() as conn:
@@ -63,6 +68,7 @@ def main() -> None:
         next_run_time=datetime.now(ZoneInfo(settings.timezone)),
         max_instances=1,
         coalesce=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
     )
     scheduler.add_job(
         sync_mail,
@@ -72,6 +78,7 @@ def main() -> None:
         next_run_time=datetime.now(ZoneInfo(settings.timezone)),
         max_instances=1,
         coalesce=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
     )
     log.info("worker started, calendar feeds: %s", feed_names())
     heartbeat()

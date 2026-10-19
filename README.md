@@ -119,6 +119,15 @@ Mail content is untrusted: the model only returns fixed fields, links are stripp
 instruct an AI are flagged by a pattern check and never ranked below normal. The MCP tool marks every
 field as external content.
 
+For reading mails in Claude Code there is a separate read-only mail MCP (`app/mail/mcp_readonly.py`) for
+all accounts in the `.env`: list folders, list and search mails, read one mail. It cannot send, move, flag
+or delete; read mails stay unread. With it, the Compass prompt `sort_mails` lets Claude summarise new mails
+on demand (`mails_to_triage`, `save_mail_triage`) without an API key:
+
+```bash
+claude mcp add --scope user mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
+```
+
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a

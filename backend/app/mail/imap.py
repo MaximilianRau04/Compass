@@ -5,6 +5,7 @@ mailbox changes: no \\Seen flag is set, nothing is moved or deleted. Only header
 the list; the text of a single mail is fetched on demand for its summary and never stored.
 """
 
+import base64
 import contextlib
 import email
 import email.policy
@@ -74,28 +75,112 @@ def html_to_text(html: str) -> str:
     return "".join(parser.parts)
 
 
-def clean_text(text: str) -> str:
+def clean_text(text: str, limit: int = MAX_TEXT_CHARS, keep_quotes: bool = False) -> str:
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text.replace("\r", ""))
     lines = [line.strip() for line in text.split("\n")]
-    # Quoted replies repeat older mails; the new part is what matters.
-    lines = [line for line in lines if not line.startswith(">")]
+    if not keep_quotes:
+        # Quoted replies repeat older mails; for a summary the new part is what matters.
+        lines = [line for line in lines if not line.startswith(">")]
     text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
-    return re.sub(r"[ \t]{2,}", " ", text)[:MAX_TEXT_CHARS]
+    return re.sub(r"[ \t]{2,}", " ", text)[:limit]
 
 
-def message_text(data: bytes) -> str:
+def _body(message: email.message.EmailMessage, limit: int, keep_quotes: bool) -> str:
+    part = message.get_body(preferencelist=("plain", "html"))
+    if part is None:
+        return ""
+    content = part.get_content()
+    if part.get_content_subtype() == "html":
+        content = html_to_text(content)
+    return clean_text(content, limit, keep_quotes)
+
+
+def message_text(data: bytes, limit: int = MAX_TEXT_CHARS, keep_quotes: bool = False) -> str:
     """Plain text of a (possibly truncated) raw message; empty if nothing readable is found."""
     try:
         message = email.message_from_bytes(data, policy=email.policy.default)
-        part = message.get_body(preferencelist=("plain", "html"))
-        if part is None:
-            return ""
-        content = part.get_content()
-        if part.get_content_subtype() == "html":
-            content = html_to_text(content)
-        return clean_text(content)
+        return _body(message, limit, keep_quotes)
     except Exception:  # broken MIME, unknown charset, cut-off multipart
         return ""
+
+
+@dataclass
+class Message:
+    """One mail as the read-only MCP shows it."""
+
+    uid: int
+    from_: str
+    to: str
+    cc: str
+    date: str
+    subject: str
+    seen: bool
+    text: str
+    attachments: list[str]
+    truncated: bool
+
+
+def parse_message(uid: int, raw: bytes, seen: bool, limit: int) -> Message:
+    message = email.message_from_bytes(raw, policy=email.policy.default)
+    try:
+        text = _body(message, limit, keep_quotes=True)
+    except Exception:
+        text = ""
+    attachments = []
+    try:
+        for part in message.iter_attachments():
+            name = part.get_filename() or part.get_content_type()
+            attachments.append(name[:200])
+    except Exception:
+        pass
+    return Message(
+        uid=uid,
+        from_=_decoded(message, "from"),
+        to=_decoded(message, "to")[:1000],
+        cc=_decoded(message, "cc")[:1000],
+        date=_decoded(message, "date"),
+        subject=_decoded(message, "subject"),
+        seen=seen,
+        text=text,
+        attachments=attachments,
+        truncated=len(raw) >= BODY_BYTES or len(text) >= limit,
+    )
+
+
+def decode_folder(name: str) -> str:
+    """IMAP folder names are modified UTF-7 (RFC 3501): "Entw&APw-rfe" is "Entwürfe"."""
+
+    def part(match: re.Match) -> str:
+        chunk = match.group(1)
+        if not chunk:
+            return "&"
+        data = chunk.replace(",", "/")
+        return base64.b64decode(data + "=" * (-len(data) % 4)).decode("utf-16-be")
+
+    return re.sub(r"&([^-]*)-", part, name)
+
+
+def encode_folder(name: str) -> str:
+    out, pending = [], ""
+
+    def flush():
+        nonlocal pending
+        if pending:
+            data = base64.b64encode(pending.encode("utf-16-be")).decode().rstrip("=")
+            out.append("&" + data.replace("/", ",") + "-")
+            pending = ""
+
+    for char in name:
+        if 0x20 <= ord(char) <= 0x7E:
+            flush()
+            out.append("&-" if char == "&" else char)
+        else:
+            pending += char
+    flush()
+    return "".join(out)
+
+
+_LIST = re.compile(rb'\((?P<flags>[^)]*)\) (?:"[^"]*"|NIL) (?P<name>.+)$')
 
 
 def _decoded(message: email.message.EmailMessage, name: str) -> str:
@@ -182,7 +267,7 @@ class Mailbox:
 
     def examine(self, folder: str) -> int:
         """Open a folder read-only and return its UIDVALIDITY."""
-        typ, _ = self.conn.select(_quote(folder), readonly=True)
+        typ, _ = self.conn.select(_quote(encode_folder(folder)), readonly=True)
         if typ != "OK":
             raise imaplib.IMAP4.error(f"cannot open folder {folder!r}")
         self.folder = folder
@@ -238,6 +323,46 @@ class Mailbox:
                 if uid:
                     out[int(uid.group(1))] = bool(flags and b"\\Seen" in flags.group(1))
         return out
+
+    def folders(self) -> list[str]:
+        """Selectable folders, decoded (e.g. "Entwürfe")."""
+        _, data = self.conn.list()
+        out = []
+        for line in data:
+            if not isinstance(line, bytes) or not (match := _LIST.match(line)):
+                continue
+            if b"\\Noselect" in match.group("flags"):
+                continue
+            name = match.group("name").decode(errors="replace").strip()
+            if name.startswith('"') and name.endswith('"'):
+                name = name[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+            out.append(decode_folder(name))
+        return out
+
+    def search(self, since: date | None, unread_only: bool, text: str | None) -> list[int]:
+        """UIDs matching the filters. ASCII text is searched by the server (headers and body);
+        other text only in sender and subject, filtered here, because servers handle non-ASCII
+        search terms unevenly."""
+        criteria: list[str] = []
+        if since:
+            criteria += ["SINCE", since.strftime("%d-%b-%Y")]
+        if unread_only:
+            criteria.append("UNSEEN")
+        server_text = text if text and text.isascii() else None
+        if server_text:
+            criteria += ["TEXT", '"' + server_text.replace("\\", "").replace('"', "") + '"']
+        _, data = self.conn.uid("SEARCH", None, *(criteria or ["ALL"]))
+        return sorted(map(int, (data[0] or b"").split()))
+
+    def message(self, uid: int, limit: int = 20_000) -> Message | None:
+        query = f"(UID FLAGS BODY.PEEK[]<0.{BODY_BYTES}>)"
+        _, data = self.conn.uid("FETCH", str(uid), query)
+        for item in data:
+            if isinstance(item, tuple):
+                flags = _FLAGS.search(item[0])
+                seen = bool(flags and b"\\Seen" in flags.group(1))
+                return parse_message(uid, item[1], seen, limit)
+        return None
 
     def text(self, uid: int) -> str:
         """Text of one mail in the open folder, for its summary. Not stored anywhere."""

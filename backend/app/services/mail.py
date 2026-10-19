@@ -146,6 +146,23 @@ def set_dismissed(e: Email, dismissed: bool) -> None:
     e.dismissed_at = utc_now() if dismissed else None
 
 
+def untriaged(session: Session, days: int, limit: int) -> list[Email]:
+    """Mails without a model summary (pending, or rules only), mailing lists left out."""
+    return list(
+        session.scalars(
+            select(Email)
+            .where(
+                Email.received_at >= utc_now() - timedelta(days=days),
+                Email.triage.in_(("pending", "rules")),
+                Email.bulk.is_(False),
+                Email.dismissed_at.is_(None),
+            )
+            .order_by(Email.received_at.desc())
+            .limit(limit)
+        )
+    )
+
+
 # --- Local triage (laptop) ---------------------------------------------------------------------
 
 
