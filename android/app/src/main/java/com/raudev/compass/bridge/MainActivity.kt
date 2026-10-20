@@ -111,7 +111,11 @@ private fun BridgeScreen() {
             ) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE,
             batteryUnrestricted = battery,
         )
-        if (settings.configured && device.grantedTypes > 0) SyncWorker.schedule(context)
+        if (settings.configured && device.grantedTypes > 0) {
+            SyncWorker.schedule(context)
+            // Opening the app brings Compass up to date, e.g. right after Zepp synced the night.
+            SyncWorker.runNow(context)
+        }
     }
 
     LifecycleResumeEffect(Unit) {

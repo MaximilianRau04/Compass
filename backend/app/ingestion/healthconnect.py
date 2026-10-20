@@ -5,6 +5,12 @@ posts them here. The import is idempotent over the Health Connect record id: the
 arrive any number of times (the app retries after network errors), an edited record replaces the
 old version, a deletion marks the record as deleted and removes what was derived from it.
 
+The app sends a record only if Health Connect still had it when the app read it, so a record
+always wins over a deletion of the same id: within one batch (the first app version did not keep
+the order of the two), and later, when a deleted id comes back. Zepp deletes and rewrites a night
+when it re-syncs the watch, and Health Connect gives the rewritten record the same id (derived
+from Zepp's own record id), so without this the night would stay deleted.
+
 Every record is kept as it arrived (`health_records.raw`). Derived from it: sleep sessions with
 stages, heart rate samples, the daily metrics of each touched day, the duration of Gym Day
 sessions, and the meals and weights of each touched day (app.services.nutrition).
@@ -118,14 +124,11 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
 
     touched: set[date] = set()
     exercise_touched = False
-    created = updated = unchanged = invalid = deleted = 0
+    created = updated = unchanged = invalid = deleted = restored = 0
     for record in records.values():
         row = existing.get(record.id)
-        if row is not None and row.deleted_at is not None:
-            unchanged += 1
-            continue
         raw = record.model_dump(mode="json")
-        if row is not None and row.raw == raw:
+        if row is not None and row.deleted_at is None and row.raw == raw:
             unchanged += 1
             continue
         if row is None:
@@ -134,8 +137,13 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
             existing[record.id] = row
             created += 1
         else:
+            if row.deleted_at is not None:
+                # Health Connect has it again (see the module docstring).
+                row.deleted_at = None
+                restored += 1
+            else:
+                updated += 1
             touched |= _days(row)
-            updated += 1
         row.type = record.type
         row.source_app = record.source
         row.start_at = record.start
@@ -163,7 +171,7 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
 
     for record_id in payload.deleted:
         row = existing.get(record_id)
-        if row is None or row.deleted_at is not None:
+        if row is None or row.deleted_at is not None or record_id in records:
             continue
         row.deleted_at = now
         _remove_derived(session, row)
@@ -183,6 +191,7 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
         "updated": updated,
         "unchanged": unchanged,
         "deleted": deleted,
+        "restored": restored,
         "invalid": invalid,
         "days": len(touched),
     }

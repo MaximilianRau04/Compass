@@ -107,10 +107,14 @@ class Syncer(private val context: Context, private val settings: Settings) {
         } while (pageToken != null)
     }
 
-    /** Collects records and posts them in chunks small enough for one request. */
+    /**
+     * Collects records and posts them in chunks small enough for one request. Per id only the last
+     * change counts: Zepp deletes and rewrites a night under the same id, and the server cannot
+     * tell the order of a record and a deletion within one request.
+     */
     private class Batch(private val api: Api) {
-        private val records = mutableListOf<JSONObject>()
-        private val deleted = mutableListOf<String>()
+        private val records = LinkedHashMap<String, JSONObject>()
+        private val deleted = LinkedHashSet<String>()
         private var bytes = 0
         var sent = 0
             private set
@@ -118,19 +122,22 @@ class Syncer(private val context: Context, private val settings: Settings) {
             private set
 
         fun add(record: JSONObject) {
-            records += record
+            val id = record.getString("id")
+            deleted -= id
+            records[id] = record
             bytes += record.toString().length
             if (records.size >= MAX_RECORDS || bytes >= MAX_BYTES) flush()
         }
 
         fun delete(id: String) {
+            records -= id
             deleted += id
             if (deleted.size >= MAX_RECORDS) flush()
         }
 
         fun flush() {
             if (records.isEmpty() && deleted.isEmpty()) return
-            api.upload(records, deleted)
+            api.upload(records.values.toList(), deleted.toList())
             sent += records.size
             deletedSent += deleted.size
             records.clear()

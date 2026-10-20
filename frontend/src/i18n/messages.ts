@@ -354,6 +354,7 @@ export const de = {
   'today.mailCount': '{n} wichtig, {unread} ungelesen',
 
   'today.lastNight': 'Letzte Nacht',
+  'today.lastNightOld': 'Nacht von gestern, die heutige fehlt noch · letzter Sync {when}',
   'today.restingHr': 'Ruhepuls {bpm}',
   'split.push': 'Push',
   'split.pull': 'Pull',
@@ -739,6 +740,7 @@ export const en: Record<MessageKey, string> = {
   'today.mailCount': '{n} important, {unread} unread',
 
   'today.lastNight': 'Last night',
+  'today.lastNightOld': "Yesterday's night, tonight's is not in yet · last sync {when}",
   'today.restingHr': 'resting HR {bpm}',
   'split.push': 'Push',
   'split.pull': 'Pull',

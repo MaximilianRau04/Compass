@@ -32,6 +32,7 @@ class IngestResult(BaseModel):
     updated: int
     unchanged: int
     deleted: int
+    restored: int = Field(0, description="Deleted earlier, now back in Health Connect")
     invalid: int
     days: int = Field(description="Local days whose daily metrics were recomputed")
 

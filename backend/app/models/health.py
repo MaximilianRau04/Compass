@@ -36,7 +36,8 @@ class HealthRecord(TimestampMixin, Base):
     local_date: Mapped[date] = mapped_column(Date)
     last_modified: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     raw: Mapped[dict] = mapped_column(JSONB, server_default="{}")
-    # Deleted in Health Connect. Kept so a late upsert of the same id does not revive it.
+    # Deleted in Health Connect. The row stays; if Health Connect has the id again (Zepp rewrites
+    # a night under the same id), the next sync clears it.
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 

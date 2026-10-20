@@ -16,7 +16,7 @@ import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { addDays, clockTime, longDate } from '../lib/format'
+import { addDays, clockTime, localDay, longDate, relativeDay } from '../lib/format'
 import { hours } from '../lib/health'
 import { grams, kcal } from '../lib/nutrition'
 
@@ -26,6 +26,7 @@ function LastNight({ summary, today }: { summary: HealthSummary | undefined; tod
   const night = summary?.last_night
   if (!night || night.local_date < addDays(today, -1)) return null
   const resting = summary.days.find((d) => d.date === night.local_date)?.resting_hr
+  const synced = summary.sync?.last_success_at
   return (
     <Link to="/schlaf" className="block rounded-md border border-rule bg-paper-raised px-3 py-2.5 hover:border-ink">
       <span className="text-xs text-muted">{t('today.lastNight')}</span>
@@ -36,6 +37,15 @@ function LastNight({ summary, today }: { summary: HealthSummary | undefined; tod
           {resting != null && ` · ${t('today.restingHr', { bpm: resting })}`}
         </span>
       </span>
+      {/* Tonight is missing until Zepp and the bridge app have synced; say so instead of
+          passing yesterday's night off as the current one. */}
+      {night.local_date < today && (
+        <span className="mt-0.5 block font-mono text-[11px] text-brass">
+          {t('today.lastNightOld', {
+            when: synced ? `${relativeDay(localDay(synced), today, t, locale)} ${clockTime(synced, locale)}` : '–',
+          })}
+        </span>
+      )}
     </Link>
   )
 }

@@ -142,7 +142,7 @@ def test_ingest_is_idempotent_and_applies_edits(session):
     assert session.scalar(select(SleepSession.id).where(SleepSession.id != sleep.id)) is None
 
 
-def test_deletion_removes_derived_data_and_stays_deleted(session):
+def test_deletion_removes_derived_data(session):
     today = local_today()
     ingest(session, [night()])
     stats = ingest(session, deleted=["sleep-1", "never-seen"])
@@ -150,9 +150,32 @@ def test_deletion_removes_derived_data_and_stays_deleted(session):
     assert session.scalar(select(SleepSession)) is None
     assert session.get(DailyMetrics, today) is None
     assert session.get(HealthRecord, "sleep-1").deleted_at is not None
-    # A late copy of the same record does not bring it back.
-    assert ingest(session, [night()])["unchanged"] == 1
-    assert session.scalar(select(SleepSession)) is None
+    assert ingest(session, deleted=["sleep-1"])["deleted"] == 0
+
+
+def test_rewritten_record_with_the_same_id_comes_back(session):
+    """Zepp deletes a night and writes it again; Health Connect keeps the id. Seen on 20.10.2026:
+    the upsert came in the first request, the deletion and the new upsert in the second."""
+    today = local_today()
+    ingest(session, [night()])
+    ingest(session, deleted=["sleep-1"])
+    stats = ingest(session, [night()])
+    assert (stats["restored"], stats["unchanged"]) == (1, 0)
+    assert session.get(HealthRecord, "sleep-1").deleted_at is None
+    assert session.scalar(select(SleepSession)).local_date == today
+    assert session.get(DailyMetrics, today).sleep_minutes is not None
+
+
+def test_record_wins_over_a_deletion_in_the_same_batch(session):
+    today = local_today()
+    ingest(session, [night()])
+    stats = ingest(session, [night()], deleted=["sleep-1"])
+    assert stats["deleted"] == 0
+    assert session.get(HealthRecord, "sleep-1").deleted_at is None
+    assert session.scalar(select(SleepSession)).local_date == today
+    # The same in the first batch of a new record.
+    ingest(session, [night(id="sleep-2")], deleted=["sleep-2"])
+    assert session.get(HealthRecord, "sleep-2").deleted_at is None
 
 
 def test_steps_from_two_apps_are_not_added_up(session):
