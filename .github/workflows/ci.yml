@@ -83,11 +83,31 @@ jobs:
       REGISTRY: ghcr.io/maximilianrau04
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t $REGISTRY/compass-api:latest -t $REGISTRY/compass-api:${{ github.sha }} backend
-      - run: docker build -t $REGISTRY/compass-web:latest -t $REGISTRY/compass-web:${{ github.sha }} frontend
+      - uses: docker/setup-buildx-action@v3
       # Images are only published from main; the server pulls them instead of building.
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker push --all-tags $REGISTRY/compass-api
-          docker push --all-tags $REGISTRY/compass-web
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Layer cache in GitHub Actions: unchanged layers (dependencies, the Caddy build with its
+      # Go modules) are reused instead of being downloaded and built on every push.
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/compass-api:latest
+            ${{ env.REGISTRY }}/compass-api:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/compass-web:latest
+            ${{ env.REGISTRY }}/compass-web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

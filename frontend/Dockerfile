@@ -6,9 +6,13 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run build
 
-# Caddy with the netcup DNS module for Let's Encrypt DNS challenges
+# Caddy with the netcup DNS module for Let's Encrypt DNS challenges. xcaddy downloads a few
+# hundred Go modules; the Go proxy and checksum server sometimes drop a connection, so retry.
 FROM caddy:2.10-builder-alpine AS caddy
-RUN xcaddy build --with github.com/caddy-dns/netcup@v1.0.0
+RUN for attempt in 1 2 3; do \
+      xcaddy build --with github.com/caddy-dns/netcup@v1.0.0 && exit 0; \
+      echo "xcaddy build failed (attempt $attempt), retrying" >&2; sleep 20; \
+    done; exit 1
 
 FROM caddy:2.10-alpine
 LABEL org.opencontainers.image.source=https://github.com/MaximilianRau04/Compass
