@@ -11,6 +11,11 @@ the order of the two), and later, when a deleted id comes back. Zepp deletes and
 when it re-syncs the watch, and Health Connect gives the rewritten record the same id (derived
 from Zepp's own record id), so without this the night would stay deleted.
 
+The change feed alone did not get every rewrite through (21.10.2026: Zepp wrote the night in
+three versions under new ids, the last one never arrived). So the app also sends a snapshot of the
+small types (sleep, exercise, nutrition, weight) for the last days with every sync: whatever is
+listed is stored, a record of that type and range that is not listed is marked deleted.
+
 Every record is kept as it arrived (`health_records.raw`). Derived from it: sleep sessions with
 stages, heart rate samples, the daily metrics of each touched day, the duration of Gym Day
 sessions, and the meals and weights of each touched day (app.services.nutrition).
@@ -178,6 +183,22 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
         touched |= _days(row)
         exercise_touched |= row.type == "exercise"
         deleted += 1
+    for snapshot in payload.snapshots:
+        keep = set(snapshot.ids) | set(records)
+        gone = session.scalars(
+            select(HealthRecord).where(
+                HealthRecord.type == snapshot.type,
+                HealthRecord.start_at >= snapshot.since,
+                HealthRecord.deleted_at.is_(None),
+                HealthRecord.id.not_in(keep),
+            )
+        )
+        for row in gone:
+            row.deleted_at = now
+            _remove_derived(session, row)
+            touched |= _days(row)
+            exercise_touched |= row.type == "exercise"
+            deleted += 1
     session.flush()
 
     health.recompute_days(session, touched)

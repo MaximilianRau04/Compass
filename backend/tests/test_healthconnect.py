@@ -58,8 +58,10 @@ def night(id="sleep-1", wake_day=None, source=ZEPP) -> dict:
     return record(id, "sleep", bed, cursor, source=source, stages=stages)
 
 
-def ingest(session, records=(), deleted=()):
-    payload = IngestPayload.model_validate({"records": list(records), "deleted": list(deleted)})
+def ingest(session, records=(), deleted=(), snapshots=()):
+    payload = IngestPayload.model_validate(
+        {"records": list(records), "deleted": list(deleted), "snapshots": list(snapshots)}
+    )
     return healthconnect.ingest(session, payload)
 
 
@@ -176,6 +178,30 @@ def test_record_wins_over_a_deletion_in_the_same_batch(session):
     # The same in the first batch of a new record.
     ingest(session, [night(id="sleep-2")], deleted=["sleep-2"])
     assert session.get(HealthRecord, "sleep-2").deleted_at is None
+
+
+def test_snapshot_adds_the_missing_version_and_drops_stale_ones(session):
+    """21.10.2026: Zepp wrote the night three times under new ids; the change feed delivered the
+    first two (and their deletions) but never the last one."""
+    today = local_today()
+    since = at(today - timedelta(days=3), "00:00").isoformat()
+    ingest(session, [night("v1")])
+    ingest(session, [night("v2")], deleted=["v1"])
+    old = night("old", wake_day=today - timedelta(days=5))
+    ingest(session, [old])
+
+    final = night("v3")
+    stats = ingest(session, [final], snapshots=[{"type": "sleep", "since": since, "ids": ["v3"]}])
+    assert stats["created"] == 1 and stats["deleted"] == 1  # v2 is gone from Health Connect
+    alive = session.scalars(select(HealthRecord.id).where(HealthRecord.deleted_at.is_(None)))
+    assert set(alive) == {"v3", "old"}  # older than the snapshot range: untouched
+    assert {s.record_id for s in session.scalars(select(SleepSession))} == {"v3", "old"}
+    assert session.get(DailyMetrics, today).sleep_minutes is not None
+
+    # A snapshot only touches its own type.
+    ingest(session, [record("st", "steps", at(today, "08:00"), at(today, "09:00"), count=10)])
+    ingest(session, snapshots=[{"type": "sleep", "since": since, "ids": ["v3"]}])
+    assert session.get(HealthRecord, "st").deleted_at is None
 
 
 def test_steps_from_two_apps_are_not_added_up(session):

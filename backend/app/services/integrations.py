@@ -1,10 +1,32 @@
 """Bookkeeping for data sources: when they last ran, whether it worked and what changed."""
 
+import errno
+import socket
+import urllib.error
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.integrations import IntegrationState
 from app.services.clock import utc_now
+
+UNREACHABLE = {errno.ENETUNREACH, errno.EHOSTUNREACH, errno.ECONNREFUSED, errno.ETIMEDOUT}
+
+
+def describe_error(exc: Exception) -> str:
+    """A short, readable reason for a failed fetch. Python reports only the last address it
+    tried: ILIAS times out over IPv4 and then fails over IPv6, which the server does not have,
+    so a down server read as "Network is unreachable"."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return f"HTTP {exc.code} {exc.reason}".strip()
+    reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+    if isinstance(reason, socket.gaierror):
+        return "host name not found (DNS)"
+    if isinstance(reason, TimeoutError | socket.timeout) or (
+        isinstance(reason, OSError) and reason.errno in UNREACHABLE
+    ):
+        return "server not reachable (timeout or no route)"
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _state(session: Session, name: str) -> IntegrationState:

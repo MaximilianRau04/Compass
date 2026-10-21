@@ -18,8 +18,9 @@ function MailItem({ mail, today }: { mail: Mail; today: string }) {
   const dismiss = useDismissMail()
   const sender = mail.from_name ?? mail.from_addr
   const pending = mail.triage === 'pending'
+  const important = isImportant(mail)
   return (
-    <li className="py-3">
+    <li className={['py-3', important ? '-ml-3 border-l-2 border-brass pl-2.5' : '', mail.priority === 'low' && !important ? 'opacity-60' : ''].join(' ')}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 truncate">
           {!mail.seen && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-brass align-middle" aria-label={t('mail.unread')} />}
@@ -93,32 +94,35 @@ function Accounts({ overview, today }: { overview: MailOverview; today: string }
   )
 }
 
-function Section({ label, mails, today, tone, collapsed }: { label: string; mails: Mail[]; today: string; tone?: 'signal'; collapsed?: boolean }) {
-  if (mails.length === 0) return null
-  const list = (
-    <ul className="divide-y divide-rule/60">
-      {mails.map((m) => (
-        <MailItem key={m.id} mail={m} today={today} />
-      ))}
-    </ul>
-  )
-  if (collapsed) {
-    return (
-      <details>
-        <summary className="cursor-pointer list-none">
-          <SectionLabel count={mails.length}>{label}</SectionLabel>
-        </summary>
-        {list}
-      </details>
-    )
+type Filter = 'all' | 'unread' | 'important'
+
+const FILTERS: { key: Filter; label: MessageKey; test: (m: Mail) => boolean }[] = [
+  { key: 'all', label: 'mail.all', test: () => true },
+  { key: 'unread', label: 'mail.unreadList', test: (m) => !m.seen },
+  { key: 'important', label: 'mail.important', test: isImportant },
+]
+
+/** Mails newest first, one section per day. */
+function ByDay({ mails, today }: { mails: Mail[]; today: string }) {
+  const { t, locale } = useI18n()
+  const days = new Map<string, Mail[]>()
+  for (const mail of mails) {
+    const day = localDay(mail.received_at)
+    days.set(day, [...(days.get(day) ?? []), mail])
   }
   return (
-    <section>
-      <SectionLabel count={mails.length} tone={tone}>
-        {label}
-      </SectionLabel>
-      {list}
-    </section>
+    <>
+      {[...days].map(([day, items]) => (
+        <section key={day}>
+          <SectionLabel count={items.length}>{relativeDay(day, today, t, locale)}</SectionLabel>
+          <ul className="divide-y divide-rule/60">
+            {items.map((m) => (
+              <MailItem key={m.id} mail={m} today={today} />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </>
   )
 }
 
@@ -127,6 +131,7 @@ export function MailPage() {
   const today = useTodayDate()
   const [account, setAccount] = useState<string | undefined>()
   const [dismissed, setDismissed] = useState(false)
+  const [filter, setFilter] = useState<Filter>('all')
   const overview = useMailOverview()
   const mails = useMails({ days: DAYS, account, dismissed })
   const sync = useSyncMail()
@@ -168,40 +173,37 @@ export function MailPage() {
   }
 
   const list = mails.data
-  const important = list.filter(isImportant)
-  const low = list.filter((m) => !isImportant(m) && m.priority === 'low')
-  const normal = list.filter((m) => !isImportant(m) && m.priority !== 'low')
+  const shown = dismissed ? list : list.filter(FILTERS.find((f) => f.key === filter)!.test)
 
   return (
     <>
       {header}
       <Accounts overview={overview.data} today={today} />
 
-      <div className="mb-6 flex flex-wrap gap-1.5">
-        <button type="button" className={pill(!account)} aria-pressed={!account} onClick={() => setAccount(undefined)}>
-          {t('mail.all')}
-        </button>
-        {overview.data.accounts.map((a) => (
-          <button key={a.account} type="button" className={pill(account === a.account)} aria-pressed={account === a.account} onClick={() => setAccount(a.account)}>
-            {t(`mail.account.${a.account}` as MessageKey)}
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {FILTERS.map((f) => (
+          <button key={f.key} type="button" className={pill(!dismissed && filter === f.key)} aria-pressed={!dismissed && filter === f.key} onClick={() => { setFilter(f.key); setDismissed(false) }}>
+            {t(f.label)} <span className="font-mono text-[11px] opacity-70">{dismissed ? '' : list.filter(f.test).length}</span>
           </button>
         ))}
         <button type="button" className={`${pill(dismissed)} ml-auto`} aria-pressed={dismissed} onClick={() => setDismissed(!dismissed)}>
           {t('mail.dismissedList')}
         </button>
       </div>
+      <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[12px]">
+        <button type="button" aria-pressed={!account} onClick={() => setAccount(undefined)} className={!account ? 'text-brass' : 'text-muted hover:text-ink'}>
+          {t('mail.allAccounts')}
+        </button>
+        {overview.data.accounts.map((a) => (
+          <button key={a.account} type="button" aria-pressed={account === a.account} onClick={() => setAccount(account === a.account ? undefined : a.account)} className={account === a.account ? 'text-brass' : 'text-muted hover:text-ink'}>
+            {t(`mail.account.${a.account}` as MessageKey)}
+          </button>
+        ))}
+      </div>
 
-      {list.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
+      {shown.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
       <div className="space-y-8">
-        {dismissed ? (
-          <Section label={t('mail.dismissedList')} mails={list} today={today} />
-        ) : (
-          <>
-            <Section label={t('mail.important')} mails={important} today={today} tone="signal" />
-            <Section label={t('mail.normal')} mails={normal} today={today} />
-            <Section label={t('mail.low')} mails={low} today={today} collapsed />
-          </>
-        )}
+        <ByDay mails={shown} today={today} />
         <p className="max-w-xl text-sm text-muted">{t('mail.hint')}</p>
       </div>
     </>

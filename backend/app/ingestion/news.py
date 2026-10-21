@@ -162,7 +162,7 @@ def sync_all(session_factory, fetch: Fetcher = fetch_feed) -> dict[str, dict | s
                 session.commit()
             results[feed] = stats
         except Exception as exc:  # record any failure, keep the worker alive
-            error = f"{type(exc).__name__}: {exc}"[:500]
+            error = integrations.describe_error(exc)[:500]
             log.warning("news %s failed: %s", feed, error)
             with session_factory() as session:
                 # A failed statement leaves the transaction aborted (the API shares one session).

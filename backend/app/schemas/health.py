@@ -19,11 +19,21 @@ class IngestRecord(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
 
 
+class Snapshot(BaseModel):
+    """Every record of one type that Health Connect has from `since` on. Records of that type in
+    Compass that start in this range and are not listed are gone from Health Connect."""
+
+    type: str = Field(pattern=r"^[a-z_]{1,40}$")
+    since: AwareDatetime
+    ids: list[str] = Field(default_factory=list, max_length=5000)
+
+
 class IngestPayload(BaseModel):
     device: str | None = Field(None, max_length=120)
     app_version: str | None = Field(None, max_length=40)
     records: list[IngestRecord] = Field(default_factory=list, max_length=5000)
     deleted: list[str] = Field(default_factory=list, max_length=5000)
+    snapshots: list[Snapshot] = Field(default_factory=list, max_length=20)
 
 
 class IngestResult(BaseModel):

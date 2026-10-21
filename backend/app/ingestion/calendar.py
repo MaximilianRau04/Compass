@@ -214,7 +214,7 @@ def sync_all(session_factory, fetch: Fetcher = fetch_ics) -> dict[str, dict | st
             log.info("calendar %s synced: %s", feed, stats)
         except Exception as exc:  # record any failure, keep the worker alive
             # The URL carries a secret token, so it never goes into the error text.
-            error = f"{type(exc).__name__}: {exc}".replace(url, "<url>")
+            error = integrations.describe_error(exc).replace(url, "<url>")
             log.warning("calendar %s failed: %s", feed, error)
             with session_factory() as session:
                 integrations.record_failure(session, name, error)

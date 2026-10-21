@@ -6,11 +6,13 @@ import { useTodayDate } from '../api/tasks'
 import type { Interest, Interests, NewsItem, NewsOverview } from '../api/types'
 import { SectionLabel } from '../components/Layout'
 import { Markdown } from '../components/Markdown'
+import { SyncIssue } from '../components/SyncIssue'
 import { useI18n } from '../i18n/context'
 import { clockTime, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
 
 type Stream = 'personal' | 'general'
 const RANGES = [36, 72, 168] as const
+const PAGE = 15
 
 function Thumb({ item, value }: { item: NewsItem; value: 1 | -1 }) {
   const { t } = useI18n()
@@ -36,7 +38,7 @@ function Thumb({ item, value }: { item: NewsItem; value: 1 | -1 }) {
   )
 }
 
-function NewsRow({ item, today }: { item: NewsItem; today: string }) {
+function NewsRow({ item, today, onTopic }: { item: NewsItem; today: string; onTopic: (term: string) => void }) {
   const { t, locale } = useI18n()
   return (
     <li className={`py-3 ${item.feedback === -1 ? 'opacity-50' : ''}`}>
@@ -53,14 +55,14 @@ function NewsRow({ item, today }: { item: NewsItem; today: string }) {
           {(item.topics.length > 0 || item.trending.length > 0) && (
             <p className="mt-1.5 flex flex-wrap gap-1">
               {item.topics.map((topic) => (
-                <span key={topic} className="rounded-full border border-rule px-2 py-0.5 text-[11px] text-muted">
+                <button key={topic} type="button" onClick={() => onTopic(topic)} className="rounded-full border border-rule px-2 py-0.5 text-[11px] text-muted hover:border-ink hover:text-ink">
                   {topic}
-                </span>
+                </button>
               ))}
               {item.trending.map((term) => (
-                <span key={term} className="rounded-full border border-brass/60 px-2 py-0.5 text-[11px] text-brass">
+                <button key={term} type="button" onClick={() => onTopic(term)} className="rounded-full border border-brass/60 px-2 py-0.5 text-[11px] text-brass hover:bg-brass/10">
                   ↗ {term}
-                </span>
+                </button>
               ))}
             </p>
           )}
@@ -85,26 +87,27 @@ function Feeds({ overview, today }: { overview: NewsOverview; today: string }) {
         {last && ` · ${t('news.fetchedAt', { when: `${relativeDay(localDay(last), today, t, locale)} ${clockTime(last, locale)}` })}`}
       </p>
       {failed.map((f) => (
-        <p key={f.feed} className="text-signal">
-          {f.feed}: {f.last_error}
-        </p>
+        <SyncIssue key={f.feed} name={f.feed} error={f.last_error!} lastSuccess={f.last_success_at} today={today} />
       ))}
     </div>
   )
 }
 
-function Report({ overview }: { overview: NewsOverview }) {
+/** Claude's report; open while it is from today, folded once it is older. */
+function Report({ overview, today }: { overview: NewsOverview; today: string }) {
   const { t, locale } = useI18n()
   const report = overview.report
   if (!report) return <p className="max-w-xl text-sm text-muted">{t('news.noReport')}</p>
   return (
-    <section>
-      <SectionLabel>{report.title ?? t('news.report')}</SectionLabel>
-      <p className="mt-1 font-mono text-[11px] text-muted">
-        {t('news.reportBy', { date: parseDate(report.local_date).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) })}
-      </p>
+    <details open={report.local_date === today} className="group rounded-md border border-rule bg-paper-raised px-4 py-3">
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
+        <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{report.title ?? t('news.report')}</span>
+        <span className="font-mono text-[11px] text-muted">
+          {t('news.reportBy', { date: parseDate(report.local_date).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' }) })}
+        </span>
+      </summary>
       <Markdown text={report.body} className="mt-2" />
-    </section>
+    </details>
   )
 }
 
@@ -192,6 +195,10 @@ export function NewsPage() {
   const today = useTodayDate()
   const [stream, setStream] = useState<Stream>('personal')
   const [hours, setHours] = useState<number>(36)
+  const [feed, setFeed] = useState<string>('')
+  const [topic, setTopic] = useState<string | null>(null)
+  const [relevant, setRelevant] = useState(true)
+  const [shown, setShown] = useState(PAGE)
   const overview = useNewsOverview()
   const news = useNews({ hours, stream })
   const interests = useInterests()
@@ -224,21 +231,47 @@ export function NewsPage() {
   }
   if (overview.isPending || news.isPending) return <>{header}<p className="font-mono text-sm text-muted">{t('common.loading')}</p></>
 
+  const feeds = overview.data.feeds.filter((f) => f.stream === stream).map((f) => f.feed)
+  const filtered = news.data.filter(
+    (item) =>
+      (!feed || item.feed === feed) &&
+      (!topic || item.topics.includes(topic) || item.trending.includes(topic)) &&
+      // "Relevant" only applies to the personal stream: items the profile or a thumb likes.
+      (stream === 'general' || !relevant || topic !== null || item.score > 0 || item.feedback === 1),
+  )
+  const pickTopic = (term: string) => {
+    setTopic(topic === term ? null : term)
+    setShown(PAGE)
+  }
+  const switchStream = (next: Stream) => {
+    setStream(next)
+    setFeed('')
+    setShown(PAGE)
+  }
+
   return (
     <>
       {header}
       <Feeds overview={overview.data} today={today} />
 
       <div className="space-y-8">
-        <Report overview={overview.data} />
+        <Report overview={overview.data} today={today} />
 
         {overview.data.trends.length > 0 && (
           <section>
             <SectionLabel count={overview.data.trends.length}>{t('news.trends')}</SectionLabel>
             <ul className="mt-2 flex flex-wrap gap-1.5">
-              {overview.data.trends.map((trend) => (
-                <li key={trend.term} title={trend.feeds.join(', ')} className="rounded-full border border-brass/60 px-2.5 py-0.5 text-sm text-brass">
-                  ↗ {trend.term} <span className="font-mono text-[11px] text-muted">{t('news.trendFeeds', { n: trend.feeds.length })}</span>
+              {overview.data.trends.slice(0, 8).map((trend) => (
+                <li key={trend.term}>
+                  <button
+                    type="button"
+                    title={trend.feeds.join(', ')}
+                    aria-pressed={topic === trend.term}
+                    onClick={() => pickTopic(trend.term)}
+                    className={['rounded-full border px-2.5 py-0.5 text-sm', topic === trend.term ? 'border-brass bg-brass text-brass-ink' : 'border-brass/60 text-brass hover:bg-brass/10'].join(' ')}
+                  >
+                    ↗ {trend.term} <span className="font-mono text-[11px] opacity-70">{t('news.trendFeeds', { n: trend.feeds.length })}</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -248,26 +281,55 @@ export function NewsPage() {
         <section>
           <div className="mb-2 flex flex-wrap gap-1.5">
             {(['personal', 'general'] as Stream[]).map((s) => (
-              <button key={s} type="button" className={pill(stream === s)} aria-pressed={stream === s} onClick={() => setStream(s)}>
+              <button key={s} type="button" className={pill(stream === s)} aria-pressed={stream === s} onClick={() => switchStream(s)}>
                 {t(s === 'personal' ? 'news.personal' : 'news.general')}
               </button>
             ))}
             <span className="ml-auto flex gap-1.5">
               {RANGES.map((h) => (
-                <button key={h} type="button" className={pill(hours === h)} aria-pressed={hours === h} onClick={() => setHours(h)}>
+                <button key={h} type="button" className={pill(hours === h)} aria-pressed={hours === h} onClick={() => { setHours(h); setShown(PAGE) }}>
                   {h < 48 ? `${h} h` : t('news.days', { n: h / 24 })}
                 </button>
               ))}
             </span>
           </div>
-          {news.data.length === 0 ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+            <select value={feed} onChange={(e) => { setFeed(e.target.value); setShown(PAGE) }} aria-label={t('news.source')} className="rounded-md border border-rule bg-paper-raised px-2 py-1">
+              <option value="">{t('news.allSources')}</option>
+              {feeds.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            {stream === 'personal' && (
+              <label className="flex items-center gap-1.5 text-muted">
+                <input type="checkbox" checked={relevant} onChange={(e) => { setRelevant(e.target.checked); setShown(PAGE) }} className="accent-brass" />
+                {t('news.onlyRelevant')}
+              </label>
+            )}
+            {topic && (
+              <button type="button" onClick={() => pickTopic(topic)} className="rounded-full border border-ink bg-ink px-2.5 py-0.5 text-paper">
+                {topic} ×
+              </button>
+            )}
+            <span className="ml-auto font-mono text-[11px] text-muted">{t('news.count', { n: filtered.length, total: news.data.length })}</span>
+          </div>
+          {filtered.length === 0 ? (
             <p className="text-muted">{overview.data.feeds.length === 0 ? t('news.empty') : t('news.nothing')}</p>
           ) : (
-            <ul className="divide-y divide-rule/60">
-              {news.data.map((item) => (
-                <NewsRow key={item.id} item={item} today={today} />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-rule/60">
+                {filtered.slice(0, shown).map((item) => (
+                  <NewsRow key={item.id} item={item} today={today} onTopic={pickTopic} />
+                ))}
+              </ul>
+              {filtered.length > shown && (
+                <button type="button" onClick={() => setShown(shown + PAGE)} className="mt-3 w-full rounded-md border border-rule py-2 text-sm text-muted hover:border-ink hover:text-ink">
+                  {t('news.more', { n: Math.min(PAGE, filtered.length - shown) })}
+                </button>
+              )}
+            </>
           )}
         </section>
 

@@ -10,6 +10,7 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Duration
 import java.time.Instant
@@ -43,6 +44,7 @@ class Syncer(private val context: Context, private val settings: Settings) {
             readWindow(client, types, typesKey, batch)
         }
         batch.flush()
+        snapshot(client, types, batch)
         "${batch.sent} Datensätze, ${batch.deletedSent} gelöscht"
     }
 
@@ -84,6 +86,29 @@ class Syncer(private val context: Context, private val settings: Settings) {
         batch.flush()
         settings.changesToken = token
         settings.changesTypes = typesKey
+    }
+
+    /**
+     * Everything Health Connect has of the small types for the last [SNAPSHOT_DAYS], one request
+     * per type. The server stores what is listed and drops what is missing, so a rewrite that the
+     * change feed did not deliver (Zepp rewrites a night several times) still arrives.
+     */
+    private suspend fun snapshot(client: HealthConnectClient, types: List<HealthType>, batch: Batch) {
+        val since = Instant.now().minus(Duration.ofDays(SNAPSHOT_DAYS))
+        for (type in types.filter { it.name in SNAPSHOT_TYPES }) {
+            val records = mutableListOf<JSONObject>()
+            readAll(client, type.recordClass, since) { record ->
+                HealthTypes.toJson(record)?.let { records += it }
+            }
+            if (records.size > MAX_RECORDS) {
+                // Too many for one request; send them as normal records, without the snapshot.
+                records.forEach { batch.add(it) }
+                batch.flush()
+                continue
+            }
+            val ids = records.map { it.getString("id") }
+            batch.snapshot(records, type.name, since, ids)
+        }
     }
 
     private suspend fun <T : Record> readAll(
@@ -135,6 +160,16 @@ class Syncer(private val context: Context, private val settings: Settings) {
             if (deleted.size >= MAX_RECORDS) flush()
         }
 
+        fun snapshot(records: List<JSONObject>, type: String, since: Instant, ids: List<String>) {
+            flush()
+            val snapshot = JSONObject()
+                .put("type", type)
+                .put("since", since.toString())
+                .put("ids", JSONArray(ids))
+            api.upload(records, emptyList(), snapshot)
+            sent += records.size
+        }
+
         fun flush() {
             if (records.isEmpty() && deleted.isEmpty()) return
             api.upload(records.values.toList(), deleted.toList())
@@ -148,6 +183,8 @@ class Syncer(private val context: Context, private val settings: Settings) {
 
     companion object {
         private const val MAX_RECORDS = 500
+        private const val SNAPSHOT_DAYS = 3L
+        private val SNAPSHOT_TYPES = setOf("sleep", "exercise", "nutrition", "weight")
         private const val MAX_BYTES = 4_000_000
 
         /** The periodic job and "sync now" must not read and move the token at the same time. */

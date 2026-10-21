@@ -257,3 +257,24 @@ async def test_mcp_news_and_briefs(mcp_client, session):
     assert "No 'news' brief saved yet" in result.content[0].text
     result = await mcp_client.call_tool("save_brief", {"body": "x", "kind": "Not OK"})
     assert result.is_error
+
+
+def test_fetch_errors_are_readable():
+    import errno
+    import socket
+    import urllib.error
+
+    from app.services.integrations import describe_error
+
+    assert describe_error(urllib.error.HTTPError("u", 503, "Service Unavailable", {}, None)) == (
+        "HTTP 503 Service Unavailable"
+    )
+    unreachable = urllib.error.URLError(OSError(errno.ENETUNREACH, "Network is unreachable"))
+    assert describe_error(unreachable) == "server not reachable (timeout or no route)"
+    assert describe_error(urllib.error.URLError(TimeoutError())) == (
+        "server not reachable (timeout or no route)"
+    )
+    assert describe_error(urllib.error.URLError(socket.gaierror(-2, "x"))) == (
+        "host name not found (DNS)"
+    )
+    assert describe_error(ValueError("not a feed")) == "ValueError: not a feed"

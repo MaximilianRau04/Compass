@@ -20,12 +20,13 @@ class Api(private val baseUrl: String, private val token: String) {
         return JSONObject(body).optString("last_success_at").takeIf { it.isNotEmpty() && it != "null" }
     }
 
-    fun upload(records: List<JSONObject>, deleted: List<String>): JSONObject {
+    fun upload(records: List<JSONObject>, deleted: List<String>, snapshot: JSONObject? = null): JSONObject {
         val payload = JSONObject()
             .put("device", Build.MODEL)
             .put("app_version", BuildConfig.VERSION_NAME)
             .put("records", JSONArray(records))
             .put("deleted", JSONArray(deleted))
+            .apply { if (snapshot != null) put("snapshots", JSONArray().put(snapshot)) }
         return JSONObject(request("POST", payload.toString()))
     }
 

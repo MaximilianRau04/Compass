@@ -1,18 +1,21 @@
 import { toast } from 'sonner'
 
 import { useIntegrations, useSyncCalendars } from '../api/calendar'
+import { useTodayDate } from '../api/tasks'
 import type { CalendarEvent, Task } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { eventsOn, tasksOn } from '../lib/calendar'
 import { addDays, eventOnDay, longDate, relativeDay } from '../lib/format'
 import { EventItem } from './EventItem'
 import { SectionLabel } from './Layout'
+import { SyncIssue } from './SyncIssue'
 import { TaskItem } from './TaskItem'
 
 export function SyncStatus() {
   const { t, locale } = useI18n()
   const states = useIntegrations().data?.filter((s) => s.name.startsWith('calendar:')) ?? []
   const sync = useSyncCalendars()
+  const today = useTodayDate()
 
   const run = () =>
     sync.mutate(undefined, {
@@ -25,15 +28,14 @@ export function SyncStatus() {
       {states.length === 0 && <p>{t('cal.noFeeds')}</p>}
       {states.map((state) => {
         const name = state.name.replace('calendar:', '')
+        if (state.last_error) return <SyncIssue key={state.name} name={name} error={state.last_error} lastSuccess={state.last_success_at} today={today} />
         return (
-          <p key={state.name} className={state.last_error ? 'text-signal' : ''}>
-            {state.last_error
-              ? t('cal.syncError', { name, error: state.last_error })
-              : state.last_success_at &&
-                t('cal.lastSync', {
-                  name,
-                  time: new Date(state.last_success_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }),
-                })}
+          <p key={state.name}>
+            {state.last_success_at &&
+              t('cal.lastSync', {
+                name,
+                time: new Date(state.last_success_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }),
+              })}
           </p>
         )
       })}
