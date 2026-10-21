@@ -34,9 +34,22 @@ if "${COMPOSE[@]}" ps --status running --services | grep -qx db; then
   infra/backup/pg-backup.sh
 fi
 
+# A recreate that broke off (on this small VM a container can take too long to stop) leaves the
+# old container renamed to <id>_compass-<service>-1, and every later run fails on that name. Such
+# a container is never the live one, so it can go.
+remove_leftovers() {
+  docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_compass-' \
+    | xargs -r docker rm -f >/dev/null || true
+}
+
 export COMPASS_VERSION="$target"
 "${COMPOSE[@]}" pull --quiet
-"${COMPOSE[@]}" up -d --no-build --remove-orphans
+remove_leftovers
+if ! "${COMPOSE[@]}" up -d --no-build --remove-orphans; then
+  echo "compose up failed, removing leftover containers and trying once more"
+  remove_leftovers
+  "${COMPOSE[@]}" up -d --no-build --remove-orphans
+fi
 echo "$target" >.deployed
 
 # Drop older Compass images; images still used by a container are skipped.
