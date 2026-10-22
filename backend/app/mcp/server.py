@@ -203,7 +203,9 @@ class DayOut(BaseModel):
     date: date
     steps: int | None
     resting_hr: int | None
+    hr_min: int | None
     hr_avg: int | None
+    hr_max: int | None
     kcal_burned: int | None
     sleep_minutes: int | None
 
@@ -747,7 +749,9 @@ def sleep_summary(
                     date=m.local_date,
                     steps=m.steps,
                     resting_hr=m.resting_hr,
+                    hr_min=m.hr_min,
                     hr_avg=m.hr_avg,
+                    hr_max=m.hr_max,
                     kcal_burned=m.kcal_burned,
                     sleep_minutes=m.sleep_minutes,
                 )

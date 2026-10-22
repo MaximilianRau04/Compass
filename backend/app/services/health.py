@@ -367,6 +367,13 @@ def summary(session: Session, days: int) -> Summary:
 
 def night_heart_rate(session: Session, night: SleepSession, minutes: int = 5) -> list[tuple]:
     """Heart rate during a night as averages over `minutes` buckets."""
+    return heart_rate_between(session, night.start_at, night.end_at, minutes)
+
+
+def heart_rate_between(
+    session: Session, start: datetime, end: datetime, minutes: int = 5
+) -> list[tuple]:
+    """(bucket start, average bpm) over `minutes` buckets."""
     bucket = func.to_timestamp(
         func.floor(func.extract("epoch", HeartRateSample.time) / (minutes * 60)) * (minutes * 60)
     )
@@ -375,11 +382,91 @@ def night_heart_rate(session: Session, night: SleepSession, minutes: int = 5) ->
             select(bucket.label("t"), func.avg(HeartRateSample.bpm).cast(Integer))
             .join(HealthRecord, HealthRecord.id == HeartRateSample.record_id)
             .where(
-                HeartRateSample.time >= night.start_at,
-                HeartRateSample.time <= night.end_at,
+                HeartRateSample.time >= start,
+                HeartRateSample.time <= end,
                 HealthRecord.deleted_at.is_(None),
             )
             .group_by("t")
             .order_by("t")
         )
     )
+
+
+@dataclass
+class DayHeartRate:
+    day: date
+    points: list[tuple]  # (time, bpm), 5-minute averages
+    min: int | None
+    max: int | None
+    avg: int | None
+    resting: int | None
+    last: tuple | None  # (time, bpm) of the newest single sample
+    sleep: SleepSession | None  # the night that ended this day
+
+
+def day_heart_rate(session: Session, day: date) -> DayHeartRate:
+    """The heart rate of one local day: the curve, its range, the resting rate and the night."""
+    start, end = _day_bounds(day, day)
+    points = heart_rate_between(session, start, end)
+    metrics = session.get(DailyMetrics, day)
+    last = session.execute(
+        select(HeartRateSample.time, HeartRateSample.bpm)
+        .join(HealthRecord, HealthRecord.id == HeartRateSample.record_id)
+        .where(
+            HeartRateSample.time >= start,
+            HeartRateSample.time < end,
+            HealthRecord.deleted_at.is_(None),
+        )
+        .order_by(HeartRateSample.time.desc())
+        .limit(1)
+    ).first()
+    nights = main_nights(
+        list(session.scalars(select(SleepSession).where(SleepSession.local_date == day)))
+    )
+    return DayHeartRate(
+        day=day,
+        points=points,
+        min=metrics.hr_min if metrics else None,
+        max=metrics.hr_max if metrics else None,
+        avg=metrics.hr_avg if metrics else None,
+        resting=metrics.resting_hr if metrics else None,
+        last=tuple(last) if last else None,
+        sleep=nights[0] if nights else None,
+    )
+
+
+# Further Health Connect types, if the watch app writes them: the field in `data` and whether a
+# day sums the values (distance, calories) or averages them (oxygen, HRV, breathing rate).
+EXTRAS = {
+    "oxygen_saturation": ("percent", "avg"),
+    "heart_rate_variability": ("rmssd_ms", "avg"),
+    "respiratory_rate": ("rate", "avg"),
+    "distance": ("meters", "sum"),
+    "active_calories": ("kcal", "sum"),
+}
+
+
+def extras(session: Session, since: date, until: date) -> dict[date, dict[str, float]]:
+    """Per day and type, only days with a value. Sums take the source with the larger total."""
+    days = {since + timedelta(days=i) for i in range((until - since).days + 1)}
+    out: dict[date, dict[str, float]] = defaultdict(dict)
+    for kind, (field, how) in EXTRAS.items():
+        if how == "sum":
+            for day, totals in _per_source(session, kind, field, days).items():
+                if best := _best_source(totals):
+                    out[day][kind] = round(best[1], 1)
+            continue
+        value = HealthRecord.raw["data"][field].as_float()
+        rows = session.execute(
+            select(HealthRecord.local_date, func.avg(value))
+            .where(
+                HealthRecord.type == kind,
+                HealthRecord.deleted_at.is_(None),
+                HealthRecord.local_date.in_(days),
+            )
+            .group_by(HealthRecord.local_date)
+        )
+        for day, avg in rows:
+            if avg is not None:
+                out[day][kind] = round(float(avg), 1)
+    return dict(out)

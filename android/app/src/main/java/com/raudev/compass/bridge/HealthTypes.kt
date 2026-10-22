@@ -1,11 +1,16 @@
 package com.raudev.compass.bridge
 
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.MealType
 import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -32,6 +37,12 @@ object HealthTypes {
         HealthType("nutrition", NutritionRecord::class),
         HealthType("weight", WeightRecord::class),
         HealthType("total_calories", TotalCaloriesBurnedRecord::class),
+        // Written by some watches only (Zepp depends on the model); nothing arrives otherwise.
+        HealthType("oxygen_saturation", OxygenSaturationRecord::class),
+        HealthType("heart_rate_variability", HeartRateVariabilityRmssdRecord::class),
+        HealthType("respiratory_rate", RespiratoryRateRecord::class),
+        HealthType("distance", DistanceRecord::class),
+        HealthType("active_calories", ActiveCaloriesBurnedRecord::class),
     )
 
     val BACKGROUND = HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
@@ -58,6 +69,23 @@ object HealthTypes {
             )
             is TotalCaloriesBurnedRecord -> Mapped(
                 "total_calories", record.startTime, record.endTime,
+                JSONObject().put("kcal", record.energy.inKilocalories),
+            )
+            is OxygenSaturationRecord -> Mapped(
+                "oxygen_saturation", record.time, null, JSONObject().put("percent", record.percentage.value),
+            )
+            is HeartRateVariabilityRmssdRecord -> Mapped(
+                "heart_rate_variability", record.time, null,
+                JSONObject().put("rmssd_ms", record.heartRateVariabilityMillis),
+            )
+            is RespiratoryRateRecord -> Mapped(
+                "respiratory_rate", record.time, null, JSONObject().put("rate", record.rate),
+            )
+            is DistanceRecord -> Mapped(
+                "distance", record.startTime, record.endTime, JSONObject().put("meters", record.distance.inMeters),
+            )
+            is ActiveCaloriesBurnedRecord -> Mapped(
+                "active_calories", record.startTime, record.endTime,
                 JSONObject().put("kcal", record.energy.inKilocalories),
             )
             else -> return null

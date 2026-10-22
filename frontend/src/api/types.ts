@@ -233,6 +233,7 @@ export interface HealthSummary {
     steps: number | null
   }
   workouts: Workout[]
+  extras: ExtraDay[]
   sync: { last_run_at: string | null; last_success_at: string | null; last_error: string | null; device: string | null } | null
 }
 
@@ -398,4 +399,26 @@ export interface NoteDraft {
   archived?: boolean
   task_id?: number | null
   source?: 'manual' | 'share'
+}
+
+export interface DayHeartRate {
+  date: string
+  points: { time: string; bpm: number }[]
+  min: number | null
+  max: number | null
+  avg: number | null
+  resting: number | null
+  last: { time: string; bpm: number } | null
+  sleep_start: string | null
+  sleep_end: string | null
+}
+
+/** Values only some watches write; null when there is none. */
+export interface ExtraDay {
+  date: string
+  oxygen_saturation: number | null
+  heart_rate_variability: number | null
+  respiratory_rate: number | null
+  distance: number | null
+  active_calories: number | null
 }

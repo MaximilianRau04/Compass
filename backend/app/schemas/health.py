@@ -125,6 +125,29 @@ class SyncStatus(BaseModel):
     device: str | None
 
 
+class DayHeartRateRead(BaseModel):
+    date: date
+    points: list[HeartRatePoint] = Field(description="5-minute averages over the local day")
+    min: int | None
+    max: int | None
+    avg: int | None
+    resting: int | None
+    last: HeartRatePoint | None = Field(description="Newest single sample of the day")
+    sleep_start: datetime | None = Field(description="The night that ended this day")
+    sleep_end: datetime | None
+
+
+class ExtraDayRead(BaseModel):
+    """Values the watch app writes only on some devices; null when there is none."""
+
+    date: date
+    oxygen_saturation: float | None = Field(None, description="SpO2 in percent, day average")
+    heart_rate_variability: float | None = Field(None, description="HRV (RMSSD) in ms")
+    respiratory_rate: float | None = Field(None, description="Breaths per minute")
+    distance: float | None = Field(None, description="Meters")
+    active_calories: float | None = Field(None, description="kcal")
+
+
 class HealthSummaryRead(BaseModel):
     since: date
     until: date
@@ -133,4 +156,5 @@ class HealthSummaryRead(BaseModel):
     days: list[DailyMetricsRead]
     averages: HealthAverages
     workouts: list[WorkoutRead]
+    extras: list[ExtraDayRead] = Field(default_factory=list)
     sync: SyncStatus | None

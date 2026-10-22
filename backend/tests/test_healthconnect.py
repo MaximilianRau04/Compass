@@ -509,3 +509,50 @@ def test_bridge_app_output_is_accepted(session):
     assert (meal.meal, meal.kcal, meal.protein_g) == ("breakfast", 650, 40)
     weight = session.scalar(select(BodyWeight).where(BodyWeight.source == "healthconnect"))
     assert float(weight.kg) == 78.7
+
+
+def test_day_heart_rate_endpoint(client, session):
+    today = local_today()
+    morning = at(today, "08:00")
+    samples = [{"time": iso(morning + timedelta(minutes=i)), "bpm": 60 + i} for i in range(12)]
+    ingest(
+        session,
+        [
+            night(),
+            record("hr", "heart_rate", morning, morning + timedelta(minutes=12), samples=samples),
+            record("rhr", "resting_heart_rate", at(today, "07:00"), bpm=52),
+        ],
+    )
+    data = client.get("/api/sleep/heart-rate").json()
+    assert data["date"] == today.isoformat()
+    assert [p["bpm"] for p in data["points"]] == [62, 67, 71]  # 5-minute averages, rounded
+    assert (data["min"], data["max"], data["resting"]) == (60, 71, 52)
+    assert data["last"]["bpm"] == 71
+    assert data["sleep_end"] is not None
+    empty = client.get("/api/sleep/heart-rate", params={"day": "2020-01-01"}).json()
+    assert empty["points"] == [] and empty["last"] is None and empty["sleep_start"] is None
+
+
+def test_extra_metrics_in_the_summary(client, session):
+    today = local_today()
+    ingest(
+        session,
+        [
+            record("o1", "oxygen_saturation", at(today, "03:00"), percent=96.0),
+            record("o2", "oxygen_saturation", at(today, "04:00"), percent=98.0),
+            record("d1", "distance", at(today, "09:00"), at(today, "10:00"), meters=1200.0),
+            record("d2", "distance", at(today, "11:00"), at(today, "12:00"), meters=800.0),
+            record("v1", "heart_rate_variability", at(today, "05:00"), rmssd_ms=42.0),
+        ],
+    )
+    extras = client.get("/api/sleep/summary?days=7").json()["extras"]
+    assert extras == [
+        {
+            "date": today.isoformat(),
+            "oxygen_saturation": 97.0,
+            "heart_rate_variability": 42.0,
+            "respiratory_rate": None,
+            "distance": 2000.0,
+            "active_calories": None,
+        }
+    ]

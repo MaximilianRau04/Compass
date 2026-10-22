@@ -97,8 +97,9 @@ function MoreMenu() {
 
 export function Layout() {
   const { t } = useI18n()
-  // The calendar grid needs the room; text pages stay at a readable width.
-  const wide = useLocation().pathname.startsWith('/kalender')
+  // The calendar grid and the today dashboard need the room; text pages stay at a readable width.
+  const { pathname } = useLocation()
+  const wide = pathname === '/' || pathname.startsWith('/kalender')
   return (
     <div className="relative min-h-dvh sm:flex">
       <LanguageSwitch />

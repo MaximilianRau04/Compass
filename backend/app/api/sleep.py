@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -7,6 +8,8 @@ from app.models.health import DailyMetrics, SleepSession
 from app.models.integrations import IntegrationState
 from app.schemas.health import (
     DailyMetricsRead,
+    DayHeartRateRead,
+    ExtraDayRead,
     HealthAverages,
     HealthSummaryRead,
     HeartRatePoint,
@@ -17,6 +20,7 @@ from app.schemas.health import (
     WorkoutRead,
 )
 from app.services import health
+from app.services.clock import local_today
 
 router = APIRouter(prefix="/sleep", tags=["sleep"])
 
@@ -82,6 +86,10 @@ def summary(session: SessionDep, days: Annotated[int, Query(ge=1, le=366)] = 30)
             )
             for w in s.workouts
         ],
+        extras=[
+            ExtraDayRead(date=d, **values)
+            for d, values in sorted(health.extras(session, s.since, s.until).items())
+        ],
         sync=SyncStatus(
             last_run_at=state.last_run_at,
             last_success_at=state.last_success_at,
@@ -99,3 +107,20 @@ def get_night(night_id: int, session: SessionDep):
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "night not found")
     return night_detail(session, s)
+
+
+@router.get("/heart-rate", response_model=DayHeartRateRead)
+def heart_rate(session: SessionDep, day: date | None = None):
+    """The heart rate curve of one local day (default today) with its range and the night."""
+    h = health.day_heart_rate(session, day or local_today())
+    return DayHeartRateRead(
+        date=h.day,
+        points=[HeartRatePoint(time=t, bpm=b) for t, b in h.points],
+        min=h.min,
+        max=h.max,
+        avg=h.avg,
+        resting=h.resting,
+        last=HeartRatePoint(time=h.last[0], bpm=h.last[1]) if h.last else None,
+        sleep_start=h.sleep.start_at if h.sleep else None,
+        sleep_end=h.sleep.end_at if h.sleep else None,
+    )
