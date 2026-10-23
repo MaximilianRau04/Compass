@@ -2,12 +2,13 @@ import * as Dialog from '@radix-ui/react-dialog'
 
 import type { CalendarEvent } from '../../api/types'
 import { useI18n } from '../../i18n/context'
-import { feedStyle } from '../../lib/calendar'
 import { eventTime, localDay, longDate } from '../../lib/format'
+import { useEventStyle } from './eventStyle'
 
 /** Details of a calendar entry. Read-only: entries come from the subscribed calendars. */
 export function EventSheet({ event, onClose }: { event: CalendarEvent | null; onClose: () => void }) {
   const { t, locale } = useI18n()
+  const style = useEventStyle()
   return (
     <Dialog.Root open={event !== null} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
@@ -16,7 +17,7 @@ export function EventSheet({ event, onClose }: { event: CalendarEvent | null; on
           {event && (
             <>
               <Dialog.Title className="flex items-start gap-3 font-display text-2xl leading-tight font-semibold">
-                <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${feedStyle(event.feed).dot}`} />
+                <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${style(event).dot}`} />
                 {event.title}
               </Dialog.Title>
               <Dialog.Description asChild>

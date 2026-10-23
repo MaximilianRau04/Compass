@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CalendarEventRead(BaseModel):
@@ -13,6 +13,9 @@ class CalendarEventRead(BaseModel):
     starts_at: datetime
     ends_at: datetime | None
     all_day: bool
+    area: str | None = Field(
+        None, validation_alias="area_slug", description="Area slug of its calendar, if set"
+    )
 
 
 class IntegrationStateRead(BaseModel):

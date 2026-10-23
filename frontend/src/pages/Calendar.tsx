@@ -106,7 +106,9 @@ export function CalendarPage() {
   const events = useCalendar(start, end)
   const tasks = useTasks({ status: ['open', 'in_progress'], areaId })
   const areas = useAreas()
-  const eventList = events.data ?? []
+  // The area filter applies to events too: those of calendars mapped to the area.
+  const areaSlug = areas.data?.find((area) => area.id === areaId)?.slug
+  const eventList = (events.data ?? []).filter((event) => areaId === null || event.area === areaSlug)
   const taskList = tasks.data ?? []
 
   const range = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -165,7 +167,23 @@ export function CalendarPage() {
 
       <div {...swipe}>
         {view === 'week' && (
-          <WeekView days={days} events={eventList} tasks={taskList} today={today} onOpenTask={setOpenTask} onOpenEvent={setOpenEvent} />
+          <>
+            <WeekView
+              days={days}
+              events={eventList}
+              tasks={taskList}
+              today={today}
+              selected={selected}
+              onSelect={(day) => setSelected(day === selected ? '' : day)}
+              onOpenTask={setOpenTask}
+              onOpenEvent={setOpenEvent}
+            />
+            {days.includes(selected) && (
+              <div className="mt-6">
+                <DayList day={selected} today={today} events={eventList} tasks={taskList} onOpen={setOpenTask} onOpenEvent={setOpenEvent} />
+              </div>
+            )}
+          </>
         )}
 
         {view === 'month' && (

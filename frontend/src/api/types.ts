@@ -85,6 +85,8 @@ export interface CalendarEvent {
   starts_at: string
   ends_at: string | null
   all_day: boolean
+  /** Area slug of its calendar, if one is set. */
+  area: string | null
 }
 
 export interface IntegrationState {

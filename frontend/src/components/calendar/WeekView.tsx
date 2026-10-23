@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 
 import type { CalendarEvent, Task } from '../../api/types'
 import { useI18n } from '../../i18n/context'
-import { eventsOn, feedStyle, layoutDay, tasksOn } from '../../lib/calendar'
+import { eventsOn, layoutDay, tasksOn } from '../../lib/calendar'
 import { clockTime, parseDate } from '../../lib/format'
 import { EventChip, TaskChip } from './Chips'
+import { useEventStyle } from './eventStyle'
 
 const HOUR_PX = 48
 const DEFAULT_FROM = 8
@@ -29,6 +30,8 @@ export function WeekView({
   events,
   tasks,
   today,
+  selected,
+  onSelect,
   onOpenTask,
   onOpenEvent,
 }: {
@@ -36,10 +39,14 @@ export function WeekView({
   events: CalendarEvent[]
   tasks: Task[]
   today: string
+  /** The day listed below the grid; tapping a day's header selects it. */
+  selected: string
+  onSelect: (day: string) => void
   onOpenTask: (task: Task) => void
   onOpenEvent: (event: CalendarEvent) => void
 }) {
   const { locale } = useI18n()
+  const style = useEventStyle()
   const now = useMinuteOfDay()
   const placed = days.map((day) => layoutDay(events, day))
 
@@ -65,7 +72,14 @@ export function WeekView({
           const date = parseDate(day)
           const isToday = day === today
           return (
-            <div key={day} className="border-l border-rule px-1 py-2 text-center">
+            <button
+              key={day}
+              type="button"
+              aria-pressed={day === selected}
+              aria-label={date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+              onClick={() => onSelect(day)}
+              className={['border-l border-rule px-1 py-2 text-center transition-colors', day === selected ? 'bg-brass/10' : 'hover:bg-ink/[0.04]'].join(' ')}
+            >
               <span className={['block font-display text-[12px] tracking-[0.16em] uppercase', isToday ? 'text-brass' : 'text-muted'].join(' ')}>
                 {date.toLocaleDateString(locale, { weekday: 'short' })}
               </span>
@@ -77,7 +91,7 @@ export function WeekView({
               >
                 {date.getDate()}
               </span>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -111,7 +125,12 @@ export function WeekView({
           ))}
         </div>
         {days.map((day, i) => (
-          <div key={day} className={['relative border-l border-rule', day === today ? 'bg-brass/[0.04]' : ''].join(' ')}>
+          // Tapping free space in a column selects the day too; events open themselves.
+          <div
+            key={day}
+            onClick={() => onSelect(day)}
+            className={['relative cursor-pointer border-l border-rule', day === selected ? 'bg-brass/[0.07]' : day === today ? 'bg-brass/[0.04]' : ''].join(' ')}
+          >
             {hours.map((hour) => (
               <div key={hour} className="border-t border-rule/50 first:border-t-0" style={{ height: HOUR_PX }} />
             ))}
@@ -121,9 +140,12 @@ export function WeekView({
                 <button
                   key={`${event.id}-${day}`}
                   type="button"
-                  onClick={() => onOpenEvent(event)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onOpenEvent(event)
+                  }}
                   title={event.title}
-                  className={`absolute overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-1 text-left text-[12px] leading-tight text-ink transition-shadow hover:z-10 hover:shadow-md ${feedStyle(event.feed).block} ${day < today ? 'opacity-60' : ''}`}
+                  className={`absolute overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-1 text-left text-[12px] leading-tight text-ink transition-shadow hover:z-10 hover:shadow-md ${style(event).block} ${day < today ? 'opacity-60' : ''}`}
                   style={{
                     top: top(start) + 1,
                     height: Math.max(height - 2, 18),

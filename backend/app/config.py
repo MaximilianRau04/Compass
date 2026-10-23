@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     ilias_ics_url: str = ""
     calendar_ics_feeds: str = ""
     calendar_sync_minutes: int = 30
+    # Area per calendar (space separated feed=area slug): its events get that area's colour and
+    # follow the area filter. Calendars without an entry have no area.
+    calendar_feed_areas: str = "ilias=uni campus=uni"
     # ILIAS marks exercise deadlines with this suffix in the title (German and English UI).
     ilias_deadline_suffixes: str = "(Abgabetermin),(Deadline)"
     # Area for new ILIAS deadline tasks (slug); empty or unknown means no area.
@@ -163,6 +166,15 @@ class Settings(BaseSettings):
     @property
     def gymday_apps(self) -> set[str]:
         return set(self.healthconnect_gymday_apps.split())
+
+    @property
+    def calendar_area_map(self) -> dict[str, str]:
+        out = {}
+        for pair in self.calendar_feed_areas.split():
+            feed, sep, area = pair.partition("=")
+            if sep and feed and area:
+                out[feed.strip().lower()] = area.strip().lower()
+        return out
 
     @property
     def calendar_feeds(self) -> dict[str, str]:

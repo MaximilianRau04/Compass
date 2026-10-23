@@ -102,18 +102,3 @@ export function layoutDay(events: CalendarEvent[], day: string): Placed[] {
   close()
   return items
 }
-
-/** Each feed gets a fixed colour from the area palette, so ILIAS and Google look different. */
-const FEED_STYLES = [
-  { block: 'border-area-teal bg-area-teal/12', border: 'border-area-teal', dot: 'bg-area-teal' },
-  { block: 'border-area-blue bg-area-blue/12', border: 'border-area-blue', dot: 'bg-area-blue' },
-  { block: 'border-area-violet bg-area-violet/12', border: 'border-area-violet', dot: 'bg-area-violet' },
-  { block: 'border-area-rose bg-area-rose/12', border: 'border-area-rose', dot: 'bg-area-rose' },
-  { block: 'border-area-amber bg-area-amber/12', border: 'border-area-amber', dot: 'bg-area-amber' },
-]
-
-export function feedStyle(feed: string): (typeof FEED_STYLES)[number] {
-  let hash = 0
-  for (const char of feed) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  return FEED_STYLES[hash % FEED_STYLES.length]
-}

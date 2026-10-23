@@ -1,8 +1,9 @@
 import type { CalendarEvent, Task } from '../../api/types'
 import { useI18n } from '../../i18n/context'
-import { eventsOn, feedStyle, isoWeek, monthGrid, tasksOn } from '../../lib/calendar'
+import { eventsOn, isoWeek, monthGrid, tasksOn } from '../../lib/calendar'
 import { AREA_BG, parseDate } from '../../lib/format'
 import { EventChip, TaskChip } from './Chips'
+import { useEventStyle } from './eventStyle'
 
 const VISIBLE = 3
 
@@ -30,6 +31,7 @@ export function MonthView({
   onOpenEvent: (event: CalendarEvent) => void
 }) {
   const { t, locale } = useI18n()
+  const style = useEventStyle()
   const days = monthGrid(anchor)
   const month = anchor.slice(0, 7)
   const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7))
@@ -91,7 +93,7 @@ export function MonthView({
 
                 {/* Phones: one dot per entry, at most five. */}
                 <div className="mt-1 flex flex-wrap gap-0.5 px-0.5 sm:hidden">
-                  {[...dayTasks.map((task) => (task.area ? AREA_BG[task.area.color] : 'bg-muted')), ...dayEvents.map((e) => feedStyle(e.feed).dot)]
+                  {[...dayTasks.map((task) => (task.area ? AREA_BG[task.area.color] : 'bg-muted')), ...dayEvents.map((e) => style(e).dot)]
                     .slice(0, 5)
                     .map((color, i) => (
                       <span key={i} className={`h-1.5 w-1.5 rounded-full ${color}`} />

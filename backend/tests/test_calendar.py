@@ -302,3 +302,16 @@ def test_a_new_export_timestamp_is_not_a_change(session):
     calendar.sync_feed(session, "google", export("20261017T190000Z"), TODAY)
     again = calendar.sync_feed(session, "google", export("20261017T193000Z"), TODAY)
     assert again["updated"] == 0
+
+
+def test_events_take_the_area_of_their_calendar(client, session):
+    today = local_today()
+    calendar.sync_feed(
+        session, "campus", ics(vevent("l", "Vorlesung", stamp(today, "1000"))), today
+    )
+    calendar.sync_feed(session, "google", ics(vevent("m", "Kino", stamp(today, "2000"))), today)
+    events = client.get(
+        "/api/calendar", params={"start": today.isoformat(), "end": today.isoformat()}
+    ).json()
+    assert {e["title"]: e["area"] for e in events} == {"Vorlesung": "uni", "Kino": None}
+    assert [e["area"] for e in client.get("/api/today").json()["events"]] == ["uni", None]
