@@ -164,6 +164,8 @@ export const de = {
   'training.merged': '{from} → {to}',
   'training.aliases': 'auch: {names}',
   'training.duration': '{n} min',
+  'training.hr': '♥ Ø {avg} / max {max}',
+  'training.fromWatch': 'von der Uhr',
   'training.withoutSets': 'ohne Sätze',
   'training.withoutSetsHint': 'Nur aus Health Connect bekannt (Name und Dauer). Die Sätze kommen nur über den Gym-Day-Export.',
 
@@ -408,6 +410,7 @@ export const de = {
   'split.pull': 'Pull',
   'split.legs': 'Beine',
   'split.other': 'Sonstiges',
+  'split.sport': 'Sport',
   'metric.best_e1rm': 'Geschätztes 1RM',
   'metric.top_weight': 'Höchstes Gewicht',
   'metric.max_reps': 'Max. Wiederholungen',
@@ -598,6 +601,8 @@ export const en: Record<MessageKey, string> = {
   'training.merged': '{from} → {to}',
   'training.aliases': 'also: {names}',
   'training.duration': '{n} min',
+  'training.hr': '♥ avg {avg} / max {max}',
+  'training.fromWatch': 'from the watch',
   'training.withoutSets': 'no sets',
   'training.withoutSetsHint': 'Only known from Health Connect (name and duration). Sets only come with the Gym Day export.',
 
@@ -842,6 +847,7 @@ export const en: Record<MessageKey, string> = {
   'split.pull': 'Pull',
   'split.legs': 'Legs',
   'split.other': 'Other',
+  'split.sport': 'Sport',
   'metric.best_e1rm': 'Estimated 1RM',
   'metric.top_weight': 'Top weight',
   'metric.max_reps': 'Max reps',

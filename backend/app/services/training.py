@@ -10,14 +10,23 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSession
 from app.services.clock import local_today, local_tz
+from app.services.health import STRENGTH, WATCH_SESSION
 
 # Epley gets unreliable for high rep sets, so the estimated 1RM only uses sets up to 12 reps.
 E1RM_MAX_REPS = 12
-SPLITS = ("push", "pull", "legs", "other")
+SPLITS = ("push", "pull", "legs", "other", "sport")
 
 
 class TrainingError(ValueError):
     pass
+
+
+def split_for(s: TrainingSession) -> str:
+    """Push, pull, legs, other for strength sessions; "sport" for a watch workout like
+    bouldering or a run."""
+    if s.source == WATCH_SESSION and s.activity not in STRENGTH:
+        return "sport"
+    return split_of(s.workout_name)
 
 
 def split_of(workout_name: str) -> str:
@@ -99,7 +108,7 @@ def summary(session: Session, weeks: int = 12, today: date | None = None) -> Sum
         week.sessions += 1
         week.sets += len(s.sets)
         week.volume_kg += sum(set_volume(x) for x in s.sets)
-        split[split_of(s.workout_name)] += 1
+        split[split_for(s)] += 1
     for week in by_week.values():
         week.volume_kg = round(week.volume_kg)
 

@@ -12,7 +12,15 @@ class SessionBrief(BaseModel):
     sets: int
     volume_kg: float
     duration_minutes: int | None
-    source: str = Field(description="gymday (CSV with sets) or healthconnect (session only)")
+    source: str = Field(
+        description="gymday (CSV with sets), healthconnect (Gym Day session only) or watch "
+        "(another app's workout, e.g. bouldering)"
+    )
+    activity: str | None = Field(
+        None, description="Health Connect exercise type of a watch workout"
+    )
+    hr_avg: int | None = Field(None, description="Average heart rate from the watch")
+    hr_max: int | None = None
 
 
 class WeekRead(BaseModel):

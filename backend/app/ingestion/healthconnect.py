@@ -205,6 +205,9 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
     nutrition.rebuild_from_healthconnect(session, touched)
     if exercise_touched and touched:
         health.match_gymday_sessions(session, min(touched), max(touched))
+    if touched:
+        # Also when only heart rate came in: it may belong to a session synced earlier.
+        health.match_watch_sessions(session, min(touched), max(touched))
 
     stats = {
         "received": len(payload.records),

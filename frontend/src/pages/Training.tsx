@@ -21,7 +21,7 @@ import { compact, decimal, localDay, parseDate, pill, relativeDay } from '../lib
 import { importMessage } from '../lib/training'
 
 const WEEKS = 12
-const SPLITS: Split[] = ['push', 'pull', 'legs', 'other']
+const SPLITS: Split[] = ['push', 'pull', 'legs', 'other', 'sport']
 type Metric = 'best_e1rm' | 'top_weight' | 'max_reps' | 'volume_kg'
 
 function ImportButton() {
@@ -133,17 +133,22 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
   const detail = useSessionDetail(open ? session.id : null)
   const when = relativeDay(localDay(session.started_at), today, t, locale)
   const duration = session.duration_minutes !== null ? `${t('training.duration', { n: session.duration_minutes })} · ` : ''
-  // Known only from Health Connect: name and duration, nothing to expand.
+  // Heart rate from the watch, for Gym Day sessions as well as for workouts tracked only there.
+  const heart = session.hr_avg !== null ? `${t('training.hr', { avg: session.hr_avg, max: session.hr_max ?? '–' })} · ` : ''
+  // Known only from Health Connect: name, duration and heart rate, nothing to expand.
   if (session.sets === 0) {
+    const watch = session.source === 'watch'
     return (
       <li className="flex items-baseline justify-between gap-3 py-2.5">
         <span>
           <span className="font-medium">{session.workout_name}</span>
+          {watch && <span className="ml-2 rounded-full border border-rule px-1.5 py-px font-mono text-[10px] text-muted">{t('split.sport')}</span>}
           <span className="ml-2 font-mono text-[11px] text-muted">{when}</span>
         </span>
-        <span className="font-mono text-[11px] text-muted" title={t('training.withoutSetsHint')}>
+        <span className="font-mono text-[11px] text-muted" title={watch ? undefined : t('training.withoutSetsHint')}>
           {duration}
-          {t('training.withoutSets')}
+          {heart}
+          {watch ? t('training.fromWatch') : t('training.withoutSets')}
         </span>
       </li>
     )
@@ -158,6 +163,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
           </span>
           <span className="font-mono text-[11px] text-muted">
             {duration}
+            {heart}
             {t('training.exercisesN', { n: session.exercises })} · {t('training.setsN', { n: session.sets })} ·{' '}
             {compact(session.volume_kg, locale)} kg
           </span>

@@ -95,7 +95,7 @@ export interface IntegrationState {
   stats: Record<string, unknown>
 }
 
-export type Split = 'push' | 'pull' | 'legs' | 'other'
+export type Split = 'push' | 'pull' | 'legs' | 'other' | 'sport'
 
 export interface SessionBrief {
   id: number
@@ -106,7 +106,10 @@ export interface SessionBrief {
   sets: number
   volume_kg: number
   duration_minutes: number | null
-  source: 'gymday' | 'healthconnect'
+  source: 'gymday' | 'healthconnect' | 'watch'
+  activity: string | null
+  hr_avg: number | null
+  hr_max: number | null
 }
 
 export interface TrainingWeek {

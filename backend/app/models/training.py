@@ -1,7 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,7 +58,18 @@ class TrainingSession(TimestampMixin, Base):
     health_record_id: Mapped[str | None] = mapped_column(
         ForeignKey("health_records.id", ondelete="SET NULL"), unique=True
     )
+    # gymday (CSV with sets), healthconnect (Gym Day session without a CSV) or watch (a workout
+    # from another app, e.g. bouldering with Zepp, that does not overlap a Gym Day session).
     source: Mapped[str] = mapped_column(String(40), default="gymday")
+    # The watch's recording of this session (Zepp tracks Gym Day sessions too): it gives the heart
+    # rate and, if Gym Day has none, the duration. For source "watch" it is the session itself.
+    watch_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("health_records.id", ondelete="SET NULL"), unique=True
+    )
+    # Health Connect exercise type of a watch session, e.g. rock_climbing, running.
+    activity: Mapped[str | None] = mapped_column(String(60))
+    hr_avg: Mapped[int | None] = mapped_column(SmallInteger)
+    hr_max: Mapped[int | None] = mapped_column(SmallInteger)
 
     sets: Mapped[list["ExerciseSet"]] = relationship(
         back_populates="session",

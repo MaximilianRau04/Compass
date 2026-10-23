@@ -339,7 +339,10 @@ def test_gymday_match_ignores_other_apps_and_far_sessions(session):
         ],
     )
     csv_session = session.scalar(select(TrainingSession).where(TrainingSession.source == "gymday"))
-    assert csv_session.duration_minutes is None
+    # No Gym Day entry for it in Health Connect, so the watch gives the duration; the Zepp
+    # workout is not a session of its own.
+    assert (csv_session.watch_record_id, csv_session.duration_minutes) == ("zepp", 62)
+    assert session.scalar(select(TrainingSession).where(TrainingSession.source == "watch")) is None
     # The far Gym Day entry is a session of its own (without sets), not the CSV one's duration.
     [extra] = session.scalars(
         select(TrainingSession).where(TrainingSession.source == "healthconnect")
@@ -432,12 +435,12 @@ def test_rebuild_derives_records_stored_before_a_release(session):
         )
     session.flush()
 
-    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1}
+    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1, "watch_workouts": 0}
     assert session.scalar(select(TrainingSession)).workout_name == "Pull"
     assert nutrition.days(session, day, day)[0].kcal == 800
     assert session.get(DailyMetrics, day).steps == 5000
     # Running it again changes nothing.
-    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1}
+    assert rebuild_health(session) == {"days": 1, "gymday_sessions": 1, "watch_workouts": 0}
     assert len(session.scalars(select(TrainingSession)).all()) == 1
 
 
@@ -556,3 +559,80 @@ def test_extra_metrics_in_the_summary(client, session):
             "active_calories": None,
         }
     ]
+
+
+def hr(id, start, minutes, bpm):
+    samples = [{"time": iso(start + timedelta(minutes=i)), "bpm": bpm + i} for i in range(minutes)]
+    return record(id, "heart_rate", start, start + timedelta(minutes=minutes), samples=samples)
+
+
+def test_watch_workout_without_gymday_becomes_a_session(client, session):
+    """Bouldering tracked with Zepp only: a session of its own, with the watch's heart rate."""
+    day = local_today() - timedelta(days=1)
+    start = at(day, "18:00")
+    ingest(
+        session,
+        [
+            record("climb", "exercise", start, at(day, "19:30"), exercise="rock_climbing"),
+            hr("hr1", start, 10, 100),
+        ],
+    )
+    [s] = session.scalars(select(TrainingSession)).all()
+    assert (s.source, s.workout_name, s.activity, s.duration_minutes) == (
+        "watch",
+        "Klettern",
+        "rock_climbing",
+        90,
+    )
+    assert (s.hr_avg, s.hr_max) == (105, 109)
+    summary = client.get("/api/training/summary?weeks=2").json()
+    assert summary["split"]["sport"] == 1
+    assert summary["last_session"]["hr_max"] == 109
+
+    # Heart rate that arrives in a later sync is added to the session.
+    ingest(session, [hr("hr2", start + timedelta(minutes=30), 5, 150)])
+    assert session.get(TrainingSession, s.id).hr_max == 154
+
+    # Deleted in Health Connect: the session goes too.
+    ingest(session, deleted=["climb"])
+    assert session.scalars(select(TrainingSession)).all() == []
+
+
+def test_watch_strength_workout_enriches_the_gymday_session(session):
+    day = local_today() - timedelta(days=1)
+    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    ingest(
+        session,
+        [
+            record("gd", "exercise", at(day, "18:00"), at(day, "19:05"), source=GYMDAY),
+            record(
+                "zepp", "exercise", at(day, "17:58"), at(day, "19:02"), exercise="strength_training"
+            ),
+            hr("hr1", at(day, "18:10"), 20, 110),
+        ],
+    )
+    sessions = session.scalars(select(TrainingSession)).all()
+    assert [s.source for s in sessions] == ["gymday"]  # no duplicate from Zepp
+    [s] = sessions
+    assert (s.health_record_id, s.watch_record_id, s.duration_minutes) == ("gd", "zepp", 65)
+    assert (s.hr_avg, s.hr_max) == (120, 129)
+
+
+def test_old_exercise_type_numbers_get_their_name(session):
+    """App versions before 0.2.1 sent unknown types as "type_<n>", bouldering as type_51."""
+    day = local_today() - timedelta(days=1)
+    ingest(
+        session,
+        [
+            record(
+                "climb",
+                "exercise",
+                at(day, "18:00"),
+                at(day, "19:00"),
+                exercise="type_51",
+                exercise_type=51,
+            )
+        ],
+    )
+    s = session.scalar(select(TrainingSession))
+    assert (s.workout_name, s.activity) == ("Klettern", "rock_climbing")

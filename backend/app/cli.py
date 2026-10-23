@@ -31,7 +31,8 @@ def rebuild_health(session: Session) -> dict:
         health.recompute_days(session, chunk)
         nutrition.rebuild_from_healthconnect(session, chunk)
     sessions = health.match_gymday_sessions(session, days[0], days[-1]) if days else 0
-    return {"days": len(record_days), "gymday_sessions": sessions}
+    watch = health.match_watch_sessions(session, days[0], days[-1]) if days else 0
+    return {"days": len(record_days), "gymday_sessions": sessions, "watch_workouts": watch}
 
 
 def main() -> None:

@@ -138,7 +138,7 @@ def test_summary_counts_weeks_volume_and_split(client, session):
     assert summary["sessions"] == 2  # the old leg day is outside the range
     assert summary["this_week_sessions"] == 1
     assert summary["weeks"][-1]["volume_kg"] == 1800  # dips are bodyweight, not counted
-    assert summary["split"] == {"push": 1, "pull": 1, "legs": 0, "other": 0}
+    assert summary["split"] == {"push": 1, "pull": 1, "legs": 0, "other": 0, "sport": 0}
     assert summary["last_session"]["workout_name"] == "Push A"
     assert summary["last_session"]["exercises"] == 2
 

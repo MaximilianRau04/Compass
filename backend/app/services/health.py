@@ -19,6 +19,82 @@ from app.services.clock import local_today, local_tz, utc_now
 GYMDAY_SLACK = timedelta(hours=1)
 # Source of a training session that only exists in Health Connect (no sets from the CSV).
 HEALTHCONNECT_SESSION = "healthconnect"
+# Source of a training session recorded by another app (the watch) without any Gym Day session.
+WATCH_SESSION = "watch"
+# A watch workout belongs to a Gym Day session when they overlap, give or take this much.
+WATCH_SLACK = timedelta(minutes=10)
+# Window of a session without a known duration, for its heart rate.
+DEFAULT_SESSION = timedelta(minutes=60)
+# Health Connect exercise types that are strength training (split push/pull/legs/other); any other
+# watch session is "sport".
+STRENGTH = {"strength_training", "weightlifting", "calisthenics", "hiit", "other"}
+# Health Connect exercise type numbers (connect-client 1.1.0), for workouts that app versions
+# before 0.2.1 sent as "type_<n>".
+EXERCISE_TYPES = {
+    0: "other",
+    2: "badminton",
+    5: "basketball",
+    8: "biking",
+    9: "biking_stationary",
+    11: "boxing",
+    13: "calisthenics",
+    16: "dancing",
+    25: "elliptical",
+    36: "hiit",
+    37: "hiking",
+    44: "martial_arts",
+    48: "pilates",
+    51: "rock_climbing",
+    53: "rowing",
+    54: "rowing_machine",
+    56: "running",
+    57: "running_treadmill",
+    64: "soccer",
+    66: "squash",
+    69: "stair_climbing_machine",
+    70: "strength_training",
+    71: "stretching",
+    73: "swimming_open_water",
+    74: "swimming_pool",
+    75: "table_tennis",
+    76: "tennis",
+    78: "volleyball",
+    79: "walking",
+    81: "weightlifting",
+    83: "yoga",
+}
+ACTIVITY_NAMES = {
+    "rock_climbing": "Klettern",
+    "running": "Laufen",
+    "running_treadmill": "Laufband",
+    "walking": "Gehen",
+    "hiking": "Wandern",
+    "biking": "Radfahren",
+    "biking_stationary": "Ergometer",
+    "swimming_pool": "Schwimmen",
+    "swimming_open_water": "Freiwasserschwimmen",
+    "elliptical": "Crosstrainer",
+    "rowing_machine": "Rudergerät",
+    "stair_climbing_machine": "Stepper",
+    "stretching": "Dehnen",
+    "yoga": "Yoga",
+    "pilates": "Pilates",
+    "soccer": "Fußball",
+    "basketball": "Basketball",
+    "volleyball": "Volleyball",
+    "badminton": "Badminton",
+    "tennis": "Tennis",
+    "table_tennis": "Tischtennis",
+    "boxing": "Boxen",
+    "squash": "Squash",
+    "rowing": "Rudern",
+    "martial_arts": "Kampfsport",
+    "dancing": "Tanzen",
+    "strength_training": "Krafttraining",
+    "weightlifting": "Gewichtheben",
+    "calisthenics": "Calisthenics",
+    "hiit": "HIIT",
+}
 
 
 def _day_bounds(first: date, last: date) -> tuple[datetime, datetime]:
@@ -224,6 +300,126 @@ def match_gymday_sessions(session: Session, first: date, last: date) -> int:
     return len(records)
 
 
+def _record_window(record: HealthRecord) -> tuple[datetime, datetime]:
+    return record.start_at, record.end_at
+
+
+def _session_window(t: TrainingSession) -> tuple[datetime, datetime]:
+    length = timedelta(minutes=t.duration_minutes) if t.duration_minutes else DEFAULT_SESSION
+    return t.started_at, t.started_at + length
+
+
+def _activity(record: HealthRecord) -> str | None:
+    data = record.raw.get("data") or {}
+    activity = data.get("exercise")
+    number = data.get("exercise_type")
+    if (not activity or str(activity).startswith("type_")) and isinstance(number, int):
+        activity = EXERCISE_TYPES.get(number, activity)
+    return str(activity)[:60] if activity else None
+
+
+def watch_session_name(record: HealthRecord) -> str:
+    data = record.raw.get("data") or {}
+    title = (data.get("title") or "").strip()
+    activity = _activity(record) or ""
+    return (title or ACTIVITY_NAMES.get(activity) or activity.replace("_", " ") or "Training")[:120]
+
+
+def match_watch_sessions(session: Session, first: date, last: date) -> int:
+    """Workouts of apps other than Gym Day (the watch, e.g. Zepp), so nothing counts twice.
+
+    A workout that overlaps a Gym Day session belongs to it: the session takes the watch's heart
+    rate and, if Gym Day gave no duration, its duration. Any other workout (bouldering, a run)
+    becomes a training session of its own without sets (source "watch"). Every session in the
+    range then gets its average and maximum heart rate from the watch. Returns the number of
+    watch workouts in the range."""
+    apps = get_settings().gymday_apps
+    start, end = _day_bounds(first - timedelta(days=1), last + timedelta(days=1))
+    records = list(
+        session.scalars(
+            select(HealthRecord).where(
+                HealthRecord.type == "exercise",
+                HealthRecord.deleted_at.is_(None),
+                HealthRecord.source_app.not_in(apps),
+                HealthRecord.start_at >= start,
+                HealthRecord.start_at < end,
+            )
+        )
+    )
+    by_id = {r.id: r for r in records}
+    in_range = list(
+        session.scalars(
+            select(TrainingSession).where(
+                or_(
+                    and_(TrainingSession.started_at >= start, TrainingSession.started_at < end),
+                    TrainingSession.watch_record_id.in_(list(by_id)),
+                )
+            )
+        )
+    )
+    gym = [t for t in in_range if t.source != WATCH_SESSION]
+    own = {t.watch_record_id: t for t in in_range if t.source == WATCH_SESSION}
+
+    pairs = []
+    for t in gym:
+        ts, te = _session_window(t)
+        for r in records:
+            if r.start_at < te + WATCH_SLACK and ts < r.end_at + WATCH_SLACK:
+                pairs.append((abs(r.start_at - t.started_at), t.id, r.id))
+    linked: dict[int, str] = {}
+    used: set[str] = set()
+    for _, training_id, record_id in sorted(pairs):
+        if training_id in linked or record_id in used:
+            continue
+        linked[training_id] = record_id
+        used.add(record_id)
+
+    # Free the record ids first (unique on training_sessions): watch sessions whose workout is
+    # gone or now belongs to a Gym Day session, and the old links of the Gym Day sessions.
+    for record_id in list(own):
+        if record_id not in by_id or record_id in used:
+            session.delete(own.pop(record_id))
+    for t in gym:
+        t.watch_record_id = None
+    session.flush()
+
+    for t in gym:
+        record = by_id.get(linked.get(t.id, ""))
+        if record is None:
+            continue
+        t.watch_record_id = record.id
+        if not t.duration_minutes:
+            t.duration_minutes = _minutes_between(record)
+    for record in records:
+        if record.id in used:
+            continue
+        t = own.get(record.id)
+        if t is None:
+            t = TrainingSession(source=WATCH_SESSION, watch_record_id=record.id)
+            session.add(t)
+            own[record.id] = t
+        t.started_at = record.start_at
+        t.workout_name = watch_session_name(record)
+        t.duration_minutes = _minutes_between(record)
+        t.activity = _activity(record)
+    session.flush()
+
+    for t in gym + list(own.values()):
+        record = by_id.get(t.watch_record_id or "")
+        window = _record_window(record) if record else _session_window(t)
+        t.hr_avg, t.hr_max = session.execute(
+            select(func.avg(HeartRateSample.bpm).cast(Integer), func.max(HeartRateSample.bpm))
+            .join(HealthRecord, HealthRecord.id == HeartRateSample.record_id)
+            .where(
+                HeartRateSample.time >= window[0],
+                HeartRateSample.time <= window[1],
+                HealthRecord.deleted_at.is_(None),
+            )
+        ).one()
+    session.flush()
+    return len(records)
+
+
 def _minutes_between(record: HealthRecord) -> int:
     return round((record.end_at - record.start_at).total_seconds() / 60)
 
@@ -299,6 +495,7 @@ def workouts(session: Session, since: date, until: date) -> list[Workout]:
             select(TrainingSession.started_at).where(
                 TrainingSession.started_at >= start - timedelta(hours=6),
                 TrainingSession.started_at < end,
+                TrainingSession.source != WATCH_SESSION,
             )
         )
     )
@@ -315,7 +512,7 @@ def workouts(session: Session, since: date, until: date) -> list[Workout]:
                 record=r,
                 duration_minutes=round((r.end_at - r.start_at).total_seconds() / 60),
                 title=(data.get("title") or None),
-                exercise=(data.get("exercise") or None),
+                exercise=_activity(r),
                 gymday_duplicate=overlaps,
             )
         )

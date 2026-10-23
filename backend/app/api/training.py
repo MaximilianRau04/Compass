@@ -33,12 +33,15 @@ def brief(s: TrainingSession) -> SessionBrief:
         id=s.id,
         started_at=s.started_at,
         workout_name=s.workout_name,
-        split=training.split_of(s.workout_name),
+        split=training.split_for(s),
         exercises=len({x.exercise_id for x in s.sets}),
         sets=len(s.sets),
         volume_kg=round(sum(training.set_volume(x) for x in s.sets)),
         duration_minutes=s.duration_minutes,
         source=s.source,
+        activity=s.activity,
+        hr_avg=s.hr_avg,
+        hr_max=s.hr_max,
     )
 
 

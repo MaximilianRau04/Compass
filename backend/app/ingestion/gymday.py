@@ -180,6 +180,7 @@ def import_csv(session: Session, data: bytes) -> dict:
     # Health Connect may already have the duration of these sessions.
     tz = local_tz()
     health.match_gymday_sessions(session, first.astimezone(tz).date(), last.astimezone(tz).date())
+    health.match_watch_sessions(session, first.astimezone(tz).date(), last.astimezone(tz).date())
     stats = {
         "rows": len(rows),
         "sessions_created": sessions_created,

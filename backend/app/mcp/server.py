@@ -158,6 +158,8 @@ class SessionOut(BaseModel):
     volume_kg: float
     duration_minutes: int | None = Field(description="From Health Connect, if Gym Day wrote it")
     with_sets: bool = Field(description="False: only known from Health Connect, no sets logged")
+    hr_avg: int | None = Field(description="Average heart rate from the watch")
+    hr_max: int | None
 
 
 class TrainingSummaryOut(BaseModel):
@@ -166,7 +168,9 @@ class TrainingSummaryOut(BaseModel):
     sets: int
     volume_kg: float = Field(description="Sum of weight x reps, bodyweight sets excluded")
     this_week_sessions: int
-    split: dict[str, int] = Field(description="Sessions per split: push, pull, legs, other")
+    split: dict[str, int] = Field(
+        description="Sessions per split: push, pull, legs, other; sport = bouldering, runs, ..."
+    )
     weeks: list[WeekOut]
     recent: list[SessionOut]
 
@@ -480,12 +484,14 @@ def _session_out(s: TrainingSession) -> SessionOut:
     return SessionOut(
         date=training.local_date(s.started_at),
         workout=s.workout_name,
-        split=training.split_of(s.workout_name),
+        split=training.split_for(s),
         exercises=len({x.exercise_id for x in s.sets}),
         sets=len(s.sets),
         volume_kg=round(sum(training.set_volume(x) for x in s.sets)),
         duration_minutes=s.duration_minutes,
         with_sets=bool(s.sets),
+        hr_avg=s.hr_avg,
+        hr_max=s.hr_max,
     )
 
 
