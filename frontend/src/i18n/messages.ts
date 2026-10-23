@@ -298,7 +298,10 @@ export const de = {
   'news.fetchedAt': 'abgerufen {when}',
   'news.report': 'News-Bericht',
   'news.reportBy': 'Von Claude, {date}',
-  'news.noReport': 'Noch kein News-Bericht. Eine Claude-Routine schreibt ihn morgens mit save_brief (kind "news"), siehe docs/routines.md.',
+  'news.noReportTitle': 'Noch keine Zusammenfassung',
+  'news.noReport': 'Die Routine "News-Bericht" schreibt sie jeden Morgen mit save_brief (kind "news"), siehe docs/routines.md. Bis dahin stehen unten alle Meldungen.',
+  'news.reportOld': 'heute noch keine neue',
+  'news.allItems': 'Alle Meldungen',
   'news.trends': 'Trends',
   'news.trendFeeds': '{n} Quellen',
   'news.personal': 'Persönlich',
@@ -361,6 +364,7 @@ export const de = {
 
   'today.brief': 'Daily Brief',
   'today.news': 'Top News',
+  'today.newsReport': 'Ganzer Bericht',
 
   'today.mail': 'Wichtige Mails',
   'today.mailCount': '{n} wichtig, {unread} ungelesen',
@@ -735,7 +739,10 @@ export const en: Record<MessageKey, string> = {
   'news.fetchedAt': 'fetched {when}',
   'news.report': 'News report',
   'news.reportBy': 'By Claude, {date}',
-  'news.noReport': 'No news report yet. A Claude routine writes it in the morning with save_brief (kind "news"), see docs/routines.md.',
+  'news.noReportTitle': 'No summary yet',
+  'news.noReport': 'The "news report" routine writes it every morning with save_brief (kind "news"), see docs/routines.md. Until then all items are below.',
+  'news.reportOld': 'none yet today',
+  'news.allItems': 'All items',
   'news.trends': 'Trends',
   'news.trendFeeds': '{n} sources',
   'news.personal': 'Personal',
@@ -798,6 +805,7 @@ export const en: Record<MessageKey, string> = {
 
   'today.brief': 'Daily brief',
   'today.news': 'Top news',
+  'today.newsReport': 'Full report',
 
   'today.mail': 'Important mails',
   'today.mailCount': '{n} important, {unread} unread',

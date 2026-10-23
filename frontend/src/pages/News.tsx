@@ -8,7 +8,7 @@ import { SectionLabel } from '../components/Layout'
 import { Markdown } from '../components/Markdown'
 import { SyncIssue } from '../components/SyncIssue'
 import { useI18n } from '../i18n/context'
-import { clockTime, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
+import { clockTime, decimal, localDay, pill, relativeDay } from '../lib/format'
 
 type Stream = 'personal' | 'general'
 const RANGES = [36, 72, 168] as const
@@ -93,21 +93,30 @@ function Feeds({ overview, today }: { overview: NewsOverview; today: string }) {
   )
 }
 
-/** Claude's report; open while it is from today, folded once it is older. */
+/** Claude's summary of the most important news: the main content of the page. */
 function Report({ overview, today }: { overview: NewsOverview; today: string }) {
   const { t, locale } = useI18n()
   const report = overview.report
-  if (!report) return <p className="max-w-xl text-sm text-muted">{t('news.noReport')}</p>
+  if (!report) {
+    return (
+      <section className="rounded-lg border border-dashed border-rule px-4 py-5">
+        <p className="font-medium">{t('news.noReportTitle')}</p>
+        <p className="mt-1 max-w-xl text-sm text-muted">{t('news.noReport')}</p>
+      </section>
+    )
+  }
+  const old = report.local_date < today
   return (
-    <details open={report.local_date === today} className="group rounded-md border border-rule bg-paper-raised px-4 py-3">
-      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
-        <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{report.title ?? t('news.report')}</span>
-        <span className="font-mono text-[11px] text-muted">
-          {t('news.reportBy', { date: parseDate(report.local_date).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' }) })}
+    <section className="rounded-lg border border-rule bg-paper-raised px-4 py-4 sm:px-6 sm:py-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{report.title ?? t('news.report')}</h2>
+        <span className={`font-mono text-[11px] ${old ? 'text-brass' : 'text-muted'}`}>
+          {t('news.reportBy', { date: relativeDay(report.local_date, today, t, locale) })}
+          {old && ` · ${t('news.reportOld')}`}
         </span>
-      </summary>
-      <Markdown text={report.body} className="mt-2" />
-    </details>
+      </div>
+      <Markdown text={report.body} className="mt-3" />
+    </section>
   )
 }
 
@@ -257,6 +266,12 @@ export function NewsPage() {
       <div className="space-y-8">
         <Report overview={overview.data} today={today} />
 
+        {/* The single items are the material of the report; folded away while there is one. */}
+        <details open={!overview.data.report} className="space-y-8">
+          <summary className="cursor-pointer list-none">
+            <SectionLabel count={news.data.length}>{t('news.allItems')}</SectionLabel>
+          </summary>
+          <div className="mt-4 space-y-8">
         {overview.data.trends.length > 0 && (
           <section>
             <SectionLabel count={overview.data.trends.length}>{t('news.trends')}</SectionLabel>
@@ -332,6 +347,8 @@ export function NewsPage() {
             </>
           )}
         </section>
+          </div>
+        </details>
 
         {interests.data && <TopicEditor key={JSON.stringify(interests.data.topics)} interests={interests.data} />}
         <p className="max-w-xl text-sm text-muted">{t('news.hint')}</p>

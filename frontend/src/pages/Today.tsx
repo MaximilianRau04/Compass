@@ -18,7 +18,8 @@ import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { clockTime, longDate } from '../lib/format'
+import { shortPart } from '../lib/brief'
+import { addDays, clockTime, longDate } from '../lib/format'
 
 /** Important mails of the last two weeks: count and the newest three. */
 function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
@@ -82,9 +83,27 @@ function OtherBriefs({ briefs, today }: { briefs: Brief[] | undefined; today: st
   )
 }
 
-/** The three best personal news items of the last 36 hours. */
-function TopNews({ overview }: { overview: NewsOverview | undefined }) {
+/** The short part of Claude's news report (from today or yesterday); without one, the three
+ * best personal news items of the last 36 hours. */
+function TopNews({ overview, today }: { overview: NewsOverview | undefined; today: string }) {
   const { t } = useI18n()
+  const report = overview?.report
+  if (report && report.local_date >= addDays(today, -1)) {
+    const short = shortPart(report.body)
+    if (short) {
+      return (
+        <section>
+          <Link to="/news" className="block hover:text-ink">
+            <SectionLabel>{t('today.news')}</SectionLabel>
+          </Link>
+          <Markdown text={short} className="mt-2 text-[15px]" />
+          <Link to="/news" className="mt-2 inline-block font-mono text-[11px] text-brass hover:underline">
+            {t('today.newsReport')} →
+          </Link>
+        </section>
+      )
+    }
+  }
   if (!overview || overview.top.length === 0) return null
   return (
     <section>
@@ -210,7 +229,7 @@ export function TodayPage() {
 
         <div className="space-y-8 lg:col-start-2 lg:row-start-2">
           <ImportantMail overview={mail.data} />
-          <TopNews overview={news.data} />
+          <TopNews overview={news.data} today={today} />
         </div>
       </div>
 
