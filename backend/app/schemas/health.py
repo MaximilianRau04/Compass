@@ -158,3 +158,50 @@ class HealthSummaryRead(BaseModel):
     workouts: list[WorkoutRead]
     extras: list[ExtraDayRead] = Field(default_factory=list)
     sync: SyncStatus | None
+
+
+class EarlyNightRead(BaseModel):
+    date: date
+    first_event: str = Field(description="HH:MM of the first event that day")
+    title: str
+    asleep_minutes: int
+
+
+class SleepConsistencyRead(BaseModel):
+    nights: int
+    median_bedtime: str | None
+    median_wake_time: str | None
+    bedtime_sd_minutes: int | None
+    wake_time_sd_minutes: int | None
+    short_nights: list[date] = Field(description="Asleep under 7 h")
+    early_nights: list[EarlyNightRead] = Field(description="Before a first event before 10:00")
+    avg_asleep_early: int | None
+    avg_asleep_other: int | None
+
+
+class RestingDayRead(BaseModel):
+    date: date
+    bpm: int | None
+    mean7: float | None
+
+
+class RestingTrendRead(BaseModel):
+    days: list[RestingDayRead]
+    median: float | None
+    latest_mean7: float | None
+    alert: bool = Field(description="7-day mean at least 5 bpm above the median")
+
+
+class Zone2WeekRead(BaseModel):
+    week_start: date
+    minutes: int = Field(description="Zone 2 minutes all week")
+    in_training: int = Field(description="Of these, within training sessions")
+
+
+class HealthAnalysisRead(BaseModel):
+    consistency: SleepConsistencyRead
+    resting: RestingTrendRead
+    hr_max: int
+    zone2_low: int
+    zone2_high: int
+    zone2_weeks: list[Zone2WeekRead]

@@ -21,6 +21,7 @@ class SessionBrief(BaseModel):
     )
     hr_avg: int | None = Field(None, description="Average heart rate from the watch")
     hr_max: int | None = None
+    zone2_minutes: int | None = Field(None, description="Minutes in zone 2 (session list only)")
 
 
 class WeekRead(BaseModel):

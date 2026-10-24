@@ -5,6 +5,7 @@ import { useTodayDate } from '../api/tasks'
 import type { ExtraDay, HealthSummary, SleepNight, SleepNightDetail } from '../api/types'
 import { ColumnChart, DayCurve, Hypnogram, LineChart } from '../components/charts'
 import { DataTable, Stat } from '../components/DataBlocks'
+import { HealthAnalysis } from '../components/HealthAnalysis'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -167,13 +168,15 @@ type ExtraKey = (typeof EXTRA_KEYS)[number]
 
 /** Values only some watches write (SpO2, HRV, breathing rate, distance, active calories): shown
  * only for the ones that arrive. */
-function Extras({ extras, longLabel, dayLabel }: { extras: ExtraDay[]; longLabel: (d: string) => string; dayLabel: (d: string) => string }) {
+function Extras({ extras: raw, longLabel, dayLabel }: { extras: ExtraDay[]; longLabel: (d: string) => string; dayLabel: (d: string) => string }) {
   const { t, locale } = useI18n()
+  // Distance arrives in meters; charts and averages use km, so axis and labels agree.
+  const extras = raw.map((d) => ({ ...d, distance: d.distance != null ? d.distance / 1000 : null }))
   const format: Record<ExtraKey, (v: number) => string> = {
     oxygen_saturation: (v) => `${decimal(v, locale)} %`,
     heart_rate_variability: (v) => `${Math.round(v)} ms`,
     respiratory_rate: (v) => `${decimal(v, locale)} /min`,
-    distance: (v) => `${decimal(v / 1000, locale)} km`,
+    distance: (v) => `${decimal(v, locale)} km`,
     active_calories: (v) => `${Math.round(v).toLocaleString(locale)} kcal`,
   }
   const present = EXTRA_KEYS.filter((key) => extras.some((d) => d[key] !== null))
@@ -330,6 +333,8 @@ export function SleepPage() {
         </section>
 
         <StageAverages averages={avg} />
+
+        <HealthAnalysis days={range} />
 
         {resting.length > 0 && (
           <section>

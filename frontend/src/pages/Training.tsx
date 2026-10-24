@@ -218,7 +218,10 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
   const when = relativeDay(localDay(session.started_at), today, t, locale)
   const duration = session.duration_minutes !== null ? `${t('training.duration', { n: session.duration_minutes })} · ` : ''
   // Heart rate from the watch, for Gym Day sessions as well as for workouts tracked only there.
-  const heart = session.hr_avg !== null ? `${t('training.hr', { avg: session.hr_avg, max: session.hr_max ?? '–' })} · ` : ''
+  const heart =
+    session.hr_avg !== null
+      ? `${t('training.hr', { avg: session.hr_avg, max: session.hr_max ?? '–' })}${session.zone2_minutes ? ` · ${t('zone2.short', { n: session.zone2_minutes })}` : ''} · `
+      : ''
   // Known only from Health Connect: name, duration and heart rate, nothing to expand.
   if (session.sets === 0) {
     const watch = session.source === 'watch'

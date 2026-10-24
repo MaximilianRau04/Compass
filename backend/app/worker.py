@@ -54,6 +54,15 @@ def sync_news() -> None:
     log.info("news: %d feeds, failed: %s", len(results), ", ".join(failed) or "none")
 
 
+def weekly_review() -> None:
+    from app.services import review
+
+    with SessionLocal() as session:
+        review.save_weekly(session)
+        session.commit()
+    log.info("weekly review saved")
+
+
 def feed_names() -> str:
     try:
         return ", ".join(get_settings().calendar_feeds) or "none"
@@ -96,6 +105,17 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=MISFIRE_GRACE_SECONDS,
+    )
+    # Sunday evening: the week is over, the review lands on the dashboard as a brief.
+    scheduler.add_job(
+        weekly_review,
+        "cron",
+        day_of_week="sun",
+        hour=20,
+        id="weekly-review",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=6 * 3600,
     )
     log.info("worker started, calendar feeds: %s", feed_names())
     heartbeat()

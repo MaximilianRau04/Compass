@@ -35,7 +35,7 @@ from app.models.training import TrainingSession
 from app.schemas.calendar import CalendarEventRead
 from app.schemas.notes import NoteCreate
 from app.schemas.tasks import TaskCreate, TaskRead, TaskUpdate
-from app.services import body, briefs, health, nutrition, progression, training
+from app.services import analysis, body, briefs, health, nutrition, progression, review, training
 from app.services import calendar as calendar_service
 from app.services import mail as mail_service
 from app.services import news as news_service
@@ -134,6 +134,11 @@ class TodayOut(BaseModel):
     upcoming: list[TaskOut] = Field(description="Due in the next 7 days")
     done_today: list[TaskOut]
     events: list[EventItem] = Field(description="Calendar events today")
+    tomorrow_first_event: str | None = Field(description='e.g. "08:00 Vorlesung"')
+    tomorrow_latest_bedtime: str | None = Field(
+        description="Latest bedtime tonight, HH:MM: tomorrow's first event minus 7.5 h of sleep "
+        "and 30 min to fall asleep"
+    )
 
 
 class CalendarOut(BaseModel):
@@ -173,6 +178,14 @@ class TrainingSummaryOut(BaseModel):
     )
     weeks: list[WeekOut]
     recent: list[SessionOut]
+    zone2: str = Field(description="Zone 2 range from the maximum heart rate")
+    zone2_weeks: list["Zone2Out"]
+
+
+class Zone2Out(BaseModel):
+    week_start: date
+    minutes: int = Field(description="Zone 2 minutes all week, from the watch")
+    in_training: int
 
 
 class ProgressOut(BaseModel):
@@ -233,6 +246,30 @@ class SleepSummaryOut(BaseModel):
     days: list[DayOut]
     other_workouts: list[WorkoutOut] = Field(description="Workouts from apps other than Gym Day")
     last_sync: datetime | None
+    consistency: "ConsistencyOut"
+    resting_hr: "RestingOut"
+
+
+class ConsistencyOut(BaseModel):
+    nights: int
+    median_bedtime: str | None
+    median_wake_time: str | None
+    bedtime_sd_minutes: int | None = Field(description="Standard deviation of the bedtime")
+    wake_time_sd_minutes: int | None
+    nights_under_7h: list[date]
+    early_nights: list[str] = Field(
+        description='Nights before a first event before 10:00, e.g. "2026-10-20: 08:00 Lecture, '
+        'slept 6:10 h"'
+    )
+    avg_asleep_minutes_before_early: int | None
+    avg_asleep_minutes_other: int | None
+
+
+class RestingOut(BaseModel):
+    median_bpm: float | None = Field(description="Median resting heart rate of the period")
+    latest_7_day_mean: float | None
+    alert: bool = Field(description="7-day mean at least 5 bpm above the median")
+    mean7_by_day: dict[str, float | None]
 
 
 class NutritionDayOut(BaseModel):
@@ -434,6 +471,23 @@ class BodyTrendOut(BaseModel):
     weigh_ins_last_7_days: int
 
 
+class RecommendationOut(BaseModel):
+    action: str = Field(description="decrease, increase or keep the daily calories")
+    kcal_delta: int
+    current_kcal_goal: float | None
+    new_kcal_goal: float | None
+    reasons: list[str]
+
+
+class WeeklyReviewOut(BaseModel):
+    since: date
+    until: date
+    numbers: dict[str, Any] = Field(description="Averages and trends of the 7 days")
+    recommendation: RecommendationOut
+    rules: str
+    markdown: str = Field(description="The same as a German brief, ready for save_brief")
+
+
 class DeadlinesOut(BaseModel):
     today: date
     overdue: list[TaskOut]
@@ -543,6 +597,33 @@ def _note_out(n: Note) -> NoteOut:
     )
 
 
+def _consistency_out(c: analysis.SleepConsistency) -> ConsistencyOut:
+    return ConsistencyOut(
+        nights=c.nights,
+        median_bedtime=c.median_bedtime,
+        median_wake_time=c.median_wake_time,
+        bedtime_sd_minutes=c.bedtime_sd_minutes,
+        wake_time_sd_minutes=c.wake_time_sd_minutes,
+        nights_under_7h=c.short_nights,
+        early_nights=[
+            f"{x.date}: {x.first_event} {x.title}, slept {x.asleep_minutes // 60}:"
+            f"{x.asleep_minutes % 60:02d} h"
+            for x in c.early_nights
+        ],
+        avg_asleep_minutes_before_early=c.avg_asleep_early,
+        avg_asleep_minutes_other=c.avg_asleep_other,
+    )
+
+
+def _resting_out(r: analysis.RestingTrend) -> RestingOut:
+    return RestingOut(
+        median_bpm=r.median,
+        latest_7_day_mean=r.latest_mean7,
+        alert=r.alert,
+        mean7_by_day={d.date.isoformat(): d.mean7 for d in r.days[-14:]},
+    )
+
+
 def _session_out(s: TrainingSession) -> SessionOut:
     return SessionOut(
         date=training.local_date(s.started_at),
@@ -642,7 +723,8 @@ mcp = MCPServer(
 @mcp.tool(title="Today", annotations=READ)
 def get_today() -> TodayOut:
     """Get the user's day: overdue tasks, tasks due today, tasks planned for today,
-    deadlines in the next 7 days and what was completed today."""
+    deadlines in the next 7 days, what was completed today, today's events, and tomorrow's first
+    event with the latest bedtime tonight."""
     with session_scope() as session:
         o = task_service.today_overview(session)
         return TodayOut(
@@ -653,6 +735,12 @@ def get_today() -> TodayOut:
             upcoming=[_out(t) for t in o.upcoming],
             done_today=[_out(t) for t in o.done_today],
             events=[_event_out(e) for e in o.events],
+            tomorrow_first_event=(
+                f"{bed.first_event_at:%H:%M} {bed.title}"
+                if (bed := analysis.bedtime_for(session, o.today + timedelta(days=1)))
+                else None
+            ),
+            tomorrow_latest_bedtime=f"{bed.latest_bedtime:%H:%M}" if bed else None,
         )
 
 
@@ -747,6 +835,10 @@ def training_summary(
             split=s.split,
             weeks=[WeekOut(**w.__dict__) for w in s.weeks],
             recent=[_session_out(x) for x in training.recent_sessions(session, 5)],
+            zone2="{}-{} bpm (60-70 % of HRmax {})".format(
+                *analysis.zone2_bounds(analysis.hr_max(session)), analysis.hr_max(session)
+            ),
+            zone2_weeks=[Zone2Out(**z.__dict__) for z in analysis.zone2_weeks(session, weeks)],
         )
 
 
@@ -786,9 +878,11 @@ def exercise_progress(
 def sleep_summary(
     days: Annotated[int, Field(ge=1, le=90, description="How many days back")] = 7,
 ) -> SleepSummaryOut:
-    """Sleep per night (duration, bed and wake time, deep/light/REM/awake minutes) and daily
-    health metrics (steps, resting heart rate, calories burned) from the watch via Health
-    Connect. A night belongs to the day of waking up."""
+    """Sleep per night (duration, bed and wake time, deep/light/REM/awake minutes), sleep
+    consistency (median and spread of bed and wake time, nights under 7 h, nights before early
+    events), the resting heart rate trend with an alert, and daily health metrics (steps, resting
+    heart rate, calories burned) from the watch via Health Connect. A night belongs to the day of
+    waking up."""
     tz = local_tz()
     with session_scope() as session:
         s = health.summary(session, days)
@@ -838,6 +932,8 @@ def sleep_summary(
                 for w in s.workouts
             ],
             last_sync=state.last_success_at if state else None,
+            consistency=_consistency_out(analysis.sleep_consistency(session, max(days, 14))),
+            resting_hr=_resting_out(analysis.resting_trend(session, max(days, 14))),
         )
 
 
@@ -1291,6 +1387,32 @@ def log_body_metric(
         return _body_out(body.trend(session))
 
 
+@mcp.tool(title="Weekly review", annotations=READ)
+def weekly_review() -> WeeklyReviewOut:
+    """The last 7 days in numbers: average kcal, protein and fat (valid days only), weight trend
+    and waist, median steps, training sessions, progress and stagnation, strength trend, sleep
+    duration and consistency, resting heart rate, zone 2 minutes; plus a calorie recommendation
+    by fixed rules. Compass saves it itself every Sunday as the brief of kind "weekly"."""
+    with session_scope() as session:
+        r = review.weekly_review(session)
+        numbers = {
+            k: v for k, v in r.__dict__.items() if k not in ("since", "until", "recommendation")
+        }
+        return WeeklyReviewOut(
+            since=r.since,
+            until=r.until,
+            numbers=numbers,
+            recommendation=RecommendationOut(**r.recommendation.__dict__),
+            rules=(
+                f"Loss under {review.SLOW_LOSS} kg/week for 2 weeks with the waist unchanged: "
+                f"-{review.KCAL_STEP} kcal. Loss over {review.FAST_LOSS} kg/week or strength "
+                f"down more than {review.STRENGTH_DROP} %: +{review.KCAL_STEP} kcal. "
+                "Otherwise keep."
+            ),
+            markdown=review.markdown(r),
+        )
+
+
 @mcp.tool(title="Add task", annotations=WRITE)
 def add_task(
     title: Annotated[str, Field(min_length=1, max_length=500)],
@@ -1461,8 +1583,9 @@ def sort_mails() -> str:
     )
 
 
-@mcp.prompt(title="Weekly review")
-def weekly_review() -> str:
+# Named like the tool on purpose: the prompt plans the tasks, the tool brings the numbers.
+@mcp.prompt(name="weekly_review", title="Weekly review")
+def weekly_review_prompt() -> str:
     """Review the past week and plan the next one."""
     return (
         "Let's do my weekly review in Compass. Call get_today, get_deadlines with 14 days and "

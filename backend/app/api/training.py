@@ -27,7 +27,7 @@ from app.schemas.training import (
     WeekRead,
     WorkoutNameRead,
 )
-from app.services import progression, training, workout_log
+from app.services import analysis, progression, training, workout_log
 from app.services.clock import local_today
 from app.services.training import TrainingError
 from app.services.workout_log import LogError, LoggedSession
@@ -94,7 +94,14 @@ def summary(session: SessionDep, weeks: Annotated[int, Query(ge=1, le=104)] = 12
 
 @router.get("/sessions", response_model=list[SessionBrief])
 def sessions(session: SessionDep, limit: Annotated[int, Query(ge=1, le=200)] = 20):
-    return [brief(s) for s in training.recent_sessions(session, limit)]
+    maximum = analysis.hr_max(session)
+    out = []
+    for s in training.recent_sessions(session, limit):
+        item = brief(s)
+        if s.hr_avg is not None:
+            item.zone2_minutes = analysis.session_zone2(session, s, maximum)
+        out.append(item)
+    return out
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetail)

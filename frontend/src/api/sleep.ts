@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { api } from './client'
-import type { DayHeartRate, HealthSummary } from './types'
+import type { DayHeartRate, HealthAnalysis, HealthSummary } from './types'
 
 export function useHealthSummary(days = 30) {
   return useQuery({
@@ -15,4 +15,18 @@ export function useDayHeartRate(day?: string) {
     queryKey: ['sleep', 'heart-rate', day ?? 'today'],
     queryFn: () => api<DayHeartRate>(`/sleep/heart-rate${day ? `?day=${day}` : ''}`),
   })
+}
+
+export function useHealthAnalysis(days = 30) {
+  return useQuery({ queryKey: ['sleep', 'analysis', days], queryFn: () => api<HealthAnalysis>(`/sleep/analysis?days=${days}`) })
+}
+
+export interface Bedtime {
+  day: string
+  event: { title: string; starts_at: string } | null
+  latest_bedtime?: string
+}
+
+export function useBedtime(enabled: boolean) {
+  return useQuery({ queryKey: ['sleep', 'bedtime'], queryFn: () => api<Bedtime>('/sleep/bedtime'), enabled })
 }

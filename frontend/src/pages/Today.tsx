@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router'
 import { useMailOverview } from '../api/mail'
 import { useBriefs, useNewsOverview, useTodayBrief } from '../api/news'
 import { useNutritionSummary } from '../api/nutrition'
-import { useDayHeartRate, useHealthSummary } from '../api/sleep'
+import { useBedtime, useDayHeartRate, useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
 import { useTrainingSummary } from '../api/training'
 import type { Brief, MailOverview, NewsOverview, Task } from '../api/types'
@@ -44,6 +44,27 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+/** In the evening: the latest bedtime before tomorrow's first event (7.5 h of sleep and 30 min
+ * to fall asleep). */
+function Bedtime() {
+  const { t, locale } = useI18n()
+  const [evening] = useState(() => new Date().getHours() >= 16)
+  const bedtime = useBedtime(evening)
+  const b = bedtime.data
+  if (!evening || !b?.event || !b.latest_bedtime) return null
+  return (
+    <section className="flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3">
+      <span aria-hidden className="text-brass">☾</span>
+      <p>
+        <span className="font-medium">{t('bedtime.latest', { time: clockTime(b.latest_bedtime, locale) })}</span>
+        <span className="block font-mono text-[11px] text-muted">
+          {t('bedtime.because', { time: clockTime(b.event.starts_at, locale), title: b.event.title })}
+        </span>
+      </p>
     </section>
   )
 }
@@ -178,6 +199,7 @@ export function TodayPage() {
             <QuickAdd today={today} autoFocus={params.get('neu') === '1'} />
           </div>
 
+          <Bedtime />
           <DailyBrief brief={brief.data} />
           <OtherBriefs briefs={briefs.data} today={today} />
 

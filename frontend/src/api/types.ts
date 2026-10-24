@@ -112,6 +112,7 @@ export interface SessionBrief {
   activity: string | null
   hr_avg: number | null
   hr_max: number | null
+  zone2_minutes?: number | null
 }
 
 export interface TrainingWeek {
@@ -498,4 +499,23 @@ export interface NutritionAverages {
   potassium_mg: number | null
   calcium_mg: number | null
   iron_mg: number | null
+}
+
+export interface HealthAnalysis {
+  consistency: {
+    nights: number
+    median_bedtime: string | null
+    median_wake_time: string | null
+    bedtime_sd_minutes: number | null
+    wake_time_sd_minutes: number | null
+    short_nights: string[]
+    early_nights: { date: string; first_event: string; title: string; asleep_minutes: number }[]
+    avg_asleep_early: number | null
+    avg_asleep_other: number | null
+  }
+  resting: { days: { date: string; bpm: number | null; mean7: number | null }[]; median: number | null; latest_mean7: number | null; alert: boolean }
+  hr_max: number
+  zone2_low: number
+  zone2_high: number
+  zone2_weeks: { week_start: string; minutes: number; in_training: number }[]
 }

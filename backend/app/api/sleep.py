@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -9,17 +9,23 @@ from app.models.integrations import IntegrationState
 from app.schemas.health import (
     DailyMetricsRead,
     DayHeartRateRead,
+    EarlyNightRead,
     ExtraDayRead,
+    HealthAnalysisRead,
     HealthAverages,
     HealthSummaryRead,
     HeartRatePoint,
+    RestingDayRead,
+    RestingTrendRead,
+    SleepConsistencyRead,
     SleepNightDetail,
     SleepNightRead,
     SleepStageRead,
     SyncStatus,
     WorkoutRead,
+    Zone2WeekRead,
 )
-from app.services import health
+from app.services import analysis, health
 from app.services.clock import local_today
 
 router = APIRouter(prefix="/sleep", tags=["sleep"])
@@ -124,3 +130,46 @@ def heart_rate(session: SessionDep, day: date | None = None):
         sleep_start=h.sleep.start_at if h.sleep else None,
         sleep_end=h.sleep.end_at if h.sleep else None,
     )
+
+
+@router.get("/analysis", response_model=HealthAnalysisRead)
+def health_analysis(
+    session: SessionDep,
+    days: Annotated[int, Query(ge=7, le=180)] = 30,
+    weeks: Annotated[int, Query(ge=1, le=26)] = 8,
+):
+    """Sleep consistency, the resting heart rate trend and zone 2 minutes per week."""
+    c = analysis.sleep_consistency(session, days)
+    r = analysis.resting_trend(session, days)
+    maximum = analysis.hr_max(session)
+    low, high = analysis.zone2_bounds(maximum)
+    return HealthAnalysisRead(
+        consistency=SleepConsistencyRead(
+            **{k: v for k, v in c.__dict__.items() if k != "early_nights"},
+            early_nights=[EarlyNightRead(**x.__dict__) for x in c.early_nights],
+        ),
+        resting=RestingTrendRead(
+            days=[RestingDayRead(**d.__dict__) for d in r.days],
+            median=r.median,
+            latest_mean7=r.latest_mean7,
+            alert=r.alert,
+        ),
+        hr_max=maximum,
+        zone2_low=low,
+        zone2_high=high,
+        zone2_weeks=[Zone2WeekRead(**w.__dict__) for w in analysis.zone2_weeks(session, weeks)],
+    )
+
+
+@router.get("/bedtime")
+def bedtime(session: SessionDep, day: date | None = None) -> dict:
+    """The latest bedtime before a day (default tomorrow): first event minus 7.5 h of sleep and
+    30 min to fall asleep. Empty when the day has no timed event."""
+    b = analysis.bedtime_for(session, day or local_today() + timedelta(days=1))
+    if b is None:
+        return {"day": (day or local_today() + timedelta(days=1)).isoformat(), "event": None}
+    return {
+        "day": b.day.isoformat(),
+        "event": {"title": b.title, "starts_at": b.first_event_at.isoformat()},
+        "latest_bedtime": b.latest_bedtime.isoformat(),
+    }
