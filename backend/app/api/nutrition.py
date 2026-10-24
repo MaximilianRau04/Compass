@@ -13,6 +13,7 @@ from app.schemas.nutrition import (
     MfpImportResult,
     NutritionAverages,
     NutritionDayRead,
+    NutritionQuality,
     NutritionSummaryRead,
     NutritionWeekRead,
     WeightRead,
@@ -22,7 +23,10 @@ from app.services.nutrition import NutritionError
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
 
-Metric = Annotated[str, Path(pattern="^(kcal|protein_g|carbs_g|fat_g)$")]
+Metric = Annotated[
+    str,
+    Path(pattern="^(kcal|protein_g|carbs_g|fat_g|steps|hr_max|weight_loss_min|weight_loss_max)$"),
+]
 
 
 @router.get("/summary", response_model=NutritionSummaryRead)
@@ -34,6 +38,8 @@ def summary(session: SessionDep, days: Annotated[int, Query(ge=1, le=366)] = 30)
         days=[NutritionDayRead.model_validate(d, from_attributes=True) for d in s.days],
         goals=s.goals,
         averages=NutritionAverages(**s.averages),
+        averages_all=NutritionAverages(**s.averages_all),
+        quality=NutritionQuality(**s.quality.__dict__),
         weeks=[NutritionWeekRead(**w.__dict__) for w in s.weeks],
         protein_goal_days=s.protein_goal_days,
         weight=WeightRead(**s.weight.__dict__) if s.weight else None,

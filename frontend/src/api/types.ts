@@ -246,7 +246,7 @@ export interface HealthSummary {
 }
 
 export type MealName = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'unknown'
-export type GoalMetric = 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g'
+export type GoalMetric = 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'steps' | 'hr_max' | 'weight_loss_min' | 'weight_loss_max'
 
 export interface NutritionDay {
   date: string
@@ -258,7 +258,13 @@ export interface NutritionDay {
   fiber_g: number | null
   sugar_g: number | null
   sodium_mg: number | null
+  saturated_fat_g: number | null
+  potassium_mg: number | null
+  calcium_mg: number | null
+  iron_mg: number | null
   meals: { meal: MealName; kcal: number; protein_g: number | null; carbs_g: number | null; fat_g: number | null }[]
+  /** incomplete (under 1500 kcal), same_as_previous_day: left out of the averages */
+  flags: ('incomplete' | 'same_as_previous_day')[]
 }
 
 export interface WeightPoint {
@@ -272,7 +278,9 @@ export interface NutritionSummary {
   until: string
   days: NutritionDay[]
   goals: Partial<Record<GoalMetric, number>>
-  averages: { kcal: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null; fiber_g: number | null; sugar_g: number | null }
+  averages: NutritionAverages
+  averages_all: NutritionAverages
+  quality: { incomplete: string[]; same_as_previous_day: string[]; gaps: string[]; valid_days: number }
   weeks: { week_start: string; days_tracked: number; kcal: number; protein_g: number | null }[]
   protein_goal_days: number | null
   weight: WeightPoint | null
@@ -460,4 +468,34 @@ export interface TemplateExercise {
   name: string
   bodyweight: boolean
   suggestion: Suggestion | null
+}
+
+export interface BodyTrend {
+  today: string
+  days: { date: string; kg: number | null; source: string | null; mean7: number | null }[]
+  mean7: number | null
+  mean7_before: number | null
+  change_kg: number | null
+  change_pct: number | null
+  loss_per_week: number | null
+  loss_min: number
+  loss_max: number
+  status: 'on_target' | 'too_slow' | 'too_fast' | 'gaining' | null
+  waist: { date: string; cm: number }[]
+  waist_change: number | null
+  weeks: { week_start: string; kg: number | null; waist_cm: number | null }[]
+}
+
+export interface NutritionAverages {
+  kcal: number | null
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  fiber_g: number | null
+  sugar_g: number | null
+  sodium_mg: number | null
+  saturated_fat_g: number | null
+  potassium_mg: number | null
+  calcium_mg: number | null
+  iron_mg: number | null
 }

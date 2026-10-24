@@ -32,11 +32,17 @@ class NutritionMeal(TimestampMixin, Base):
     fiber_g: Mapped[Decimal | None] = mapped_column(MACRO)
     sugar_g: Mapped[Decimal | None] = mapped_column(MACRO)
     sodium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
+    # Only from Health Connect; the MFP export gives calcium and iron as % of the daily value.
+    potassium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
+    calcium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
+    iron_mg: Mapped[Decimal | None] = mapped_column(MACRO)
     raw: Mapped[dict] = mapped_column(JSONB, server_default="{}")
 
 
 class BodyWeight(TimestampMixin, Base):
-    """One weight per day and source; like meals, Health Connect wins over the export."""
+    """One weight per day and source: manual (entered in Compass, in the morning), healthconnect
+    (MFP or a scale app, the earliest of the day) or mfp_export. Per day manual wins, then Health
+    Connect, then the export, so the same weigh-in from two sources never counts twice."""
 
     __tablename__ = "body_weight"
     __table_args__ = (UniqueConstraint("source", "local_date"),)
@@ -49,6 +55,18 @@ class BodyWeight(TimestampMixin, Base):
     measured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class BodyMeasurement(TimestampMixin, Base):
+    """A body measurement entered by hand, e.g. the waist once a week. One per metric and day."""
+
+    __tablename__ = "body_measurements"
+    __table_args__ = (UniqueConstraint("metric", "local_date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    metric: Mapped[str] = mapped_column(String(40))  # waist_cm
+    local_date: Mapped[date] = mapped_column(Date, index=True)
+    value: Mapped[Decimal] = mapped_column(Numeric(6, 1))
+
+
 class Goal(Base):
     """A target like 2500 kcal per day, valid from a day until the next goal of the same metric."""
 
@@ -56,7 +74,8 @@ class Goal(Base):
     __table_args__ = (UniqueConstraint("metric", "valid_from"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    metric: Mapped[str] = mapped_column(String(40))  # kcal | protein_g | carbs_g | fat_g
+    # kcal, protein_g, carbs_g, fat_g, steps, hr_max, weight_loss_min, weight_loss_max
+    metric: Mapped[str] = mapped_column(String(40))
     value: Mapped[Decimal] = mapped_column(Numeric(8, 1))
     valid_from: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

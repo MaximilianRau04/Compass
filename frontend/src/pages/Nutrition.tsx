@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 
 import { useImportMfp, useNutritionSummary, useSetGoal, useWeights } from '../api/nutrition'
 import { useTodayDate } from '../api/tasks'
-import type { GoalMetric, NutritionDay, NutritionSummary } from '../api/types'
+import type { GoalMetric, NutritionAverages, NutritionDay, NutritionSummary } from '../api/types'
 import { ColumnChart, LineChart } from '../components/charts'
 import { DataTable, Stat } from '../components/DataBlocks'
+import { BodyPanel } from '../components/BodyPanel'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -82,6 +83,11 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
       <p className="text-xs text-muted">
         {isToday ? t('nutrition.today') : `${t('nutrition.lastDay')} · ${relativeDay(day.date, today, t, locale)}`}
         <span className="ml-2 font-mono text-[11px]">{t(`nutrition.source.${day.source}` as MessageKey)}</span>
+        {day.flags.map((flag) => (
+          <span key={flag} className="ml-2 rounded-full border border-brass/60 px-1.5 py-px font-mono text-[10px] text-brass">
+            {t(`nutrition.flag.${flag}`)}
+          </span>
+        ))}
       </p>
       <div className="mt-2 space-y-3">
         <GoalBar label={t('nutrition.kcal')} value={day.kcal} goal={goals.kcal} format={(v) => kcal(v, locale)} />
@@ -92,6 +98,7 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
         {day.fat_g === null ? '–' : grams(day.fat_g)}
         {day.fiber_g !== null && ` · ${t('nutrition.fiber')} ${grams(day.fiber_g)}`}
       </p>
+      <Micros values={day} className="mt-1" />
       <ul className="mt-3 divide-y divide-rule/60 text-sm">
         {day.meals.map((m) => (
           <li key={m.meal} className="flex justify-between gap-3 py-1.5">
@@ -104,6 +111,45 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
         ))}
       </ul>
     </section>
+  )
+}
+
+const MICROS: { key: keyof NutritionAverages; label: MessageKey; unit: string }[] = [
+  { key: 'sugar_g', label: 'nutrition.sugar', unit: 'g' },
+  { key: 'saturated_fat_g', label: 'nutrition.saturated', unit: 'g' },
+  { key: 'sodium_mg', label: 'nutrition.sodium', unit: 'mg' },
+  { key: 'potassium_mg', label: 'nutrition.potassium', unit: 'mg' },
+  { key: 'calcium_mg', label: 'nutrition.calcium', unit: 'mg' },
+  { key: 'iron_mg', label: 'nutrition.iron', unit: 'mg' },
+]
+
+/** Sugar, saturated fat and minerals; only the ones that were logged. */
+function Micros({ values, className = '' }: { values: Partial<Record<keyof NutritionAverages, number | null>>; className?: string }) {
+  const { t, locale } = useI18n()
+  const present = MICROS.filter((m) => values[m.key] != null)
+  if (present.length === 0) return null
+  return (
+    <p className={`font-mono text-[12px] text-muted ${className}`}>
+      {present.map((m) => `${t(m.label)} ${decimal(values[m.key] as number, locale)} ${m.unit}`).join(' · ')}
+    </p>
+  )
+}
+
+/** Which days the averages leave out, and the average with them. */
+function Quality({ data }: { data: NutritionSummary }) {
+  const { t, locale } = useI18n()
+  const q = data.quality
+  const parts = [
+    q.incomplete.length ? t('nutrition.qIncomplete', { n: q.incomplete.length }) : null,
+    q.same_as_previous_day.length ? t('nutrition.qSame', { n: q.same_as_previous_day.length }) : null,
+    q.gaps.length ? t('nutrition.qGaps', { n: q.gaps.length }) : null,
+  ].filter(Boolean)
+  if (parts.length === 0) return null
+  return (
+    <p className="-mt-5 mb-8 font-mono text-[11px] text-muted">
+      {t('nutrition.qLeftOut', { list: parts.join(' · ') })}
+      {data.averages_all.kcal !== null && data.averages_all.kcal !== data.averages.kcal && ` ${t('nutrition.qWithThem', { kcal: kcal(data.averages_all.kcal, locale) })}`}
+    </p>
   )
 }
 
@@ -143,6 +189,11 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
   const fields: { metric: GoalMetric; label: MessageKey }[] = [
     { metric: 'kcal', label: 'nutrition.goalKcal' },
     { metric: 'protein_g', label: 'nutrition.goalProtein' },
+    { metric: 'fat_g', label: 'nutrition.goalFat' },
+    { metric: 'steps', label: 'nutrition.goalSteps' },
+    { metric: 'weight_loss_min', label: 'nutrition.goalLossMin' },
+    { metric: 'weight_loss_max', label: 'nutrition.goalLossMax' },
+    { metric: 'hr_max', label: 'nutrition.goalHrMax' },
   ]
   return (
     <section>
@@ -171,7 +222,8 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
             <input
               type="number"
               inputMode="decimal"
-              min={1}
+              min={0}
+              step="any"
               value={values[metric] ?? goals[metric] ?? ''}
               onChange={(e) => setValues({ ...values, [metric]: e.target.value })}
               className="w-32 rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none"
@@ -287,11 +339,11 @@ export function NutritionPage() {
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label={t('nutrition.avgKcal')} value={avg.kcal === null ? '–' : kcal(avg.kcal, locale)} note={t('nutrition.tracked', { n: complete })} />
+        <Stat label={t('nutrition.avgKcal')} value={avg.kcal === null ? '–' : kcal(avg.kcal, locale)} note={t('nutrition.validDays', { n: data.quality.valid_days, total: complete })} />
         <Stat label={t('nutrition.avgProtein')} value={avg.protein_g === null ? '–' : grams(avg.protein_g)} />
         <Stat
           label={t('nutrition.proteinGoalDays')}
-          value={data.protein_goal_days === null ? '–' : t('nutrition.proteinGoalDaysValue', { n: data.protein_goal_days, total: complete })}
+          value={data.protein_goal_days === null ? '–' : t('nutrition.proteinGoalDaysValue', { n: data.protein_goal_days, total: data.quality.valid_days })}
         />
         <Stat
           label={t('nutrition.weight')}
@@ -305,6 +357,8 @@ export function NutritionPage() {
           }
         />
       </div>
+
+      <Quality data={data} />
 
       <div className="space-y-10">
         <section>
@@ -343,6 +397,9 @@ export function NutritionPage() {
         )}
 
         <MacroAverages averages={avg} />
+        <Micros values={avg} className="-mt-6" />
+
+        <BodyPanel />
 
         <Weight />
 

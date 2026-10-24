@@ -184,6 +184,9 @@ object HealthTypes {
         .putOpt("fiber_g", record.dietaryFiber?.inGrams)
         .putOpt("sugar_g", record.sugar?.inGrams)
         .putOpt("sodium_mg", record.sodium?.inMilligrams)
+        .putOpt("potassium_mg", record.potassium?.inMilligrams)
+        .putOpt("calcium_mg", record.calcium?.inMilligrams)
+        .putOpt("iron_mg", record.iron?.inMilligrams)
 
     private fun mealType(type: Int): String = when (type) {
         MealType.MEAL_TYPE_BREAKFAST -> "breakfast"

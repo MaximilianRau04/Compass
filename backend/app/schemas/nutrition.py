@@ -21,7 +21,14 @@ class NutritionDayRead(BaseModel):
     fiber_g: float | None
     sugar_g: float | None
     sodium_mg: float | None
+    saturated_fat_g: float | None = None
+    potassium_mg: float | None = None
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
     meals: list[MealRead]
+    flags: list[str] = Field(
+        default_factory=list, description="incomplete (under 1500 kcal), same_as_previous_day"
+    )
 
 
 class NutritionWeekRead(BaseModel):
@@ -44,6 +51,18 @@ class NutritionAverages(BaseModel):
     fat_g: float | None
     fiber_g: float | None
     sugar_g: float | None
+    sodium_mg: float | None = None
+    saturated_fat_g: float | None = None
+    potassium_mg: float | None = None
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
+
+
+class NutritionQuality(BaseModel):
+    incomplete: list[date] = Field(description="Logged under 1500 kcal")
+    same_as_previous_day: list[date]
+    gaps: list[date] = Field(description="Not logged at all")
+    valid_days: int
 
 
 class NutritionSummaryRead(BaseModel):
@@ -51,7 +70,11 @@ class NutritionSummaryRead(BaseModel):
     until: date
     days: list[NutritionDayRead] = Field(description="Tracked days only; untracked days are gaps")
     goals: dict[str, float]
-    averages: NutritionAverages = Field(description="Over tracked days, today excluded")
+    averages: NutritionAverages = Field(
+        description="Over complete days without a quality flag, today excluded"
+    )
+    averages_all: NutritionAverages = Field(description="Over every complete logged day")
+    quality: NutritionQuality
     weeks: list[NutritionWeekRead]
     protein_goal_days: int | None
     weight: WeightRead | None

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api import (
     areas,
+    body,
     calendar,
     health,
     ingest,
@@ -22,6 +23,7 @@ router.include_router(calendar.router)
 router.include_router(training.router)
 router.include_router(sleep.router)
 router.include_router(nutrition.router)
+router.include_router(body.router)
 router.include_router(mail.router)
 router.include_router(news.router)
 router.include_router(notes.router)

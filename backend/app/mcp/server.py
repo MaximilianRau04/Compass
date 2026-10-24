@@ -35,7 +35,7 @@ from app.models.training import TrainingSession
 from app.schemas.calendar import CalendarEventRead
 from app.schemas.notes import NoteCreate
 from app.schemas.tasks import TaskCreate, TaskRead, TaskUpdate
-from app.services import briefs, health, nutrition, progression, training
+from app.services import body, briefs, health, nutrition, progression, training
 from app.services import calendar as calendar_service
 from app.services import mail as mail_service
 from app.services import news as news_service
@@ -241,18 +241,40 @@ class NutritionDayOut(BaseModel):
     protein_g: float | None
     carbs_g: float | None
     fat_g: float | None
+    fiber_g: float | None
+    sugar_g: float | None
+    saturated_fat_g: float | None
+    sodium_mg: float | None
+    potassium_mg: float | None
+    calcium_mg: float | None
+    iron_mg: float | None
     meals_kcal: dict[str, float] = Field(description="kcal per meal (breakfast, lunch, ...)")
+    flags: list[str] = Field(
+        description="incomplete (under 1500 kcal) or same_as_previous_day: left out of averages"
+    )
+
+
+class NutritionQualityOut(BaseModel):
+    incomplete_days: list[date]
+    same_as_previous_day: list[date]
+    gap_days: list[date] = Field(description="Not logged at all")
+    valid_days: int = Field(description="Days the averages are based on")
 
 
 class NutritionSummaryOut(BaseModel):
     since: date
     until: date
     goals: dict[str, float] = Field(description="Current daily goals, e.g. kcal, protein_g")
-    avg_kcal: float | None = Field(description="Over tracked days, today excluded")
-    avg_protein_g: float | None
-    avg_carbs_g: float | None
-    avg_fat_g: float | None
-    protein_goal_days: int | None = Field(description="Complete days that reached the goal")
+    averages: dict[str, float | None] = Field(
+        description="Per day over valid days only (complete, not flagged, today excluded): kcal, "
+        "protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, saturated_fat_g, potassium_mg, "
+        "calcium_mg, iron_mg"
+    )
+    averages_all_logged_days: dict[str, float | None] = Field(
+        description="The same over every complete logged day, flagged ones included"
+    )
+    quality: NutritionQualityOut
+    protein_goal_days: int | None = Field(description="Valid days that reached the goal")
     days: list[NutritionDayOut] = Field(description="Logged days only, gaps were not logged")
     weight_kg: float | None = Field(description="Latest weight")
     weight_date: date | None
@@ -391,6 +413,25 @@ class ProgressionOut(BaseModel):
     stagnant: list[TargetOut] = Field(
         description="Same weight and reps for at least 4 sessions in a row"
     )
+
+
+class BodyWeekOut(BaseModel):
+    week_start: date
+    mean_kg: float | None
+    waist_cm: float | None
+
+
+class BodyTrendOut(BaseModel):
+    mean7_kg: float | None = Field(description="Mean weight of the last 7 days")
+    mean7_before_kg: float | None = Field(description="Mean of the 7 days before")
+    change_kg_per_week: float | None = Field(description="Negative = losing")
+    change_pct_per_week: float | None
+    target_loss_per_week: str = Field(description="e.g. 0.2-0.4 kg")
+    status: str | None = Field(description="on_target, too_slow, too_fast or gaining")
+    latest_waist_cm: float | None
+    waist_change_cm: float | None = Field(description="Latest minus the one about a week before")
+    weeks: list[BodyWeekOut]
+    weigh_ins_last_7_days: int
 
 
 class DeadlinesOut(BaseModel):
@@ -813,10 +854,14 @@ def nutrition_summary(
             since=s.since,
             until=s.until,
             goals=s.goals,
-            avg_kcal=s.averages["kcal"],
-            avg_protein_g=s.averages["protein_g"],
-            avg_carbs_g=s.averages["carbs_g"],
-            avg_fat_g=s.averages["fat_g"],
+            averages=s.averages,
+            averages_all_logged_days=s.averages_all,
+            quality=NutritionQualityOut(
+                incomplete_days=s.quality.incomplete,
+                same_as_previous_day=s.quality.same_as_previous_day,
+                gap_days=s.quality.gaps,
+                valid_days=s.quality.valid_days,
+            ),
             protein_goal_days=s.protein_goal_days,
             days=[
                 NutritionDayOut(
@@ -825,7 +870,15 @@ def nutrition_summary(
                     protein_g=d.protein_g,
                     carbs_g=d.carbs_g,
                     fat_g=d.fat_g,
+                    fiber_g=d.fiber_g,
+                    sugar_g=d.sugar_g,
+                    saturated_fat_g=d.saturated_fat_g,
+                    sodium_mg=d.sodium_mg,
+                    potassium_mg=d.potassium_mg,
+                    calcium_mg=d.calcium_mg,
+                    iron_mg=d.iron_mg,
                     meals_kcal={m.meal: m.kcal for m in d.meals},
+                    flags=d.flags,
                 )
                 for d in s.days
             ],
@@ -837,12 +890,29 @@ def nutrition_summary(
 
 @mcp.tool(title="Set nutrition goal", annotations=IDEMPOTENT_WRITE)
 def set_nutrition_goal(
-    metric: Literal["kcal", "protein_g", "carbs_g", "fat_g"],
-    value: Annotated[float, Field(gt=0, le=100000, description="Per day, kcal or grams")],
+    metric: Literal[
+        "kcal",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "steps",
+        "hr_max",
+        "weight_loss_min",
+        "weight_loss_max",
+    ],
+    value: Annotated[
+        float,
+        Field(
+            gt=0,
+            le=100000,
+            description="Per day (kcal, grams, steps); hr_max in bpm; weight loss in kg per week",
+        ),
+    ],
     valid_from: Annotated[date | None, Field(description="YYYY-MM-DD, default today")] = None,
 ) -> GoalOut:
-    """Set a daily nutrition goal. It applies from valid_from until a newer goal replaces it;
-    earlier days keep their old goal."""
+    """Set a goal: daily kcal, protein, carbs, fat or steps, the maximum heart rate (for zone 2)
+    or the target weight loss per week (min and max). It applies from valid_from until a newer
+    goal replaces it; earlier days keep their old goal."""
     with _audited("set_nutrition_goal", locals()) as session:
         goal = nutrition.set_goal(session, metric, value, valid_from)
         return GoalOut(metric=goal.metric, value=float(goal.value), valid_from=goal.valid_from)
@@ -1178,6 +1248,47 @@ def progression_suggestions(
             suggestions=[_target_out(s) for s in found],
             stagnant=[_target_out(s) for s in found if s.stagnant],
         )
+
+
+def _body_out(t: body.Trend) -> BodyTrendOut:
+    return BodyTrendOut(
+        mean7_kg=t.mean7,
+        mean7_before_kg=t.mean7_before,
+        change_kg_per_week=t.change_kg,
+        change_pct_per_week=t.change_pct,
+        target_loss_per_week=f"{t.loss_min:g}-{t.loss_max:g} kg",
+        status=t.status,
+        latest_waist_cm=t.waist[-1].cm if t.waist else None,
+        waist_change_cm=t.waist_change,
+        weeks=[BodyWeekOut(week_start=ws, mean_kg=kg, waist_cm=cm) for ws, kg, cm in t.weekly],
+        weigh_ins_last_7_days=sum(1 for d in t.days[-7:] if d.kg is not None),
+    )
+
+
+@mcp.tool(title="Body trend", annotations=READ)
+def body_trend(
+    weeks: Annotated[int, Field(ge=2, le=52, description="How many weeks back")] = 8,
+) -> BodyTrendOut:
+    """Body weight as 7-day means (morning weigh-ins: manual, Health Connect or MFP, one per
+    day), the weekly change in kg and percent against the target loss rate, and the waist."""
+    with session_scope() as session:
+        return _body_out(body.trend(session, weeks))
+
+
+@mcp.tool(title="Log body metric", annotations=IDEMPOTENT_WRITE)
+def log_body_metric(
+    metric: Literal["weight", "waist"],
+    value: Annotated[float, Field(description="kg for weight (morning), cm for waist")],
+    day: Annotated[date | None, Field(description="YYYY-MM-DD, default today")] = None,
+) -> BodyTrendOut:
+    """Store the user's morning weight or waist circumference for a day, as the user said.
+    Entering the same metric for the same day again replaces it."""
+    with _audited("log_body_metric", {"metric": metric, "value": value, "day": day}) as session:
+        try:
+            body.log(session, metric, value, day)
+        except body.BodyError as exc:
+            raise ToolError(str(exc)) from exc
+        return _body_out(body.trend(session))
 
 
 @mcp.tool(title="Add task", annotations=WRITE)

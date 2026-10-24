@@ -21,9 +21,34 @@ from app.services.clock import local_today, utc_now
 HEALTHCONNECT = "healthconnect"
 # Preference when a day has both: the ongoing source wins over the backfill.
 SOURCES = (HEALTHCONNECT, "mfp_export")
+MANUAL = "manual"
+# A weight typed in Compass beats a synced one of the same day.
+WEIGHT_SOURCES = (MANUAL, *SOURCES)
 MEAL_ORDER = ("breakfast", "lunch", "dinner", "snack", "unknown")
-MACROS = ("protein_g", "carbs_g", "fat_g", "saturated_fat_g", "fiber_g", "sugar_g", "sodium_mg")
-GOAL_METRICS = ("kcal", "protein_g", "carbs_g", "fat_g")
+MACROS = (
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "saturated_fat_g",
+    "fiber_g",
+    "sugar_g",
+    "sodium_mg",
+    "potassium_mg",
+    "calcium_mg",
+    "iron_mg",
+)
+# A logged day below this is most likely not logged completely.
+INCOMPLETE_KCAL = 1500
+GOAL_METRICS = (
+    "kcal",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "steps",
+    "hr_max",
+    "weight_loss_min",
+    "weight_loss_max",
+)
 # Fields in a Health Connect nutrition record (see android/.../HealthTypes.kt) -> meal columns.
 HC_FIELDS = {"kcal": "energy_kcal", **{m: m for m in MACROS}}
 
@@ -66,8 +91,9 @@ def rebuild_from_healthconnect(session: Session, days: set[date]) -> None:
     for r in records:
         data = r.raw.get("data") or {}
         if r.type == "weight":
+            # The earliest weigh-in of the day: the morning weight, comparable day to day.
             current = latest_weight.get(r.local_date)
-            if data.get("kg") is not None and (current is None or r.start_at > current.start_at):
+            if data.get("kg") is not None and (current is None or r.start_at < current.start_at):
                 latest_weight[r.local_date] = r
             continue
         meal = data.get("meal_type") if data.get("meal_type") in MEAL_ORDER else "unknown"
@@ -139,7 +165,13 @@ class Day:
     fiber_g: float | None
     sugar_g: float | None
     sodium_mg: float | None
+    saturated_fat_g: float | None = None
+    potassium_mg: float | None = None
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
     meals: list[Meal] = field(default_factory=list)
+    # Data quality, see summary(): "incomplete" (under INCOMPLETE_KCAL), "same_as_previous_day".
+    flags: list[str] = field(default_factory=list)
 
 
 def _total(rows: list[NutritionMeal], column: str) -> float | None:
@@ -171,6 +203,10 @@ def days(session: Session, since: date, until: date) -> list[Day]:
                 fiber_g=_total(rows, "fiber_g"),
                 sugar_g=_total(rows, "sugar_g"),
                 sodium_mg=_total(rows, "sodium_mg"),
+                saturated_fat_g=_total(rows, "saturated_fat_g"),
+                potassium_mg=_total(rows, "potassium_mg"),
+                calcium_mg=_total(rows, "calcium_mg"),
+                iron_mg=_total(rows, "iron_mg"),
                 meals=[
                     Meal(
                         meal=m.meal,
@@ -194,14 +230,14 @@ class WeightPoint:
 
 
 def weights(session: Session, since: date | None = None) -> list[WeightPoint]:
-    """One weight per day, oldest first; Health Connect wins over the export."""
+    """One weight per day, oldest first: manual, else Health Connect, else the export."""
     stmt = select(BodyWeight).order_by(BodyWeight.local_date)
     if since is not None:
         stmt = stmt.where(BodyWeight.local_date >= since)
     best: dict[date, BodyWeight] = {}
     for w in session.scalars(stmt):
         current = best.get(w.local_date)
-        if current is None or SOURCES.index(w.source) < SOURCES.index(current.source):
+        if current is None or WEIGHT_SOURCES.index(w.source) < WEIGHT_SOURCES.index(current.source):
             best[w.local_date] = w
     return [WeightPoint(d, float(w.kg), w.source) for d, w in sorted(best.items())]
 
@@ -245,13 +281,39 @@ class Week:
     protein_g: float | None
 
 
+# Averaged per day in the summary.
+AVERAGED = (
+    "kcal",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "sodium_mg",
+    "saturated_fat_g",
+    "potassium_mg",
+    "calcium_mg",
+    "iron_mg",
+)
+
+
+@dataclass
+class Quality:
+    incomplete: list[date]  # logged, but under INCOMPLETE_KCAL
+    same_as_previous_day: list[date]  # the same totals as the day before (copied or not logged)
+    gaps: list[date]  # not logged at all
+    valid_days: int  # complete days that count for the averages
+
+
 @dataclass
 class Summary:
     since: date
     until: date
     days: list[Day]
     goals: dict[str, float]
-    averages: dict[str, float | None]
+    averages: dict[str, float | None]  # over valid days only
+    averages_all: dict[str, float | None]  # over every complete logged day, flagged ones too
+    quality: Quality
     weeks: list[Week]
     protein_goal_days: int | None
     weight: WeightPoint | None
@@ -263,13 +325,46 @@ def _avg(values: list[float | None]) -> float | None:
     return round(mean(present), 1) if present else None
 
 
+def _same_totals(a: Day, b: Day) -> bool:
+    return (a.kcal, a.protein_g, a.carbs_g, a.fat_g) == (b.kcal, b.protein_g, b.carbs_g, b.fat_g)
+
+
+def flag_days(tracked: list[Day], until: date) -> None:
+    """Mark days that probably do not show what was eaten. Today is still running: never flagged."""
+    by_date = {d.date: d for d in tracked}
+    for d in tracked:
+        if d.date >= until:
+            continue
+        if d.kcal < INCOMPLETE_KCAL:
+            d.flags.append("incomplete")
+        previous = by_date.get(d.date - timedelta(days=1))
+        if previous is not None and d.kcal > 0 and _same_totals(d, previous):
+            d.flags.append("same_as_previous_day")
+
+
 def summary(session: Session, n_days: int) -> Summary:
     until = local_today()
     since = until - timedelta(days=n_days - 1)
-    tracked = days(session, since, until)
+    # One day more, so the first day can be compared with the one before.
+    tracked = days(session, since - timedelta(days=1), until)
+    flag_days(tracked, until)
+    tracked = [d for d in tracked if d.date >= since]
     goals = goals_on(session, until)
-    # Today is still running; averages and goal counts only use complete days.
+    # Today is still running; averages and goal counts only use complete days, and of those
+    # only the ones without a quality flag.
     complete = [d for d in tracked if d.date < until] or tracked
+    valid = [d for d in complete if not d.flags]
+    logged = {d.date for d in tracked}
+    quality = Quality(
+        incomplete=[d.date for d in complete if "incomplete" in d.flags],
+        same_as_previous_day=[d.date for d in complete if "same_as_previous_day" in d.flags],
+        gaps=[
+            since + timedelta(days=i)
+            for i in range((until - since).days)
+            if since + timedelta(days=i) not in logged
+        ],
+        valid_days=len(valid),
+    )
 
     weeks: dict[date, list[Day]] = defaultdict(list)
     for d in tracked:
@@ -279,7 +374,7 @@ def summary(session: Session, n_days: int) -> Summary:
     protein_goal_days = None
     if "protein_g" in goals:
         protein_goal_days = 0
-        for d in complete:
+        for d in valid:
             goal = goals_on(session, d.date).get("protein_g")
             if goal is not None and d.protein_g is not None and d.protein_g >= goal:
                 protein_goal_days += 1
@@ -291,14 +386,9 @@ def summary(session: Session, n_days: int) -> Summary:
         until=until,
         days=tracked,
         goals=goals,
-        averages={
-            "kcal": _avg([d.kcal for d in complete]),
-            "protein_g": _avg([d.protein_g for d in complete]),
-            "carbs_g": _avg([d.carbs_g for d in complete]),
-            "fat_g": _avg([d.fat_g for d in complete]),
-            "fiber_g": _avg([d.fiber_g for d in complete]),
-            "sugar_g": _avg([d.sugar_g for d in complete]),
-        },
+        averages={k: _avg([getattr(d, k) for d in valid]) for k in AVERAGED},
+        averages_all={k: _avg([getattr(d, k) for d in complete]) for k in AVERAGED},
+        quality=quality,
         weeks=[
             Week(
                 week_start=start,

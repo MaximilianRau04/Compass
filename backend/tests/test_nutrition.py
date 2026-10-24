@@ -170,7 +170,8 @@ def test_healthconnect_wins_over_the_export_per_day(session):
     ]
 
 
-def test_healthconnect_weight_takes_the_latest_of_the_day(session):
+def test_healthconnect_weight_takes_the_morning_weigh_in(session):
+    """The earliest weigh-in of the day: morning weights compare from day to day."""
     today = local_today()
     mfp.import_export(session, weight_csv((today.isoformat(), "80.0")))
     ingest(
@@ -180,7 +181,7 @@ def test_healthconnect_weight_takes_the_latest_of_the_day(session):
             record("w2", "weight", at(today, "21:00"), kg=79.6),
         ],
     )
-    assert [(w.kg, w.source) for w in nutrition.weights(session)] == [(79.6, "healthconnect")]
+    assert [(w.kg, w.source) for w in nutrition.weights(session)] == [(78.9, "healthconnect")]
     assert count(session, BodyWeight) == 2  # the export row stays, it just loses
 
 
@@ -193,7 +194,7 @@ def test_goals_apply_from_their_day(client, session):
     assert nutrition.goals_on(session, today - timedelta(days=5)) == {"protein_g": 140.0}
     assert nutrition.goals_on(session, today - timedelta(days=20)) == {}
 
-    assert client.put("/api/nutrition/goals/steps", json={"value": 1}).status_code == 422
+    assert client.put("/api/nutrition/goals/water", json={"value": 1}).status_code == 422
     assert client.put("/api/nutrition/goals/kcal", json={"value": 0}).status_code == 422
     history = client.get("/api/nutrition/goals").json()
     assert [(g["metric"], g["value"]) for g in history] == [("protein_g", 160), ("protein_g", 140)]
@@ -242,3 +243,53 @@ def test_real_export_if_present(session):
     assert stats["days"] == 785
     assert stats["weights_created"] == 433
     assert len(stats["ignored_files"]) == 1
+
+
+def lunch(id, day, kcal, **extra):
+    return record(
+        id,
+        "nutrition",
+        at(day, "12:00"),
+        at(day, "12:30"),
+        meal_type="lunch",
+        energy_kcal=kcal,
+        protein_g=100,
+        **extra,
+    )
+
+
+def test_minerals_from_health_connect(session):
+    today = local_today()
+    ingest(
+        session,
+        [lunch("m1", today, 2000, potassium_mg=3500, calcium_mg=900, iron_mg=12, fiber_g=30)],
+    )
+    [day] = nutrition.days(session, today, today)
+    assert (day.potassium_mg, day.calcium_mg, day.iron_mg, day.fiber_g) == (3500, 900, 12, 30)
+
+
+def test_quality_flags_and_averages(client, session):
+    today = local_today()
+    d = lambda n: today - timedelta(days=n)  # noqa: E731
+    ingest(
+        session,
+        [
+            lunch("a", d(5), 2400),
+            lunch("b", d(4), 2400),  # same totals as the day before
+            lunch("c", d(3), 900),  # incomplete
+            lunch("e", d(1), 2000),
+            lunch("t", today, 500),  # today is still running: never flagged
+        ],
+    )
+    s = nutrition.summary(session, 7)
+    assert s.quality.same_as_previous_day == [d(4)]
+    assert s.quality.incomplete == [d(3)]
+    assert s.quality.gaps == [d(6), d(2)]
+    assert s.quality.valid_days == 2
+    assert s.averages["kcal"] == 2200  # 2400 and 2000 only
+    assert s.averages_all["kcal"] == pytest.approx((2400 + 2400 + 900 + 2000) / 4, abs=0.1)
+    flags = {day.date: day.flags for day in s.days}
+    assert flags[today] == [] and flags[d(3)] == ["incomplete"]
+
+    data = client.get("/api/nutrition/summary?days=7").json()
+    assert data["quality"]["valid_days"] == 2 and data["averages"]["kcal"] == 2200
