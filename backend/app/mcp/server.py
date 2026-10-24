@@ -35,7 +35,7 @@ from app.models.training import TrainingSession
 from app.schemas.calendar import CalendarEventRead
 from app.schemas.notes import NoteCreate
 from app.schemas.tasks import TaskCreate, TaskRead, TaskUpdate
-from app.services import briefs, health, nutrition, training
+from app.services import briefs, health, nutrition, progression, training
 from app.services import calendar as calendar_service
 from app.services import mail as mail_service
 from app.services import news as news_service
@@ -369,6 +369,28 @@ class NoteOut(BaseModel):
 class ContextOut(BaseModel):
     note: str
     notes: list[NoteOut]
+
+
+class TargetOut(BaseModel):
+    exercise: str
+    last_date: date
+    last_sets: list[str] = Field(
+        description='Working sets of the last session, e.g. "60 kg x 10 @2"'
+    )
+    rep_range: str = Field(description="e.g. 8-12")
+    target_weight_kg: float | None = Field(description="Extra load for a bodyweight exercise")
+    target_reps: int
+    action: str = Field(description="increase (weight up, back to rep_min) or reps (same weight)")
+    rir_known: bool = Field(description="False: no RIR logged, the rule assumed at most 2")
+    same_sessions: int = Field(description="Sessions in a row with the same working sets")
+
+
+class ProgressionOut(BaseModel):
+    rule: str
+    suggestions: list[TargetOut]
+    stagnant: list[TargetOut] = Field(
+        description="Same weight and reps for at least 4 sessions in a row"
+    )
 
 
 class DeadlinesOut(BaseModel):
@@ -1118,6 +1140,44 @@ def append_note(
     with _audited("append_note", {"note_id": note_id, "chars": len(text)}) as session:
         note = note_service.append(session, note_service.get_note(session, note_id), text)
         return _note_out(note)
+
+
+def _target_out(s: progression.Suggestion) -> TargetOut:
+    def fmt(x: progression.DoneSet) -> str:
+        weight = f"{x.weight_kg:g} kg" if x.weight_kg is not None else "bodyweight"
+        rir = f" @{x.rir}" if x.rir is not None else ""
+        return f"{weight} x {x.reps}{rir}"
+
+    return TargetOut(
+        exercise=s.exercise.name,
+        last_date=s.last_date,
+        last_sets=[fmt(x) for x in s.last_sets],
+        rep_range=f"{s.rep_min}-{s.rep_max}",
+        target_weight_kg=s.weight_kg,
+        target_reps=s.reps,
+        action=s.action,
+        rir_known=s.rir_known,
+        same_sessions=s.same_sessions,
+    )
+
+
+@mcp.tool(title="Progression suggestions", annotations=READ)
+def progression_suggestions(
+    weeks: Annotated[int, Field(ge=1, le=52, description="Exercises trained in this window")] = 8,
+) -> ProgressionOut:
+    """Next target per exercise by double progression (weight and reps), and the exercises that
+    stagnate. Based on the working sets (top weight) of each exercise's last session."""
+    with session_scope() as session:
+        found = progression.suggestions(session, weeks)
+        return ProgressionOut(
+            rule=(
+                "Double progression: when every working set reached the top of the rep range "
+                "with at most 2 reps in reserve, add the weight step and go back to the bottom "
+                "of the range; otherwise one more rep at the same weight."
+            ),
+            suggestions=[_target_out(s) for s in found],
+            stagnant=[_target_out(s) for s in found if s.stagnant],
+        )
 
 
 @mcp.tool(title="Add task", annotations=WRITE)

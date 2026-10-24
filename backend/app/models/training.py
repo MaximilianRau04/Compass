@@ -24,6 +24,11 @@ class Exercise(TimestampMixin, Base):
     muscle_group: Mapped[str | None] = mapped_column(String(60))
     # Sets without a weight count as bodyweight, not as 0 kg.
     bodyweight: Mapped[bool] = mapped_column(default=False)
+    # Double progression: reps within rep_min..rep_max; once every working set reaches rep_max
+    # with at most 2 reps in reserve, the weight goes up by weight_step. Empty: the defaults.
+    rep_min: Mapped[int | None] = mapped_column(SmallInteger)
+    rep_max: Mapped[int | None] = mapped_column(SmallInteger)
+    weight_step: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
 
     aliases: Mapped[list["ExerciseAlias"]] = relationship(
         back_populates="exercise", cascade="all, delete-orphan"
@@ -58,9 +63,13 @@ class TrainingSession(TimestampMixin, Base):
     health_record_id: Mapped[str | None] = mapped_column(
         ForeignKey("health_records.id", ondelete="SET NULL"), unique=True
     )
-    # gymday (CSV with sets), healthconnect (Gym Day session without a CSV) or watch (a workout
-    # from another app, e.g. bouldering with Zepp, that does not overlap a Gym Day session).
+    # gymday (CSV with sets), healthconnect (Gym Day session without a CSV), watch (a workout
+    # from another app, e.g. bouldering with Zepp, that does not overlap a Gym Day session) or
+    # compass (logged in the Compass workout logger).
     source: Mapped[str] = mapped_column(String(40), default="gymday")
+    # Id the logger gives a session on the phone, so saving it again (offline retries) updates it.
+    client_id: Mapped[str | None] = mapped_column(String(36), unique=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # The watch's recording of this session (Zepp tracks Gym Day sessions too): it gives the heart
     # rate and, if Gym Day has none, the duration. For source "watch" it is the session itself.
     watch_record_id: Mapped[str | None] = mapped_column(
@@ -93,6 +102,8 @@ class ExerciseSet(Base):
     weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     reps: Mapped[int | None] = mapped_column(Integer)
     rpe: Mapped[Decimal | None] = mapped_column(Numeric(3, 1))
+    # Reps in reserve (0 = to failure), from the logger.
+    rir: Mapped[int | None] = mapped_column(SmallInteger)
     raw: Mapped[dict] = mapped_column(JSONB, server_default="{}")
 
     session: Mapped[TrainingSession] = relationship(back_populates="sets")

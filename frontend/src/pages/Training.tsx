@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 
 import { useTodayDate } from '../api/tasks'
@@ -7,11 +8,13 @@ import {
   useImportGymDay,
   useMergeExercise,
   useProgress,
+  useProgression,
   useSessionDetail,
   useSessions,
   useTrainingSummary,
+  useUpdateExercise,
 } from '../api/training'
-import type { Exercise, ProgressPoint, SessionBrief, Split } from '../api/types'
+import type { Exercise, ProgressPoint, SessionBrief, Split, Suggestion } from '../api/types'
 import { ColumnChart, LineChart } from '../components/charts'
 import { DataTable, Stat } from '../components/DataBlocks'
 import { SectionLabel } from '../components/Layout'
@@ -19,6 +22,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { compact, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
 import { importMessage } from '../lib/training'
+import { loadDraft } from '../lib/workout'
 
 const WEEKS = 12
 const SPLITS: Split[] = ['push', 'pull', 'legs', 'other', 'sport']
@@ -123,6 +127,86 @@ function Progression({ exercises }: { exercises: Exercise[] }) {
         head={[t('training.date'), t(`metric.${active}` as MessageKey)]}
         rows={[...points].reverse().map((p) => [p.date, format(p.value)])}
       />
+    </section>
+  )
+}
+
+/** Rep range and weight step of one exercise, edited in place. */
+function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
+  const { t } = useI18n()
+  const update = useUpdateExercise()
+  const [min, setMin] = useState(String(suggestion.rep_min))
+  const [max, setMax] = useState(String(suggestion.rep_max))
+  const [step, setStep] = useState(String(suggestion.weight_step))
+  const input = 'w-14 rounded-md border border-rule bg-paper px-2 py-1 text-center font-mono text-[13px]'
+  return (
+    <form
+      className="mt-2 flex flex-wrap items-center gap-2 text-sm"
+      onSubmit={(e) => {
+        e.preventDefault()
+        update.mutate(
+          { id: suggestion.exercise_id, data: { rep_min: Number(min), rep_max: Number(max), weight_step: Number(step.replace(',', '.')) } },
+          { onSuccess: () => toast(t('progress.saved')), onError: (error) => toast.error(error.message) },
+        )
+      }}
+    >
+      <input value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" aria-label={t('progress.repMin')} className={input} />
+      <span className="text-muted">–</span>
+      <input value={max} onChange={(e) => setMax(e.target.value)} inputMode="numeric" aria-label={t('progress.repMax')} className={input} />
+      <span className="text-muted">{t('progress.reps')}</span>
+      <input value={step} onChange={(e) => setStep(e.target.value)} inputMode="decimal" aria-label={t('progress.step')} className={input} />
+      <span className="text-muted">{t('progress.stepUnit')}</span>
+      <button type="submit" disabled={update.isPending} className="rounded-md border border-rule px-2 py-1 hover:border-ink disabled:opacity-50">
+        {t('progress.save')}
+      </button>
+    </form>
+  )
+}
+
+/** The next target per exercise (double progression) and the exercises that stagnate. */
+function NextTargets() {
+  const { t, locale } = useI18n()
+  const progression = useProgression()
+  const [all, setAll] = useState(false)
+  const list = progression.data?.suggestions ?? []
+  if (list.length === 0) return null
+  const shown = all ? list : list.slice(0, 8)
+  const sets = (s: Suggestion) =>
+    s.last_sets.map((x) => `${x.weight_kg != null ? decimal(x.weight_kg, locale) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
+  return (
+    <section>
+      <SectionLabel count={progression.data?.stagnant.length || undefined} tone={progression.data?.stagnant.length ? 'signal' : undefined}>
+        {t('progress.title')}
+      </SectionLabel>
+      <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('progress.hint')}</p>
+      <ul className="divide-y divide-rule/60">
+        {shown.map((s) => (
+          <li key={s.exercise_id} className="py-2.5">
+            <details>
+              <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                <span>
+                  <span className="font-medium">{s.name}</span>
+                  {s.stagnant && <span className="ml-2 rounded-full border border-signal/60 px-1.5 py-px font-mono text-[10px] text-signal">{t('progress.stagnant', { n: s.same_sessions })}</span>}
+                </span>
+                <span className={`font-mono text-[12px] tabular-nums ${s.action === 'increase' ? 'text-brass' : ''}`}>
+                  {s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${s.bodyweight ? ' +' : ''} × ${s.reps}` : `× ${s.reps}`}
+                  {s.action === 'increase' ? ' ↑' : ''}
+                </span>
+                <span className="w-full font-mono text-[11px] text-muted">
+                  {t('progress.last', { sets: sets(s) })} · {s.rep_min}–{s.rep_max} · +{decimal(s.weight_step, locale)} kg
+                  {!s.rir_known && ` · ${t('progress.noRir')}`}
+                </span>
+              </summary>
+              <RangeEditor suggestion={s} />
+            </details>
+          </li>
+        ))}
+      </ul>
+      {list.length > 8 && (
+        <button type="button" onClick={() => setAll(!all)} className="mt-1 font-mono text-[11px] text-muted hover:text-ink">
+          {all ? t('progress.less') : t('progress.all', { n: list.length })}
+        </button>
+      )}
     </section>
   )
 }
@@ -263,7 +347,12 @@ export function TrainingPage() {
   const header = (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('training.title')}</h1>
-      <ImportButton />
+      <div className="flex flex-wrap gap-2">
+        <Link to="/training/log" className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90">
+          {loadDraft() ? t('log.continue') : t('log.startTraining')}
+        </Link>
+        <ImportButton />
+      </div>
     </header>
   )
 
@@ -341,6 +430,8 @@ export function TrainingPage() {
             })}
           </ul>
         </section>
+
+        <NextTargets />
 
         {exercises.data && <Progression exercises={exercises.data} />}
 

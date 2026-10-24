@@ -108,7 +108,7 @@ export interface SessionBrief {
   sets: number
   volume_kg: number
   duration_minutes: number | null
-  source: 'gymday' | 'healthconnect' | 'watch'
+  source: 'gymday' | 'healthconnect' | 'watch' | 'compass'
   activity: string | null
   hr_avg: number | null
   hr_max: number | null
@@ -148,6 +148,9 @@ export interface Exercise {
   name: string
   muscle_group: string | null
   bodyweight: boolean
+  rep_min: number
+  rep_max: number
+  weight_step: number
   aliases: string[]
   sessions: number
   sets: number
@@ -426,4 +429,35 @@ export interface ExtraDay {
   respiratory_rate: number | null
   distance: number | null
   active_calories: number | null
+}
+
+export interface Suggestion {
+  exercise_id: number
+  name: string
+  bodyweight: boolean
+  last_date: string
+  last_sets: { weight_kg: number | null; reps: number | null; rir: number | null }[]
+  last_set_count: number
+  rep_min: number
+  rep_max: number
+  weight_step: number
+  /** increase: more weight at rep_min; reps: same weight, one more rep */
+  action: 'increase' | 'reps'
+  weight_kg: number | null
+  reps: number
+  rir_known: boolean
+  same_sessions: number
+  stagnant: boolean
+}
+
+export interface Progression {
+  suggestions: Suggestion[]
+  stagnant: Suggestion[]
+}
+
+export interface TemplateExercise {
+  exercise_id: number
+  name: string
+  bodyweight: boolean
+  suggestion: Suggestion | null
 }

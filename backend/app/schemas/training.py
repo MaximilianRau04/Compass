@@ -45,6 +45,7 @@ class SetRead(BaseModel):
     set_index: int
     weight_kg: float | None = Field(description="None for bodyweight sets")
     reps: int | None
+    rir: int | None = None
     e1rm: float | None
 
 
@@ -64,6 +65,9 @@ class ExerciseRead(BaseModel):
     name: str
     muscle_group: str | None
     bodyweight: bool
+    rep_min: int = Field(description="Bottom of the rep range (default 8)")
+    rep_max: int = Field(description="Top of the rep range (default 12)")
+    weight_step: float = Field(description="kg added once the top of the range is reached")
     aliases: list[str]
     sessions: int
     sets: int
@@ -77,6 +81,57 @@ class ExerciseUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     muscle_group: str | None = Field(default=None, max_length=60)
     bodyweight: bool | None = None
+    rep_min: int | None = Field(default=None, ge=1, le=100)
+    rep_max: int | None = Field(default=None, ge=1, le=100)
+    weight_step: float | None = Field(default=None, gt=0, le=50)
+
+
+class DoneSetRead(BaseModel):
+    weight_kg: float | None
+    reps: int | None
+    rir: int | None
+
+
+class SuggestionRead(BaseModel):
+    exercise_id: int
+    name: str
+    bodyweight: bool
+    last_date: date
+    last_sets: list[DoneSetRead] = Field(description="Working sets of the last session")
+    last_set_count: int = Field(description="All sets of the last session")
+    rep_min: int
+    rep_max: int
+    weight_step: float
+    action: str = Field(
+        description="increase: more weight at rep_min; reps: same weight, more reps"
+    )
+    weight_kg: float | None = Field(description="Target weight; extra load for bodyweight")
+    reps: int = Field(description="Target reps per working set")
+    rir_known: bool = Field(description="False when the last sets had no RIR logged")
+    same_sessions: int = Field(description="Sessions in a row with the same working sets")
+    stagnant: bool
+
+
+class ProgressionRead(BaseModel):
+    suggestions: list[SuggestionRead]
+    stagnant: list[SuggestionRead]
+
+
+class WorkoutNameRead(BaseModel):
+    name: str
+    last_at: datetime
+
+
+class TemplateExercise(BaseModel):
+    exercise_id: int
+    name: str
+    bodyweight: bool
+    suggestion: SuggestionRead | None
+
+
+class TemplateRead(BaseModel):
+    workout_name: str
+    exercises: list[TemplateExercise]
 
 
 class MergeRequest(BaseModel):

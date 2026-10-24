@@ -18,6 +18,7 @@ import { SleepPage } from './pages/Sleep'
 import { TasksPage } from './pages/Tasks'
 import { TodayPage } from './pages/Today'
 import { TrainingPage } from './pages/Training'
+import { WorkoutLogPage } from './pages/WorkoutLog'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 } },
@@ -37,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="news" element={<NewsPage />} />
             <Route path="notizen" element={<NotesPage />} />
             <Route path="training" element={<TrainingPage />} />
+            <Route path="training/log" element={<WorkoutLogPage />} />
             <Route path="schlaf" element={<SleepPage />} />
             <Route path="ernaehrung" element={<NutritionPage />} />
             <Route path="share" element={<SharePage />} />

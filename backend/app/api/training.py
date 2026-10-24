@@ -9,21 +9,28 @@ from app.api.deps import SessionDep
 from app.ingestion import gymday
 from app.models.training import Exercise, TrainingSession
 from app.schemas.training import (
+    DoneSetRead,
     ExerciseRead,
     ExerciseUpdate,
     ImportResult,
     MergeRequest,
+    ProgressionRead,
     ProgressPointRead,
     SessionBrief,
     SessionDetail,
     SessionExercise,
     SetRead,
+    SuggestionRead,
+    TemplateExercise,
+    TemplateRead,
     TrainingSummaryRead,
     WeekRead,
+    WorkoutNameRead,
 )
-from app.services import training
+from app.services import progression, training, workout_log
 from app.services.clock import local_today
 from app.services.training import TrainingError
+from app.services.workout_log import LogError, LoggedSession
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -111,6 +118,7 @@ def session_detail(session_id: int, session: SessionDep):
                 set_index=x.set_index,
                 weight_kg=float(x.weight_kg) if x.weight_kg is not None else None,
                 reps=x.reps,
+                rir=x.rir,
                 e1rm=training.e1rm(x.weight_kg, x.reps),
             )
         )
@@ -127,6 +135,9 @@ def exercises(session: SessionDep):
             name=r.exercise.name,
             muscle_group=r.exercise.muscle_group,
             bodyweight=r.exercise.bodyweight,
+            rep_min=progression.rep_range(r.exercise)[0],
+            rep_max=progression.rep_range(r.exercise)[1],
+            weight_step=float(progression.rep_range(r.exercise)[2]),
             aliases=sorted(a.alias for a in r.exercise.aliases),
             sessions=r.sessions,
             sets=r.sets,
@@ -163,6 +174,8 @@ def update_exercise(exercise_id: int, data: ExerciseUpdate, session: SessionDep)
         if field == "name" and value is None:
             continue
         setattr(exercise, field, value)
+    if (exercise.rep_min or 0) and (exercise.rep_max or 0) and exercise.rep_min > exercise.rep_max:
+        raise HTTPException(422, "rep_min is above rep_max")
     session.commit()
     return next(e for e in exercises(session) if e.id == exercise_id)
 
@@ -176,3 +189,92 @@ def merge_exercise(exercise_id: int, data: MergeRequest, session: SessionDep):
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     session.commit()
     return next(e for e in exercises(session) if e.id == target.id)
+
+
+def suggestion_read(s: progression.Suggestion) -> SuggestionRead:
+    return SuggestionRead(
+        exercise_id=s.exercise.id,
+        name=s.exercise.name,
+        bodyweight=s.exercise.bodyweight,
+        last_date=s.last_date,
+        last_sets=[DoneSetRead(**x.__dict__) for x in s.last_sets],
+        last_set_count=s.last_set_count,
+        rep_min=s.rep_min,
+        rep_max=s.rep_max,
+        weight_step=s.weight_step,
+        action=s.action,
+        weight_kg=s.weight_kg,
+        reps=s.reps,
+        rir_known=s.rir_known,
+        same_sessions=s.same_sessions,
+        stagnant=s.stagnant,
+    )
+
+
+@router.get("/progression", response_model=ProgressionRead)
+def progression_overview(session: SessionDep, weeks: Annotated[int, Query(ge=1, le=52)] = 8):
+    found = progression.suggestions(session, weeks)
+    return ProgressionRead(
+        suggestions=[suggestion_read(s) for s in found],
+        stagnant=[suggestion_read(s) for s in found if s.stagnant],
+    )
+
+
+# --- Workout logger --------------------------------------------------------------------------
+
+
+@router.get("/log/workouts", response_model=list[WorkoutNameRead])
+def logger_workouts(session: SessionDep):
+    """Workout names to start from, most recently trained first."""
+    return [WorkoutNameRead(name=n, last_at=at) for n, at in workout_log.workout_names(session)]
+
+
+@router.get("/log/template", response_model=TemplateRead)
+def logger_template(session: SessionDep, workout: str = Query(min_length=1, max_length=120)):
+    """The exercises of the last session with this name, each with its progression target."""
+    exercises = workout_log.template(session, workout)
+    targets = progression.for_exercises(session, exercises)
+    return TemplateRead(
+        workout_name=workout,
+        exercises=[
+            TemplateExercise(
+                exercise_id=e.id,
+                name=e.name,
+                bodyweight=e.bodyweight,
+                suggestion=suggestion_read(targets[e.id]) if e.id in targets else None,
+            )
+            for e in exercises
+        ],
+    )
+
+
+@router.get("/log/exercises/{exercise_id}", response_model=TemplateExercise)
+def logger_exercise(exercise_id: int, session: SessionDep):
+    """One exercise added during a session, with its target."""
+    exercise = _exercise(session, exercise_id)
+    target = progression.for_exercises(session, [exercise]).get(exercise.id)
+    return TemplateExercise(
+        exercise_id=exercise.id,
+        name=exercise.name,
+        bodyweight=exercise.bodyweight,
+        suggestion=suggestion_read(target) if target else None,
+    )
+
+
+@router.post("/log", response_model=SessionBrief)
+def logger_save(data: LoggedSession, session: SessionDep):
+    """Save the running (or finished) session from the phone. Sending it again updates it."""
+    try:
+        t = workout_log.save(session, data)
+    except LogError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    session.commit()
+    return brief(training.get_session(session, t.id))
+
+
+@router.post("/log/{client_id}/discard", status_code=status.HTTP_204_NO_CONTENT)
+def logger_discard(client_id: str, session: SessionDep):
+    """Throw away a session started by mistake (only logger sessions)."""
+    if not workout_log.discard(session, client_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no logged session with this id")
+    session.commit()

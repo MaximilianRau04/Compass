@@ -19,6 +19,9 @@ from app.services.clock import local_today, local_tz, utc_now
 GYMDAY_SLACK = timedelta(hours=1)
 # Source of a training session that only exists in Health Connect (no sets from the CSV).
 HEALTHCONNECT_SESSION = "healthconnect"
+# Source of a session from the Gym Day CSV, and of one logged in the Compass workout logger.
+GYMDAY_SESSION = "gymday"
+LOGGER_SESSION = "compass"
 # Source of a training session recorded by another app (the watch) without any Gym Day session.
 WATCH_SESSION = "watch"
 # A watch workout belongs to a Gym Day session when they overlap, give or take this much.
@@ -232,7 +235,8 @@ def match_gymday_sessions(session: Session, first: date, last: date) -> int:
             )
         )
     )
-    trainings = [t for t in in_range if t.source != HEALTHCONNECT_SESSION]
+    # Only CSV sessions take their duration from Gym Day; logger and watch sessions have their own.
+    trainings = [t for t in in_range if t.source == GYMDAY_SESSION]
     records = list(
         session.scalars(
             select(HealthRecord).where(
