@@ -48,21 +48,25 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
   )
 }
 
-/** In the evening: the latest bedtime before tomorrow's first event (7.5 h of sleep and 30 min
- * to fall asleep). */
+/** In the evening: the latest bedtime before tomorrow's first event (up 2 h before it, 7.5 h of
+ * sleep and 30 min to fall asleep). */
 function Bedtime() {
   const { t, locale } = useI18n()
   const [evening] = useState(() => new Date().getHours() >= 16)
   const bedtime = useBedtime(evening)
   const b = bedtime.data
-  if (!evening || !b?.event || !b.latest_bedtime) return null
+  if (!evening || !b?.event || !b.latest_bedtime || !b.wake_at) return null
   return (
     <section className="flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3">
       <span aria-hidden className="text-brass">☾</span>
       <p>
         <span className="font-medium">{t('bedtime.latest', { time: clockTime(b.latest_bedtime, locale) })}</span>
         <span className="block font-mono text-[11px] text-muted">
-          {t('bedtime.because', { time: clockTime(b.event.starts_at, locale), title: b.event.title })}
+          {t('bedtime.because', {
+            time: clockTime(b.event.starts_at, locale),
+            title: b.event.title,
+            wake: clockTime(b.wake_at, locale),
+          })}
         </span>
       </p>
     </section>

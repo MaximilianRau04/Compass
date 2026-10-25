@@ -24,6 +24,7 @@ export function useHealthAnalysis(days = 30) {
 export interface Bedtime {
   day: string
   event: { title: string; starts_at: string } | null
+  wake_at?: string
   latest_bedtime?: string
 }
 

@@ -147,8 +147,8 @@ class TodayOut(BaseModel):
     events: list[EventItem] = Field(description="Calendar events today")
     tomorrow_first_event: str | None = Field(description='e.g. "08:00 Vorlesung"')
     tomorrow_latest_bedtime: str | None = Field(
-        description="Latest bedtime tonight, HH:MM: tomorrow's first event minus 7.5 h of sleep "
-        "and 30 min to fall asleep"
+        description="Latest bedtime tonight, HH:MM: up 2 h before tomorrow's first appointment, "
+        "before that 7.5 h of sleep and 30 min to fall asleep"
     )
 
 

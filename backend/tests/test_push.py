@@ -147,18 +147,18 @@ def lecture_tomorrow(session, start="0800"):
 
 def test_bedtime_reminder_before_the_latest_bedtime(session, sent):
     device(session)
-    lecture_tomorrow(session)  # latest bedtime 00:00
-    assert notify.check_bedtime(session, at(TODAY, "23:00")) == 0
-    assert notify.check_bedtime(session, at(TODAY, "23:40")) == 1
+    lecture_tomorrow(session)  # up at 06:00, latest bedtime 22:00
+    assert notify.check_bedtime(session, at(TODAY, "21:00")) == 0
+    assert notify.check_bedtime(session, at(TODAY, "21:40")) == 1
     [(_, message)] = sent
-    assert message.title == "Spätestens 00:00 ins Bett"
-    assert message.body.startswith("Morgen 08:00 Vorlesung")
-    assert notify.check_bedtime(session, at(TODAY, "23:50")) == 0
+    assert message.title == "Spätestens 22:00 ins Bett"
+    assert message.body.startswith("Morgen 08:00 Vorlesung, aufstehen 06:00.")
+    assert notify.check_bedtime(session, at(TODAY, "21:50")) == 0
 
 
 def test_no_bedtime_reminder_when_usually_in_bed_earlier(session, sent):
     device(session)
     d = lambda n: TODAY - timedelta(days=n)  # noqa: E731
-    ingest(session, [sleep(f"n{i}", d(i), 1, "22:00", "06:00") for i in range(5)])
+    ingest(session, [sleep(f"n{i}", d(i), 1, "21:00", "05:00") for i in range(5)])
     lecture_tomorrow(session)
-    assert notify.check_bedtime(session, at(TODAY, "23:40")) == 0
+    assert notify.check_bedtime(session, at(TODAY, "21:40")) == 0

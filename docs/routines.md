@@ -26,9 +26,8 @@ Zeitplan: werktags 06:45 (oder täglich).
 ```
 Schreib meinen Daily Brief in Compass.
 
-1. Rufe im Compass-Connector auf: get_today, get_deadlines (days 14), sleep_summary (days 2), nutrition_summary (days 2), list_important_mails (days 2) und get_news_digest (stream "personal", limit 5).
-2. Schreib auf Deutsch in Markdown, höchstens 200 Wörter:
-   - eine Zeile zur letzten Nacht (Schlafdauer, Ruhepuls), falls Daten da sind
+1. Rufe im Compass-Connector auf: get_today, get_deadlines (days 14), nutrition_summary (days 2), list_important_mails (days 2) und get_news_digest (stream "personal", limit 5).
+2. Schreib auf Deutsch in Markdown, höchstens 200 Wörter. Schlaf und Ruhepuls lässt du weg: Die Routine läuft oft, bevor die Uhr die Nacht fertig übertragen hat, und "Heute" zeigt beides live in den Kacheln.
    - "## Heute": Termine mit Uhrzeit, Überfälliges und heute Fälliges, Wichtigstes zuerst
    - "## Diese Woche": Deadlines der nächsten 7 Tage
    - "## Fokus": höchstens drei Aufgaben mit kurzer Begründung

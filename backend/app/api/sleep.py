@@ -163,13 +163,14 @@ def health_analysis(
 
 @router.get("/bedtime")
 def bedtime(session: SessionDep, day: date | None = None) -> dict:
-    """The latest bedtime before a day (default tomorrow): first event minus 7.5 h of sleep and
-    30 min to fall asleep. Empty when the day has no timed event."""
+    """The latest bedtime before a day (default tomorrow): up 2 h before the first appointment,
+    before that 7.5 h of sleep and 30 min to fall asleep. Empty when the day has no appointment."""
     b = analysis.bedtime_for(session, day or local_today() + timedelta(days=1))
     if b is None:
         return {"day": (day or local_today() + timedelta(days=1)).isoformat(), "event": None}
     return {
         "day": b.day.isoformat(),
         "event": {"title": b.title, "starts_at": b.first_event_at.isoformat()},
+        "wake_at": b.wake_at.isoformat(),
         "latest_bedtime": b.latest_bedtime.isoformat(),
     }

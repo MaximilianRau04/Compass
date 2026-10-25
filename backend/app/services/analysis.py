@@ -3,7 +3,8 @@
 - Bed and wake times: median and standard deviation. Bed times are counted from noon, so 23:30
   and 00:30 are an hour apart and not 23 hours.
 - Short nights: asleep under SHORT_NIGHT minutes. Early nights: the night before a day whose first
-  timed calendar event starts before EARLY_EVENT.
+  timed calendar event starts before EARLY_EVENT. Events at 00:00 without a duration (e.g. the
+  campus feed's block courses) mark a date, not an appointment, and do not count.
 - Resting heart rate: a 7-day mean per day and a warning when the latest 7-day mean is at least
   RESTING_ALERT bpm above the median of the period (often illness, stress or too little recovery).
 - Zone 2: 60 to 70 % of the maximum heart rate (goal hr_max, default 178). Each heart rate sample
@@ -30,6 +31,12 @@ RESTING_ALERT = 5
 DEFAULT_HR_MAX = 178
 ZONE2 = (0.60, 0.70)
 MAX_SAMPLE_GAP = timedelta(minutes=5)
+
+
+def _is_marker(event: CalendarEvent) -> bool:
+    """00:00 without a duration: a date marker, not an appointment."""
+    start = event.starts_at.astimezone(local_tz())
+    return start.time() == time.min and event.ends_at in (None, event.starts_at)
 
 
 def _clock(minutes: float) -> str:
@@ -93,7 +100,8 @@ def sleep_consistency(
         )
         .order_by(CalendarEvent.starts_at)
     ):
-        first.setdefault(e.starts_at.astimezone(tz).date(), e)
+        if not _is_marker(e):
+            first.setdefault(e.starts_at.astimezone(tz).date(), e)
     early = []
     for n in nights:
         e = first.get(n.local_date)
@@ -265,6 +273,7 @@ def zone2_weeks(session: Session, weeks: int = 8, today: date | None = None) -> 
 
 # --- Bedtime -----------------------------------------------------------------------------------
 
+WAKE_BEFORE = timedelta(hours=2)
 SLEEP_NEED = timedelta(hours=7, minutes=30)
 FALL_ASLEEP = timedelta(minutes=30)
 
@@ -274,15 +283,16 @@ class Bedtime:
     day: date  # the day the event is on
     first_event_at: datetime
     title: str
-    latest_bedtime: datetime  # first event minus SLEEP_NEED minus FALL_ASLEEP
+    wake_at: datetime  # first event minus WAKE_BEFORE
+    latest_bedtime: datetime  # wake_at minus SLEEP_NEED minus FALL_ASLEEP
 
 
 def bedtime_for(session: Session, day: date) -> Bedtime | None:
-    """The latest bedtime before a day: its first timed event minus 7.5 h of sleep and 30 min to
-    fall asleep. None when the day has no timed event."""
+    """The latest bedtime before a day: up 2 h before its first appointment, before that 7.5 h of
+    sleep and 30 min to fall asleep. None when the day has no appointment."""
     tz = local_tz()
     start = datetime.combine(day, time.min, tzinfo=tz)
-    event = session.scalar(
+    events = session.scalars(
         select(CalendarEvent)
         .where(
             CalendarEvent.all_day.is_(False),
@@ -290,9 +300,10 @@ def bedtime_for(session: Session, day: date) -> Bedtime | None:
             CalendarEvent.starts_at < start + timedelta(days=1),
         )
         .order_by(CalendarEvent.starts_at)
-        .limit(1)
     )
+    event = next((e for e in events if not _is_marker(e)), None)
     if event is None:
         return None
     first = event.starts_at.astimezone(tz)
-    return Bedtime(day, first, event.title, first - SLEEP_NEED - FALL_ASLEEP)
+    wake = first - WAKE_BEFORE
+    return Bedtime(day, first, event.title, wake, wake - SLEEP_NEED - FALL_ASLEEP)

@@ -74,6 +74,7 @@ def test_latest_bedtime_before_the_first_event(client, session):
         session,
         "campus",
         ics(
+            vevent("m", "Blockkurs", stamp(tomorrow, "0000"), stamp(tomorrow, "0000")),
             vevent("a", "Vorlesung", stamp(tomorrow, "0800")),
             vevent("b", "Mittag", stamp(tomorrow, "1200")),
             vevent("c", "Feiertag", f"VALUE=DATE:{tomorrow:%Y%m%d}"),
@@ -81,13 +82,16 @@ def test_latest_bedtime_before_the_first_event(client, session):
         TODAY,
     )
     b = analysis.bedtime_for(session, tomorrow)
-    assert (b.title, f"{b.latest_bedtime:%H:%M}", b.latest_bedtime.date()) == (
+    # Up at 06:00, 7.5 h of sleep and 30 min to fall asleep before that; the 00:00 marker
+    # without a duration is no appointment.
+    assert (b.title, f"{b.wake_at:%H:%M}", f"{b.latest_bedtime:%H:%M}") == (
         "Vorlesung",
-        "00:00",
-        tomorrow,
+        "06:00",
+        "22:00",
     )
+    assert b.latest_bedtime.date() == TODAY
     data = client.get("/api/sleep/bedtime").json()
     assert data["event"]["title"] == "Vorlesung" and data["latest_bedtime"].startswith(
-        f"{tomorrow}T00:00"
+        f"{TODAY}T22:00"
     )
     assert analysis.bedtime_for(session, tomorrow + timedelta(days=1)) is None

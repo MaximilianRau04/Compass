@@ -1,8 +1,9 @@
 """What Compass pushes, and when. The worker runs check_all every few minutes.
 
-- bedtime: PUSH_BEDTIME_LEAD_MINUTES before the latest bedtime (the next day's first event minus
-  7.5 h of sleep and 30 min to fall asleep), and only when that is earlier than the usual bedtime
-  (median of the last 14 nights); otherwise you would be in bed by then anyway.
+- bedtime: PUSH_BEDTIME_LEAD_MINUTES before the latest bedtime (up 2 h before the next day's
+  first appointment, before that 7.5 h of sleep and 30 min to fall asleep), and only when that is
+  earlier than the usual bedtime (median of the last 14 nights); otherwise you would be in bed by
+  then anyway.
 - deadlines: open tasks due within 24 hours, one notification for all new ones. A task without
   a time is due at the end of its day.
 - resting: the resting heart rate alert (7-day mean at least 5 bpm above the median), at most
@@ -76,13 +77,15 @@ def check_bedtime(session: Session, now: datetime) -> int:
         if latest_from_noon >= usual:
             return 0
     first = bed.first_event_at.astimezone(tz)
+    wake = bed.wake_at.astimezone(tz)
     return push.send(
         session,
         "bedtime",
         f"bedtime:{day.isoformat()}",
         push.Message(
             title=f"Spätestens {latest:%H:%M} ins Bett",
-            body=f"{_when(first, now).capitalize()} {bed.title}. Für 7,5 h Schlaf.",
+            body=f"{_when(first, now).capitalize()} {bed.title}, aufstehen {wake:%H:%M}. "
+            "Für 7,5 h Schlaf.",
             url="/",
             tag="bedtime",
             ttl=int((latest - now).total_seconds()) + 600,
