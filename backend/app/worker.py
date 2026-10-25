@@ -65,6 +65,19 @@ def weekly_review() -> None:
     log.info("weekly review saved")
 
 
+def sync_finance() -> None:
+    from app.services import enablebanking, finance
+
+    if not enablebanking.configured():
+        log.debug("enable banking not configured")
+        return
+    with SessionLocal() as session:
+        result = finance.sync(session)
+        session.commit()
+    if result:
+        log.info("finance: %s", result)
+
+
 def notifications() -> None:
     from app.services import notify, push
 
@@ -129,6 +142,16 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=6 * 3600,
+    )
+    scheduler.add_job(
+        sync_finance,
+        "interval",
+        hours=settings.finance_sync_hours,
+        id="finance",
+        next_run_time=datetime.now(ZoneInfo(settings.timezone)),
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
     )
     scheduler.add_job(
         notifications,

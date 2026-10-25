@@ -9,6 +9,7 @@ import { Toaster } from 'sonner'
 import { Layout } from './components/Layout'
 import { I18nProvider } from './i18n/I18nProvider'
 import { CalendarPage } from './pages/Calendar'
+import { FinancePage } from './pages/Finance'
 import { MailPage } from './pages/Mail'
 import { NewsPage } from './pages/News'
 import { NotesPage } from './pages/Notes'
@@ -42,6 +43,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="training/log" element={<WorkoutLogPage />} />
             <Route path="schlaf" element={<SleepPage />} />
             <Route path="ernaehrung" element={<NutritionPage />} />
+            <Route path="finanzen" element={<FinancePage />} />
             <Route path="einstellungen" element={<SettingsPage />} />
             <Route path="share" element={<SharePage />} />
           </Route>

@@ -8,6 +8,7 @@
 - resting: the resting heart rate alert (7-day mean at least 5 bpm above the median), at most
   every 3 days.
 - weekly: the weekly review, sent by the worker right after saving it (see weekly_review).
+- finance: a bank consent ends within 7 days (approve it again on the finance page).
 
 Nothing but the bedtime reminder goes out in the quiet hours (PUSH_QUIET_START to _END); the
 others wait until the quiet hours are over.
@@ -21,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.tasks import Task, TaskStatus
-from app.services import analysis, push
+from app.services import analysis, finance, push
 from app.services.clock import local_tz
 
 log = logging.getLogger("compass.notify")
@@ -154,6 +155,29 @@ def check_resting(session: Session, now: datetime) -> int:
     )
 
 
+def check_consent(session: Session, now: datetime) -> int:
+    if quiet(now):
+        return 0
+    sent = 0
+    for conn in finance.expiring(session, now):
+        assert conn.valid_until is not None
+        until = conn.valid_until.astimezone(local_tz())
+        sent += push.send(
+            session,
+            "finance",
+            f"consent:{conn.id}:{until.date().isoformat()}",
+            push.Message(
+                title="Bankfreigabe läuft ab",
+                body=f"{conn.aspsp_name}: Freigabe endet am {until:%d.%m.}. "
+                "Unter Finanzen neu verbinden.",
+                url="/finanzen",
+                tag="finance",
+                ttl=24 * 3600,
+            ),
+        )
+    return sent
+
+
 def weekly_review(session: Session, title: str, recommendation: str, day: date) -> int:
     return push.send(
         session,
@@ -169,6 +193,7 @@ def check_all(session: Session, now: datetime) -> dict[str, int]:
         ("bedtime", check_bedtime),
         ("deadlines", check_deadlines),
         ("resting", check_resting),
+        ("finance", check_consent),
     ):
         try:
             out[name] = check(session, now)

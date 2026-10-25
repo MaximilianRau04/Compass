@@ -73,6 +73,11 @@ async def test_tools_are_listed_with_annotations(client):
         "log_body_metric",
         "weekly_review",
         "send_notification",
+        "finance_summary",
+        "list_transactions",
+        "categorize_transactions",
+        "set_budget",
+        "log_depot_value",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False

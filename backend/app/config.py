@@ -105,6 +105,15 @@ class Settings(BaseSettings):
         "personal:bleeping=https://www.bleepingcomputer.com/feed/ "
         "personal:thehackernews=https://feeds.feedburner.com/TheHackersNews"
     )
+    # Bank accounts through Enable Banking (PSD2). The app id and its private key (the PEM file,
+    # base64 encoded on one line) come from the Enable Banking control panel; the redirect URL is
+    # Compass' /finanzen page and must be registered for the app there. Empty disables it.
+    enablebanking_app_id: str = ""
+    enablebanking_private_key: str = ""
+    enablebanking_redirect_url: str = ""
+    # Banks allow about 4 fetches a day without the user present.
+    finance_sync_hours: int = 6
+
     # Web push (VAPID). Create the pair with: make vapid-keys. Empty disables push.
     vapid_public_key: str = ""
     vapid_private_key: str = ""

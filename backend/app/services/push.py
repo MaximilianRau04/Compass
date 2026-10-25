@@ -28,7 +28,7 @@ from app.services.clock import utc_now
 
 log = logging.getLogger("compass.push")
 
-TOPICS = ("bedtime", "deadlines", "resting", "weekly", "claude")
+TOPICS = ("bedtime", "deadlines", "resting", "weekly", "finance", "claude")
 # A device that failed this often in a row (without the push service saying it is gone) is
 # dropped too.
 MAX_FAILURES = 10

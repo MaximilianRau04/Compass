@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { currentSubscription, pushState, subscribePush, unsubscribePush } from '../lib/push'
 import { api, post } from './client'
 
-export type PushTopic = 'bedtime' | 'deadlines' | 'resting' | 'weekly' | 'claude'
+export type PushTopic = 'bedtime' | 'deadlines' | 'resting' | 'weekly' | 'finance' | 'claude'
 
 export interface PushConfig {
   enabled: boolean

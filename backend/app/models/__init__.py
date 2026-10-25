@@ -1,5 +1,13 @@
 from app.models.base import Base
 from app.models.calendar import CalendarEvent
+from app.models.finance import (
+    BankAccount,
+    BankConnection,
+    BankTransaction,
+    DepotValue,
+    FinanceBudget,
+    FinanceRule,
+)
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
@@ -14,16 +22,22 @@ from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSe
 __all__ = [
     "Area",
     "AuditLog",
+    "BankAccount",
+    "BankConnection",
+    "BankTransaction",
     "Base",
     "BodyMeasurement",
     "BodyWeight",
     "Brief",
     "CalendarEvent",
     "DailyMetrics",
+    "DepotValue",
     "Email",
     "Exercise",
     "ExerciseAlias",
     "ExerciseSet",
+    "FinanceBudget",
+    "FinanceRule",
     "Goal",
     "HealthRecord",
     "HeartRateSample",
