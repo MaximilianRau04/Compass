@@ -53,7 +53,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        importScripts: ['share-target-sw.js'],
+        importScripts: ['share-target-sw.js', 'push-sw.js'],
       },
     }),
   ],

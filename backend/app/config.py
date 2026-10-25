@@ -105,6 +105,17 @@ class Settings(BaseSettings):
         "personal:bleeping=https://www.bleepingcomputer.com/feed/ "
         "personal:thehackernews=https://feeds.feedburner.com/TheHackersNews"
     )
+    # Web push (VAPID). Create the pair with: make vapid-keys. Empty disables push.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    # Contact for the push services (mailto: or https: URL); empty uses MCP_PUBLIC_URL.
+    vapid_subject: str = ""
+    # No notifications from quiet_start to quiet_end o'clock (local), except the bedtime one.
+    push_quiet_start: int = 23
+    push_quiet_end: int = 8
+    # The bedtime reminder comes this long before the latest bedtime.
+    push_bedtime_lead_minutes: int = 30
+
     news_sync_minutes: int = 60
     # Items older than this are removed; the learned profile keeps what their thumbs taught.
     news_keep_days: int = 30

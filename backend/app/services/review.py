@@ -306,7 +306,7 @@ def markdown(r: Review) -> str:
     return "\n".join(lines)
 
 
-def save_weekly(session: Session, today: date | None = None) -> None:
+def save_weekly(session: Session, today: date | None = None) -> Review:
     """Store this week's review as the brief of kind "weekly" (run by the worker on Sundays)."""
     review = weekly_review(session, today)
     briefs.save(
@@ -317,3 +317,13 @@ def save_weekly(session: Session, today: date | None = None) -> None:
         day=review.until,
         actor="worker",
     )
+    return review
+
+
+def headline(r: Review) -> str:
+    """The recommendation in one line, for the push notification."""
+    rec = r.recommendation
+    text = f"Empfehlung: {ACTIONS[rec.action].format(n=abs(rec.kcal_delta))}"
+    if rec.kcal_delta and rec.new_kcal_goal:
+        text += f" (Ziel {rec.new_kcal_goal:.0f} kcal)"
+    return text

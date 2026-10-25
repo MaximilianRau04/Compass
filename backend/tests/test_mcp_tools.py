@@ -1,5 +1,5 @@
 from contextlib import nullcontext
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from mcp import Client
@@ -8,7 +8,7 @@ from app.ingestion import calendar, gymday
 from app.mcp import db as mcp_db
 from app.mcp.server import mcp
 from app.models.oauth import AuditLog
-from app.services.clock import local_today
+from app.services.clock import local_today, local_tz
 from tests.test_healthconnect import at, ingest, night, record
 
 
@@ -72,6 +72,7 @@ async def test_tools_are_listed_with_annotations(client):
         "body_trend",
         "log_body_metric",
         "weekly_review",
+        "send_notification",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
@@ -243,11 +244,17 @@ async def test_training_tools(client, session):
 async def test_sleep_summary(client, session):
     today = local_today()
     noon = at(today, "12:00")
-    ingest(session, [night(), record("st", "steps", noon, noon, count=8000)])
+    n = night()
+    ingest(session, [n, record("st", "steps", noon, noon, count=8000)])
     summary = await call(client, "sleep_summary", days=7)
     [last] = summary["nights"]
     assert last["date"] == today.isoformat()
-    assert (last["bedtime"], last["wake_time"]) == ("23:00", "07:00")
+    # 23:00 to 07:00, or 06:00 / 08:00 after a night with a clock change.
+    clock = [
+        datetime.fromisoformat(n[k]).astimezone(local_tz()).strftime("%H:%M")
+        for k in ("start", "end")
+    ]
+    assert (last["bedtime"], last["wake_time"]) == tuple(clock)
     assert last["asleep_minutes"] == 450
     assert summary["avg_steps"] == 8000
     assert summary["last_sync"] is not None

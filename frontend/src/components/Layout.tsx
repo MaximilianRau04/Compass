@@ -15,6 +15,7 @@ const NAV: { to: string; label: MessageKey; icon: string; more?: boolean }[] = [
   { to: '/notizen', label: 'nav.notes', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5', more: true },
   { to: '/news', label: 'nav.news', icon: 'M5 4h11v16H6a1 1 0 0 1-1-1zM16 8h3v11a1 1 0 0 1-1 1h-2M8 8h5M8 12h5M8 16h3', more: true },
   { to: '/ernaehrung', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3', more: true },
+  { to: '/einstellungen', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1', more: true },
 ]
 const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01'
 

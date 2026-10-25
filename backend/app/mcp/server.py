@@ -35,13 +35,23 @@ from app.models.training import TrainingSession
 from app.schemas.calendar import CalendarEventRead
 from app.schemas.notes import NoteCreate
 from app.schemas.tasks import TaskCreate, TaskRead, TaskUpdate
-from app.services import analysis, body, briefs, health, nutrition, progression, review, training
+from app.services import (
+    analysis,
+    body,
+    briefs,
+    health,
+    nutrition,
+    progression,
+    push,
+    review,
+    training,
+)
 from app.services import calendar as calendar_service
 from app.services import mail as mail_service
 from app.services import news as news_service
 from app.services import notes as note_service
 from app.services import tasks as task_service
-from app.services.clock import local_today, local_tz
+from app.services.clock import local_today, local_tz, utc_now
 from app.services.notes import NoteError
 from app.services.tasks import TaskError
 
@@ -1192,6 +1202,33 @@ def save_brief(
     another routine. Saving the same kind for the same day replaces the earlier text."""
     with _audited("save_brief", {"kind": kind, "day": day, "chars": len(body)}) as session:
         return _brief_out(briefs.save(session, kind, body, title, day, actor=_caller()))
+
+
+class NotificationOut(BaseModel):
+    devices: int = Field(description="Devices that got it; 0: none subscribed to claude")
+
+
+@mcp.tool(title="Send notification", annotations=WRITE)
+def send_notification(
+    title: Annotated[str, Field(min_length=1, max_length=80)],
+    body: Annotated[str, Field(min_length=1, max_length=300)],
+    path: Annotated[
+        str,
+        Field(
+            pattern=r"^/[a-z0-9/_-]*$",
+            description='Compass page opened on tap, e.g. "/" (today), "/aufgaben", "/news"',
+        ),
+    ] = "/",
+) -> NotificationOut:
+    """Push a short notification to the user's phone, e.g. "Tagesbrief ist da" at the end of a
+    routine. Use it sparingly, for things the user wants to know now; the text goes to the lock
+    screen."""
+    if not push.enabled():
+        raise ToolError("Push is not set up on the server (VAPID keys missing).")
+    with _audited("send_notification", {"title": title, "path": path}) as session:
+        key = f"claude:{utc_now().isoformat()}"
+        message = push.Message(title=title, body=body, url=path, ttl=12 * 3600)
+        return NotificationOut(devices=push.send(session, "claude", key, message))
 
 
 @mcp.tool(title="Get brief", annotations=READ)

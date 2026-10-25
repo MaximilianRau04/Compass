@@ -82,6 +82,16 @@ Zeitplan: täglich 20:00. Optional, die späteste Bettzeit steht abends ohnehin 
 Schreib meinen Abendbrief in Compass. Rufe get_today auf (darin tomorrow_first_event und tomorrow_latest_bedtime) und get_calendar (days 2). Schreib auf Deutsch höchstens 80 Wörter: wann ich spätestens ins Bett muss und warum, was morgen ansteht, und was ich heute Abend noch vorbereiten sollte. Speichere mit save_brief (kind "abend", title "Abend"). Ändere keine Aufgaben.
 ```
 
+## Benachrichtigung am Ende einer Routine
+
+Mit dem Tool `send_notification` kann eine Routine eine kurze Push-Nachricht aufs Handy schicken (Thema "Claude" unter Einstellungen → Benachrichtigungen). Als letzter Satz im Prompt, z. B. beim Daily Brief:
+
+```text
+Schick mir zum Schluss mit send_notification eine Nachricht: title "Tagesbrief", body der wichtigste Punkt des Tages in einem Satz, path "/".
+```
+
+Bettzeit, Abgaben in 24 h, Ruhepuls und das Wochenreview schickt Compass selbst, dafür braucht es keine Routine.
+
 ## Eigene Routinen anzeigen
 
 Jede Routine kann ihr Ergebnis in Compass ablegen. Ans Ende ihres Prompts:

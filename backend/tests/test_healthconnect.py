@@ -123,7 +123,9 @@ def test_sleep_is_split_into_stages_and_counts_for_the_wake_day(session):
 
 def test_sleep_without_stages_counts_the_whole_session(session):
     today = local_today()
-    ingest(session, [record("s", "sleep", at(today, "01:00"), at(today, "06:30"))])
+    # Counted back from the end, so the night of a clock change has the same length.
+    end = at(today, "06:30")
+    ingest(session, [record("s", "sleep", end - timedelta(minutes=330), end)])
     sleep = session.scalar(select(SleepSession))
     assert sleep.asleep_minutes == 330
     assert sleep.deep_minutes is None and sleep.awake_minutes is None

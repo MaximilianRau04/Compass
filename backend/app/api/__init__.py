@@ -10,6 +10,7 @@ from app.api import (
     news,
     notes,
     nutrition,
+    push,
     sleep,
     tasks,
     training,
@@ -27,4 +28,5 @@ router.include_router(body.router)
 router.include_router(mail.router)
 router.include_router(news.router)
 router.include_router(notes.router)
+router.include_router(push.router)
 router.include_router(ingest.router)

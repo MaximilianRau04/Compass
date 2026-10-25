@@ -7,6 +7,7 @@ from app.models.news import Brief, NewsInterest, NewsItem
 from app.models.notes import Note
 from app.models.nutrition import BodyMeasurement, BodyWeight, Goal, NutritionMeal
 from app.models.oauth import AuditLog, OAuthClient, OAuthCode, OAuthRequest, OAuthToken
+from app.models.push import PushSent, PushSubscription
 from app.models.tasks import Area, Task, TaskEvent
 from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSession
 
@@ -35,6 +36,8 @@ __all__ = [
     "OAuthCode",
     "OAuthRequest",
     "OAuthToken",
+    "PushSent",
+    "PushSubscription",
     "SleepSession",
     "Task",
     "TaskEvent",

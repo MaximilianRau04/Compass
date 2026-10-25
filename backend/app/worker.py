@@ -55,12 +55,25 @@ def sync_news() -> None:
 
 
 def weekly_review() -> None:
-    from app.services import review
+    from app.services import notify, review
 
     with SessionLocal() as session:
-        review.save_weekly(session)
+        r = review.save_weekly(session)
+        session.commit()
+        notify.weekly_review(session, "Wochenreview ist da", review.headline(r), r.until)
         session.commit()
     log.info("weekly review saved")
+
+
+def notifications() -> None:
+    from app.services import notify, push
+
+    if not push.enabled():
+        return
+    with SessionLocal() as session:
+        sent = notify.check_all(session, datetime.now(ZoneInfo(get_settings().timezone)))
+    if any(sent.values()):
+        log.info("push: %s", sent)
 
 
 def feed_names() -> str:
@@ -116,6 +129,15 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=6 * 3600,
+    )
+    scheduler.add_job(
+        notifications,
+        "interval",
+        minutes=5,
+        id="notifications",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
     )
     log.info("worker started, calendar feeds: %s", feed_names())
     heartbeat()

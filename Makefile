@@ -2,7 +2,7 @@ COMPOSE = docker compose --env-file .env -f infra/docker-compose.yml
 COMPOSE_DEV = $(COMPOSE) -f infra/docker-compose.dev.yml
 COMPOSE_PROD = $(COMPOSE) -f infra/docker-compose.prod.yml
 
-.PHONY: up down logs ps db api web test lint migrate migration deploy backup password-hash mcp
+.PHONY: up down logs ps db api web test lint migrate migration deploy backup password-hash vapid-keys mcp
 
 up:            ## Build and start everything in Docker (locally, Postgres stays reachable on localhost)
 	$(COMPOSE_DEV) up -d --build
@@ -54,3 +54,6 @@ password-hash: ## Create the bcrypt hash for COMPASS_BASIC_AUTH_HASH (escaped fo
 	@printf "Password: "; stty -echo; read -r pw; stty echo; echo; \
 	[ -n "$$pw" ] || { echo "Empty password" >&2; exit 1; }; \
 	docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$$pw" | sed 's/\$$/$$$$/g'
+
+vapid-keys:    ## Create the VAPID key pair for web push (lines for .env)
+	cd backend && uv run python -m app.services.push

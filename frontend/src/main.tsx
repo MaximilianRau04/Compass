@@ -13,6 +13,7 @@ import { MailPage } from './pages/Mail'
 import { NewsPage } from './pages/News'
 import { NotesPage } from './pages/Notes'
 import { NutritionPage } from './pages/Nutrition'
+import { SettingsPage } from './pages/Settings'
 import { SharePage } from './pages/Share'
 import { SleepPage } from './pages/Sleep'
 import { TasksPage } from './pages/Tasks'
@@ -41,6 +42,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="training/log" element={<WorkoutLogPage />} />
             <Route path="schlaf" element={<SleepPage />} />
             <Route path="ernaehrung" element={<NutritionPage />} />
+            <Route path="einstellungen" element={<SettingsPage />} />
             <Route path="share" element={<SharePage />} />
           </Route>
         </Routes>
