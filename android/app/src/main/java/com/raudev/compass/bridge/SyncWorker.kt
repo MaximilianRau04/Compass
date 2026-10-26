@@ -33,10 +33,10 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             throw e
         } catch (e: IOException) {
             // Offline, VPN down or a server error: WorkManager tries again with backoff.
-            fail(settings, "Netzwerk: ${e.message ?: e.javaClass.simpleName}", e)
+            fail(settings, applicationContext.getString(R.string.error_network, e.message ?: e.javaClass.simpleName), e)
             if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
         } catch (e: SecurityException) {
-            fail(settings, "Health Connect verweigert das Lesen (Hintergrund-Berechtigung?): ${e.message}", e)
+            fail(settings, applicationContext.getString(R.string.error_denied, e.message), e)
             Result.failure()
         } catch (e: Exception) {
             fail(settings, e.message ?: e.javaClass.simpleName, e)

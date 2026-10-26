@@ -117,16 +117,16 @@ def test_deadlines_within_24_hours_in_one_notification(session, sent):
     session.flush()
     assert notify.check_deadlines(session, now) == 1
     [(_, message)] = sent
-    assert message.title == "3 Abgaben in 24 h"
+    assert message.title == "3 deadlines within 24 h"
     assert message.body.splitlines() == [
-        "heute 18:00: Bericht",
-        "heute 23:59: Ohne Zeit",
-        "morgen 09:00: Blatt 3",
+        "today 18:00: Bericht",
+        "today 23:59: Ohne Zeit",
+        "tomorrow 09:00: Blatt 3",
     ]
     assert notify.check_deadlines(session, now) == 0
     # Two hours later the next one comes within 24 hours, alone.
     assert notify.check_deadlines(session, now + timedelta(hours=2)) == 1
-    assert sent[-1][1].title == "Fällig morgen 12:00"
+    assert sent[-1][1].title == "Due tomorrow 12:00"
     assert sent[-1][1].body == "Später"
 
 
@@ -151,9 +151,22 @@ def test_bedtime_reminder_before_the_latest_bedtime(session, sent):
     assert notify.check_bedtime(session, at(TODAY, "21:00")) == 0
     assert notify.check_bedtime(session, at(TODAY, "21:40")) == 1
     [(_, message)] = sent
-    assert message.title == "Spätestens 22:00 ins Bett"
-    assert message.body.startswith("Morgen 08:00 Vorlesung, aufstehen 06:00.")
+    assert message.title == "Bed by 22:00 at the latest"
+    assert message.body.startswith("Tomorrow 08:00 Vorlesung, get up at 06:00.")
     assert notify.check_bedtime(session, at(TODAY, "21:50")) == 0
+
+
+def test_notifications_in_german(session, sent, monkeypatch):
+    monkeypatch.setattr(get_settings(), "compass_language", "de")
+    device(session)
+    lecture_tomorrow(session)
+    session.add(Task(title="Blatt 3", due_date=TOMORROW, due_time=time(12, 0)))
+    session.flush()
+    assert notify.check_bedtime(session, at(TODAY, "21:40")) == 1
+    assert sent[-1][1].title == "Spätestens 22:00 ins Bett"
+    assert sent[-1][1].body == "Morgen 08:00 Vorlesung, aufstehen 06:00. Für 7,5 h Schlaf."
+    assert notify.check_deadlines(session, at(TODAY, "21:41")) == 1
+    assert sent[-1][1].title == "Fällig morgen 12:00"
 
 
 def test_no_bedtime_reminder_when_usually_in_bed_earlier(session, sent):

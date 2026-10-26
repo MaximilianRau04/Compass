@@ -7,7 +7,9 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import { Toaster } from 'sonner'
 
 import { Layout } from './components/Layout'
+import { LegacyRedirect } from './components/LegacyRedirect'
 import { I18nProvider } from './i18n/I18nProvider'
+import { LEGACY_PATHS } from './lib/legacy'
 import { CalendarPage } from './pages/Calendar'
 import { FinancePage } from './pages/Finance'
 import { MailPage } from './pages/Mail'
@@ -34,18 +36,21 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<TodayPage />} />
-            <Route path="aufgaben" element={<TasksPage />} />
-            <Route path="kalender" element={<CalendarPage />} />
+            <Route path="tasks" element={<TasksPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
             <Route path="mail" element={<MailPage />} />
             <Route path="news" element={<NewsPage />} />
-            <Route path="notizen" element={<NotesPage />} />
+            <Route path="notes" element={<NotesPage />} />
             <Route path="training" element={<TrainingPage />} />
             <Route path="training/log" element={<WorkoutLogPage />} />
-            <Route path="schlaf" element={<SleepPage />} />
-            <Route path="ernaehrung" element={<NutritionPage />} />
-            <Route path="finanzen" element={<FinancePage />} />
-            <Route path="einstellungen" element={<SettingsPage />} />
+            <Route path="sleep" element={<SleepPage />} />
+            <Route path="nutrition" element={<NutritionPage />} />
+            <Route path="finance" element={<FinancePage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="share" element={<SharePage />} />
+            {Object.entries(LEGACY_PATHS).map(([from, to]) => (
+              <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
+            ))}
           </Route>
         </Routes>
       </BrowserRouter>

@@ -16,8 +16,8 @@ export default defineConfig({
       manifest: {
         name: 'Compass',
         short_name: 'Compass',
-        description: 'Aufgaben, Deadlines und dein Tag auf einen Blick',
-        lang: 'de',
+        description: 'Tasks, deadlines and your day at a glance',
+        lang: 'en',
         start_url: '/',
         scope: '/',
         display: 'standalone',

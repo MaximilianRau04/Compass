@@ -16,8 +16,8 @@ import { AREA_BG, addDays, parseDate } from '../lib/format'
 
 type View = 'week' | 'month' | 'agenda'
 
-// View and day live in the URL (?ansicht=monat&datum=2026-10-01), so reloads and links keep them.
-const VIEW_PARAM: Record<View, string> = { week: 'woche', month: 'monat', agenda: 'liste' }
+// View and day live in the URL (?view=month&date=2026-10-01), so reloads and links keep them.
+const VIEW_PARAM: Record<View, string> = { week: 'week', month: 'month', agenda: 'agenda' }
 const VIEW_LABEL: Record<View, MessageKey> = { week: 'cal.week', month: 'cal.month', agenda: 'cal.agenda' }
 const AGENDA_DAYS = 14
 const DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -53,8 +53,8 @@ export function CalendarPage() {
   const today = useTodayDate()
   const wide = useWide()
   const [params, setParams] = useSearchParams()
-  const view = (Object.keys(VIEW_PARAM) as View[]).find((v) => VIEW_PARAM[v] === params.get('ansicht')) ?? 'week'
-  const dateParam = params.get('datum')
+  const view = (Object.keys(VIEW_PARAM) as View[]).find((v) => VIEW_PARAM[v] === params.get('view')) ?? 'week'
+  const dateParam = params.get('date')
   const anchor = dateParam && DATE.test(dateParam) ? dateParam : today
   const [selected, setSelected] = useState(anchor)
   const [areaId, setAreaId] = useState<number | null>(null)
@@ -65,8 +65,8 @@ export function CalendarPage() {
     const nextView = next.view ?? view
     const nextDate = next.date ?? anchor
     const out: Record<string, string> = {}
-    if (nextView !== 'week') out.ansicht = VIEW_PARAM[nextView]
-    if (nextDate !== today) out.datum = nextDate
+    if (nextView !== 'week') out.view = VIEW_PARAM[nextView]
+    if (nextDate !== today) out.date = nextDate
     setParams(out, { replace: true })
     if (next.date) setSelected(next.date)
   }

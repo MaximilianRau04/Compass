@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Compass Bridge</string>
+    <string name="rationale">The app reads sleep, steps, heart rate, resting heart rate, workouts, nutrition, weight and calories burned from Health Connect and sends them to your own Compass server, which you enter in the app. It writes nothing to Health Connect and shares no data with third parties.</string>
+
+    <string name="server">Server</string>
+    <string name="server_url">Address, e.g. https://compass.example.com</string>
+    <string name="token" translatable="false">Token (HEALTHCONNECT_TOKEN)</string>
+    <string name="save_and_test">Save and test</string>
+    <string name="testing">Testing …</string>
+    <string name="connected">Connected. Last sync according to the server: %1$s</string>
+    <string name="none_yet">none yet</string>
+    <string name="error">Error: %1$s</string>
+
+    <string name="hc_types">Data types allowed</string>
+    <string name="n_of_m">%1$d of %2$d</string>
+    <string name="hc_background">Reading in the background</string>
+    <string name="not_supported">not supported by the device</string>
+    <string name="allowed">allowed</string>
+    <string name="not_allowed">not allowed</string>
+    <string name="hc_history">Older data (history)</string>
+    <string name="only_30_days">only 30 days</string>
+    <string name="grant">Grant permissions</string>
+    <string name="hc_update">Health Connect needs an update.</string>
+    <string name="hc_missing">Health Connect is not available on this device.</string>
+
+    <string name="battery">Battery</string>
+    <string name="battery_optimization">Battery optimisation</string>
+    <string name="battery_off">off (good)</string>
+    <string name="battery_on">on, syncs may fail</string>
+    <string name="battery_turn_off">Turn off battery optimisation</string>
+    <string name="battery_samsung">On Samsung also: keep the app out of \"Sleeping apps\" and \"Deep sleeping apps\".</string>
+
+    <string name="sync">Sync</string>
+    <string name="last_sync">Last sync</string>
+    <string name="result">Result</string>
+    <string name="initial_days">First sync: this many days back</string>
+    <string name="running">Running …</string>
+    <string name="sync_now">Sync now</string>
+    <string name="read_again">Read again</string>
+    <string name="sync_hint">Runs hourly in the background. \"%1$s\" sends everything from the set period again on the next sync; Compass does not create anything twice.</string>
+    <string name="sync_result">%1$d records, %2$d deleted</string>
+
+    <string name="error_not_configured">Server address and token are missing</string>
+    <string name="error_hc_unavailable">Health Connect is not available</string>
+    <string name="error_no_permission">No read permission for Health Connect</string>
+    <string name="error_network">Network: %1$s</string>
+    <string name="error_denied">Health Connect refused to read (background permission?): %1$s</string>
+    <string name="error_token">Token rejected (401)</string>
+    <string name="error_ingest_off">Ingest is not active on the server (HEALTHCONNECT_TOKEN missing)</string>
+    <string name="error_rejected">Server rejects the request (%1$d): %2$s</string>
+    <string name="error_server">Server error %1$d</string>
+</resources>

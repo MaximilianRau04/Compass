@@ -45,7 +45,7 @@ function SharedFile({ name }: { name: string }) {
 
   const run = () => {
     if (!file) return
-    if (isMfp) mfp.mutate(file, { onSuccess: (r) => done(mfpImportMessage(r, t), '/ernaehrung'), onError })
+    if (isMfp) mfp.mutate(file, { onSuccess: (r) => done(mfpImportMessage(r, t), '/nutrition'), onError })
     else gymday.mutate(file, { onSuccess: (r) => done(importMessage(r, t), '/training'), onError })
   }
 
@@ -84,7 +84,7 @@ function SaveAsNote({ title, text }: { title: string; text: string }) {
           {
             onSuccess: (note) => {
               toast.success(t('quick.noteCreated', { title: note.title }))
-              navigate(`/notizen?id=${note.id}`)
+              navigate(`/notes?id=${note.id}`)
             },
             onError: (error) => toast.error(error.message),
           },

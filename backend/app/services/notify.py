@@ -22,6 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.i18n import number, short_date, t, weekday
 from app.models.tasks import Task, TaskStatus
 from app.services import analysis, finance, push
 from app.services.clock import local_tz
@@ -30,7 +31,6 @@ log = logging.getLogger("compass.notify")
 
 DEADLINE_AHEAD = timedelta(hours=24)
 RESTING_EVERY = timedelta(days=3)
-WEEKDAYS = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 
 def quiet(now: datetime) -> bool:
@@ -43,9 +43,9 @@ def quiet(now: datetime) -> bool:
 
 
 def _when(at: datetime, now: datetime) -> str:
-    """ "heute 14:00", "morgen 09:00" or "Fr 09:00"."""
+    """ "today 14:00", "tomorrow 09:00" or "Fri 09:00"."""
     days = (at.date() - now.date()).days
-    day = "heute" if days == 0 else "morgen" if days == 1 else WEEKDAYS[at.weekday()]
+    day = t("today") if days == 0 else t("tomorrow") if days == 1 else weekday(at)
     return f"{day} {at:%H:%M}"
 
 
@@ -83,9 +83,13 @@ def check_bedtime(session: Session, now: datetime) -> int:
         "bedtime",
         f"bedtime:{day.isoformat()}",
         push.Message(
-            title=f"Spätestens {latest:%H:%M} ins Bett",
-            body=f"{_when(first, now).capitalize()} {bed.title}, aufstehen {wake:%H:%M}. "
-            "Für 7,5 h Schlaf.",
+            title=t("push.bedtime.title", time=f"{latest:%H:%M}"),
+            body=t(
+                "push.bedtime.body",
+                when=_when(first, now).capitalize(),
+                event=bed.title,
+                wake=f"{wake:%H:%M}",
+            ),
             url="/",
             tag="bedtime",
             ttl=int((latest - now).total_seconds()) + 600,
@@ -111,26 +115,29 @@ def check_deadlines(session: Session, now: datetime) -> int:
             Task.due_date <= (now + DEADLINE_AHEAD).date(),
         )
     ).unique()
-    due = sorted((t for t in tasks if now <= _due_at(t) <= now + DEADLINE_AHEAD), key=_due_at)
-    new = [t for t in due if not push.was_sent(session, f"deadline:{t.id}:{t.due_date}")]
+    ahead = now + DEADLINE_AHEAD
+    due = sorted((task for task in tasks if now <= _due_at(task) <= ahead), key=_due_at)
+    new = [
+        task for task in due if not push.was_sent(session, f"deadline:{task.id}:{task.due_date}")
+    ]
     if not new:
         return 0
     if len(new) == 1:
-        t = new[0]
-        title, body = f"Fällig {_when(_due_at(t), now)}", t.title
+        task = new[0]
+        title, body = t("push.deadline.one", when=_when(_due_at(task), now)), task.title
     else:
-        title = f"{len(new)} Abgaben in 24 h"
-        body = "\n".join(f"{_when(_due_at(t), now)}: {t.title}" for t in new)
+        title = t("push.deadline.many", n=len(new))
+        body = "\n".join(f"{_when(_due_at(task), now)}: {task.title}" for task in new)
     sent = push.send(
         session,
         "deadlines",
         f"deadline:{new[0].id}:{new[0].due_date}",
-        push.Message(title=title[:200], body=body[:500], url="/aufgaben", tag="deadlines"),
+        push.Message(title=title[:200], body=body[:500], url="/tasks", tag="deadlines"),
     )
     if sent:
         # One notification covers all of them; mark the others as sent too.
-        for t in new[1:]:
-            push.mark_sent(session, "deadlines", f"deadline:{t.id}:{t.due_date}", title)
+        for task in new[1:]:
+            push.mark_sent(session, "deadlines", f"deadline:{task.id}:{task.due_date}", title)
     return sent
 
 
@@ -146,12 +153,13 @@ def check_resting(session: Session, now: datetime) -> int:
         "resting",
         f"resting:{today.isoformat()}",
         push.Message(
-            title="Ruhepuls erhöht",
-            body=(
-                f"7-Tage-Mittel {trend.latest_mean7:.0f} bpm, sonst {trend.median:.0f}. "
-                "Oft Infekt, Stress oder zu wenig Erholung: heute lieber locker."
+            title=t("push.resting.title"),
+            body=t(
+                "push.resting.body",
+                mean=number(trend.latest_mean7),
+                median=number(trend.median),
             ),
-            url="/schlaf",
+            url="/sleep",
             tag="resting",
             ttl=12 * 3600,
         ),
@@ -170,10 +178,9 @@ def check_consent(session: Session, now: datetime) -> int:
             "finance",
             f"consent:{conn.id}:{until.date().isoformat()}",
             push.Message(
-                title="Bankfreigabe läuft ab",
-                body=f"{conn.aspsp_name}: Freigabe endet am {until:%d.%m.}. "
-                "Unter Finanzen neu verbinden.",
-                url="/finanzen",
+                title=t("push.consent.title"),
+                body=t("push.consent.body", bank=conn.aspsp_name, date=short_date(until)),
+                url="/finance",
                 tag="finance",
                 ttl=24 * 3600,
             ),

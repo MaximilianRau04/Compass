@@ -233,7 +233,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
           <ul className="space-y-0.5 text-sm">
             {notes.data.map((note) => (
               <li key={note.id}>
-                <Link to={`/notizen?id=${note.id}`} onClick={onClose} className="text-brass hover:underline">
+                <Link to={`/notes?id=${note.id}`} onClick={onClose} className="text-brass hover:underline">
                   {note.title}
                 </Link>
               </li>

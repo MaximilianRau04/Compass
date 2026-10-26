@@ -1,5 +1,6 @@
 package com.raudev.compass.bridge
 
+import android.content.Context
 import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
@@ -11,7 +12,7 @@ import java.net.URL
 class PermanentApiError(message: String) : Exception(message)
 
 /** Client for /api/ingest/healthconnect. Plain HttpURLConnection, no extra dependencies. */
-class Api(private val baseUrl: String, private val token: String) {
+class Api(private val context: Context, private val baseUrl: String, private val token: String) {
     private val endpoint get() = URL("$baseUrl/api/ingest/healthconnect")
 
     /** Checks URL and token; returns the server's last successful sync (ISO) or null. */
@@ -48,10 +49,10 @@ class Api(private val baseUrl: String, private val token: String) {
                 ?.bufferedReader()?.use { it.readText() } ?: ""
             return when {
                 code in 200..299 -> text
-                code == 401 -> throw PermanentApiError("Token abgelehnt (401)")
-                code == 503 -> throw PermanentApiError("Ingest auf dem Server nicht aktiv (HEALTHCONNECT_TOKEN fehlt)")
-                code in 400..499 -> throw PermanentApiError("Server lehnt ab ($code): ${text.take(300)}")
-                else -> throw IOException("Serverfehler $code")
+                code == 401 -> throw PermanentApiError(context.getString(R.string.error_token))
+                code == 503 -> throw PermanentApiError(context.getString(R.string.error_ingest_off))
+                code in 400..499 -> throw PermanentApiError(context.getString(R.string.error_rejected, code, text.take(300)))
+                else -> throw IOException(context.getString(R.string.error_server, code))
             }
         } finally {
             conn.disconnect()

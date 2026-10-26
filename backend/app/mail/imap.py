@@ -19,6 +19,7 @@ from html.parser import HTMLParser
 from zoneinfo import ZoneInfo
 
 from app.config import MailAccount
+from app.i18n import t
 
 HEADER_FIELDS = "FROM SUBJECT DATE MESSAGE-ID LIST-ID LIST-UNSUBSCRIBE PRECEDENCE AUTO-SUBMITTED"
 FETCH_CHUNK = 100
@@ -224,7 +225,7 @@ def parse_header(
         msg_key=(message_id or f"{folder}/{uidvalidity}/{uid}")[:500],
         from_name=(from_name or None) and from_name[:300],
         from_addr=(from_addr or "?")[:320],
-        subject=(_decoded(message, "subject") or "(kein Betreff)")[:500],
+        subject=(_decoded(message, "subject") or t("mail.no_subject"))[:500],
         received_at=received.astimezone(UTC),
         seen=b"\\Seen" in flags,
         bulk=bool(

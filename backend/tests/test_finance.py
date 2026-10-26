@@ -91,7 +91,7 @@ class FakeBank:
 @pytest.fixture
 def bank(monkeypatch):
     monkeypatch.setattr(
-        get_settings(), "enablebanking_redirect_url", "https://compass.example/finanzen"
+        get_settings(), "enablebanking_redirect_url", "https://compass.example/finance"
     )
     fake = FakeBank()
     monkeypatch.setattr(finance, "enablebanking", fake)
@@ -139,7 +139,7 @@ def test_connect_sync_and_no_duplicates(session, bank):
     assert finance.sync(session) == {"Girokonto": 5}
     rows = session.query(BankTransaction).order_by(BankTransaction.id).all()
     assert [float(t.amount) for t in rows] == [-54.2, 1200.0, -4.5, -4.5, -100.0]
-    assert [t.category for t in rows] == ["lebensmittel", "einkommen", None, None, "sparen"]
+    assert [t.category for t in rows] == ["groceries", "income", None, None, "savings"]
     assert bank.fetches == [(TODAY - timedelta(days=365)).isoformat()]
 
     # Synced just now: the worker leaves it alone; forced it fetches again, without duplicates.
@@ -163,7 +163,7 @@ def test_expired_consent_and_its_warning(session, bank, sent):
     conn.valid_until = datetime.now(UTC) + timedelta(days=3)
     session.flush()
     assert notify.check_consent(session, at(TODAY, "10:00")) == 1
-    assert sent[-1][1].title == "Bankfreigabe läuft ab"
+    assert sent[-1][1].title == "Bank access expires"
     assert notify.check_consent(session, at(TODAY, "11:00")) == 0
     conn.valid_until = datetime.now(UTC) - timedelta(minutes=1)
     finance.sync(session)
@@ -178,9 +178,9 @@ def test_rules_sort_old_and_new_but_not_manual(session, bank):
     connect(session, bank)
     finance.sync(session)
     a, b = session.query(BankTransaction).order_by(BankTransaction.id).all()
-    finance.set_category(session, a.id, "freizeit")
-    assert finance.add_rule(session, "Kiosk  MUELLER", "lebensmittel") == 1
-    assert (a.category, b.category) == ("freizeit", "lebensmittel")
+    finance.set_category(session, a.id, "leisure")
+    assert finance.add_rule(session, "Kiosk  MUELLER", "groceries") == 1
+    assert (a.category, b.category) == ("leisure", "groceries")
     with pytest.raises(finance.FinanceError):
         finance.set_category(session, a.id, "luxus")
 
@@ -205,23 +205,23 @@ def test_months_budgets_and_recurring(client, session, bank):
     connect(session, bank)
     finance.sync(session)
     u = session.query(BankTransaction).filter_by(external_id="u").one()
-    finance.set_category(session, u.id, "umbuchung")
-    finance.set_budget(session, "essen", 25)
+    finance.set_category(session, u.id, "transfer")
+    finance.set_budget(session, "eating_out", 25)
     with pytest.raises(finance.FinanceError):
-        finance.set_budget(session, "einkommen", 100)
+        finance.set_budget(session, "income", 100)
 
     o = client.get("/api/finance/overview?months=3").json()
     month = o["months"][-1]
     assert month["income"] == 900
-    assert month["by_category"]["essen"] == 30
-    assert o["budgets"] == {"essen": 25}
+    assert month["by_category"]["eating_out"] == 30
+    assert o["budgets"] == {"eating_out": 25}
     names = {r["name"]: r for r in o["recurring"]}
     assert set(names) == {"Spotify AB", "Netflix ihr Einkauf"}
     spotify = names["Spotify AB"]
     assert (spotify["monthly_cost"], spotify["interval"], spotify["category"]) == (
         10.99,
         "monthly",
-        "abos",
+        "subscriptions",
     )
     assert o["cash"] == 1234.56
 
@@ -244,10 +244,10 @@ def test_transaction_update_with_rule(client, session, bank):
     [newest, older] = client.get("/api/finance/transactions?uncategorized=true").json()
     r = client.patch(
         f"/api/finance/transactions/{older['id']}",
-        json={"category": "freizeit", "rule_pattern": "kino palast"},
+        json={"category": "leisure", "rule_pattern": "kino palast"},
     )
     assert r.json()["rule_changed"] == 2
-    assert client.get("/api/finance/transactions?category=freizeit").json()[0]["id"] == newest["id"]
+    assert client.get("/api/finance/transactions?category=leisure").json()[0]["id"] == newest["id"]
 
 
 def test_status_without_enable_banking(client, session):

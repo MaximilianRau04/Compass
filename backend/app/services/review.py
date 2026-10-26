@@ -19,6 +19,7 @@ from statistics import mean, median
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.i18n import number, short_date, t
 from app.models.health import DailyMetrics, SleepSession
 from app.models.training import ExerciseSet, TrainingSession
 from app.services import analysis, body, briefs, nutrition, progression, training
@@ -183,8 +184,8 @@ def weekly_review(session: Session, today: date | None = None) -> Review:
         )
     )
     split: dict[str, int] = defaultdict(int)
-    for t in week_sessions:
-        split[training.split_for(t)] += 1
+    for ts in week_sessions:
+        split[training.split_for(ts)] += 1
     targets = progression.suggestions(session, weeks=1)
     strength, up, down = strength_trend(session, today)
     nights = main_nights(
@@ -221,8 +222,8 @@ def weekly_review(session: Session, today: date | None = None) -> Review:
         steps_median=round(median(steps)) if steps else None,
         sessions=len(week_sessions),
         split=dict(split),
-        ready_to_increase=[t.exercise.name for t in targets if t.action == "increase"],
-        stagnant=[t.exercise.name for t in targets if t.stagnant],
+        ready_to_increase=[x.exercise.name for x in targets if x.action == "increase"],
+        stagnant=[x.exercise.name for x in targets if x.stagnant],
         strength_change_pct=strength,
         strength_up=up,
         strength_down=down,
@@ -243,18 +244,15 @@ def weekly_review(session: Session, today: date | None = None) -> Review:
 
 # --- The brief ---------------------------------------------------------------------------------
 
-ACTIONS = {
-    "decrease": "−{n} kcal pro Tag",
-    "increase": "+{n} kcal pro Tag",
-    "keep": "Kalorien so lassen",
-}
+
+def _action(rec: Recommendation) -> str:
+    return t(f"review.action.{rec.action}", n=abs(rec.kcal_delta))
 
 
 def _num(value: float | None, unit: str = "", digits: int = 0) -> str:
     if value is None:
         return "–"
-    text = f"{value:.{digits}f}".replace(".", ",")
-    return f"{text} {unit}".strip()
+    return f"{number(value, digits)} {unit}".strip()
 
 
 def _hours(minutes: int | None) -> str:
@@ -262,46 +260,64 @@ def _hours(minutes: int | None) -> str:
 
 
 def markdown(r: Review) -> str:
-    """The review as a German brief for the dashboard."""
+    """The review as a brief for the dashboard, in COMPASS_LANGUAGE."""
     rec = r.recommendation
-    lines = [
-        f"## Empfehlung: {ACTIONS[rec.action].format(n=abs(rec.kcal_delta))}",
-        f"- {'; '.join(rec.reasons)}",
-    ]
+    lines = [t("review.recommendation", action=_action(rec)), f"- {'; '.join(rec.reasons)}"]
     if rec.current_kcal_goal and rec.kcal_delta:
-        lines.append(f"- Ziel von {rec.current_kcal_goal:.0f} auf {rec.new_kcal_goal:.0f} kcal")
+        lines.append(
+            t("review.goal", old=f"{rec.current_kcal_goal:.0f}", new=f"{rec.new_kcal_goal:.0f}")
+        )
+    split = f" ({', '.join(f'{k} {v}' for k, v in sorted(r.split.items()))})" if r.split else ""
+    waist = ""
+    if r.waist_change is not None:
+        waist = f", {'+' if r.waist_change >= 0 else ''}{number(r.waist_change, 1)} cm"
     lines += [
         "",
-        "## Ernährung",
-        f"- Ø {_num(r.kcal, 'kcal')}, Eiweiß {_num(r.protein_g, 'g')}, Fett {_num(r.fat_g, 'g')} "
-        f"über {r.nutrition_valid_days} gültige Tage"
-        + (f" ({r.nutrition_left_out} nicht gezählt)" if r.nutrition_left_out else ""),
+        t("review.nutrition"),
+        t(
+            "review.food",
+            kcal=_num(r.kcal, "kcal"),
+            protein=_num(r.protein_g, "g"),
+            fat=_num(r.fat_g, "g"),
+            days=r.nutrition_valid_days,
+        )
+        + (t("review.left_out", n=r.nutrition_left_out) if r.nutrition_left_out else ""),
         "",
-        "## Körper",
-        f"- Gewicht {_num(r.weight_mean7, 'kg', 1)} (7-Tage-Mittel), "
-        f"{_num(r.weight_change_kg, 'kg', 2)} zur Vorwoche ({_num(r.weight_change_pct, '%', 1)})",
-        f"- Taille {_num(r.waist_cm, 'cm', 1)}"
-        + (f", {r.waist_change:+.1f} cm".replace(".", ",") if r.waist_change is not None else ""),
-        f"- Schritte Median {_num(r.steps_median)}",
+        t("review.body"),
+        t(
+            "review.weight",
+            mean=_num(r.weight_mean7, "kg", 1),
+            change=_num(r.weight_change_kg, "kg", 2),
+            pct=_num(r.weight_change_pct, "%", 1),
+        ),
+        t("review.waist", cm=_num(r.waist_cm, "cm", 1)) + waist,
+        t("review.steps", n=_num(r.steps_median)),
         "",
-        "## Training",
-        f"- {r.sessions} Einheiten"
-        + (f" ({', '.join(f'{k} {v}' for k, v in sorted(r.split.items()))})" if r.split else ""),
-        f"- Kraft (bestes e1RM, 2 Wochen zu 2 Wochen): {_num(r.strength_change_pct, '%', 1)}",
+        t("review.training"),
+        t("review.sessions", n=r.sessions) + split,
+        t("review.strength", pct=_num(r.strength_change_pct, "%", 1)),
     ]
     if r.ready_to_increase:
-        lines.append(f"- Gewicht erhöhen: {', '.join(r.ready_to_increase)}")
+        lines.append(t("review.increase", names=", ".join(r.ready_to_increase)))
     if r.stagnant:
-        lines.append(f"- Stagniert: {', '.join(r.stagnant)}")
-    lines.append(f"- Zone 2: {r.zone2_minutes} min, davon {r.zone2_in_training} im Training")
+        lines.append(t("review.stagnant", names=", ".join(r.stagnant)))
+    lines.append(t("review.zone2", total=r.zone2_minutes, training=r.zone2_in_training))
     lines += [
         "",
-        "## Schlaf und Puls",
-        f"- Ø {_hours(r.sleep_avg_minutes)} in {r.sleep_nights} Nächten, "
-        f"{r.short_nights} unter 7 h",
-        f"- Bettzeit Median {r.median_bedtime or '–'}, ± {_num(r.bedtime_sd_minutes, 'min')}",
-        f"- Ruhepuls {_num(r.resting_hr, 'bpm', 1)}"
-        + (" (erhöht, mehr Erholung einplanen)" if r.resting_alert else ""),
+        t("review.sleep"),
+        t(
+            "review.nights",
+            avg=_hours(r.sleep_avg_minutes),
+            n=r.sleep_nights,
+            short=r.short_nights,
+        ),
+        t(
+            "review.bedtime",
+            median=r.median_bedtime or "–",
+            sd=_num(r.bedtime_sd_minutes, "min"),
+        ),
+        t("review.resting", bpm=_num(r.resting_hr, "bpm", 1))
+        + (t("review.resting.alert") if r.resting_alert else ""),
     ]
     return "\n".join(lines)
 
@@ -313,7 +329,7 @@ def save_weekly(session: Session, today: date | None = None) -> Review:
         session,
         "weekly",
         markdown(review),
-        title=f"Wochenreview {review.since:%d.%m.}–{review.until:%d.%m.}",
+        title=t("review.title", since=short_date(review.since), until=short_date(review.until)),
         day=review.until,
         actor="worker",
     )
@@ -323,7 +339,7 @@ def save_weekly(session: Session, today: date | None = None) -> Review:
 def headline(r: Review) -> str:
     """The recommendation in one line, for the push notification."""
     rec = r.recommendation
-    text = f"Empfehlung: {ACTIONS[rec.action].format(n=abs(rec.kcal_delta))}"
+    text = t("review.headline", action=_action(rec))
     if rec.kcal_delta and rec.new_kcal_goal:
-        text += f" (Ziel {rec.new_kcal_goal:.0f} kcal)"
+        text += t("review.headline.goal", kcal=f"{rec.new_kcal_goal:.0f}")
     return text

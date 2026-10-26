@@ -38,6 +38,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -81,6 +83,7 @@ private data class DeviceState(
 @Composable
 private fun BridgeScreen() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val settings = remember { Settings(context) }
     val scope = rememberCoroutineScope()
 
@@ -143,13 +146,13 @@ private fun BridgeScreen() {
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Compass Bridge", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
 
-        Section("Server") {
+        Section(stringResource(R.string.server)) {
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
-                label = { Text("Adresse, z. B. https://compass.example.com") },
+                label = { Text(stringResource(R.string.server_url)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier.fillMaxWidth(),
@@ -157,7 +160,7 @@ private fun BridgeScreen() {
             OutlinedTextField(
                 value = token,
                 onValueChange = { token = it },
-                label = { Text("Token (HEALTHCONNECT_TOKEN)") },
+                label = { Text(stringResource(R.string.token)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -166,47 +169,52 @@ private fun BridgeScreen() {
                 settings.serverUrl = url
                 settings.token = token
                 url = settings.serverUrl
-                connection = "Teste …"
+                connection = resources.getString(R.string.testing)
                 scope.launch {
                     connection = withContext(Dispatchers.IO) {
-                        runCatching { Api(settings.serverUrl, settings.token).status() }.fold(
-                            onSuccess = { last -> "Verbunden. Letzter Sync laut Server: ${last ?: "noch keiner"}" },
-                            onFailure = { "Fehler: ${it.message ?: it.javaClass.simpleName}" },
+                        runCatching { Api(context, settings.serverUrl, settings.token).status() }.fold(
+                            onSuccess = { last ->
+                                resources.getString(R.string.connected, last ?: resources.getString(R.string.none_yet))
+                            },
+                            onFailure = { resources.getString(R.string.error, it.message ?: it.javaClass.simpleName) },
                         )
                     }
                     readDeviceState()
                 }
-            }) { Text("Speichern und testen") }
+            }) { Text(stringResource(R.string.save_and_test)) }
             connection?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
 
         Section("Health Connect") {
             when (device.sdkStatus) {
                 HealthConnectClient.SDK_AVAILABLE -> {
-                    Line("Datentypen freigegeben", "${device.grantedTypes} von ${HealthTypes.ALL.size}")
+                    Line(stringResource(R.string.hc_types), stringResource(R.string.n_of_m, device.grantedTypes, HealthTypes.ALL.size))
                     Line(
-                        "Lesen im Hintergrund",
+                        stringResource(R.string.hc_background),
                         when {
-                            !device.backgroundFeature -> "vom Gerät nicht unterstützt"
-                            device.background -> "erlaubt"
-                            else -> "nicht erlaubt"
+                            !device.backgroundFeature -> stringResource(R.string.not_supported)
+                            device.background -> stringResource(R.string.allowed)
+                            else -> stringResource(R.string.not_allowed)
                         },
                     )
-                    Line("Ältere Daten (Verlauf)", if (device.history) "erlaubt" else "nur 30 Tage")
+                    Line(
+                        stringResource(R.string.hc_history),
+                        stringResource(if (device.history) R.string.allowed else R.string.only_30_days),
+                    )
                     Button(onClick = { permissions.launch(HealthTypes.PERMISSIONS) }) {
-                        Text("Berechtigungen erteilen")
+                        Text(stringResource(R.string.grant))
                     }
                 }
                 HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
-                    Text("Health Connect muss aktualisiert werden.")
-                else -> Text("Health Connect ist auf diesem Gerät nicht verfügbar.")
+                    Text(stringResource(R.string.hc_update))
+                else -> Text(stringResource(R.string.hc_missing))
             }
         }
 
-        Section("Akku") {
+        Section(stringResource(R.string.battery)) {
             Line(
-                "Akku-Optimierung",
-                if (device.batteryUnrestricted) "aus (gut)" else "an, Sync kann ausfallen",
+                stringResource(R.string.battery_optimization),
+                stringResource(if (device.batteryUnrestricted) R.string.battery_off else R.string.battery_on),
             )
             if (!device.batteryUnrestricted) {
                 OutlinedButton(onClick = {
@@ -216,24 +224,24 @@ private fun BridgeScreen() {
                             "package:${context.packageName}".toUri(),
                         ),
                     )
-                }) { Text("Akku-Optimierung ausschalten") }
+                }) { Text(stringResource(R.string.battery_turn_off)) }
                 Text(
-                    "Bei Samsung zusätzlich: App nicht unter \"Schlafende Apps\" oder \"Apps im Tiefschlaf\".",
+                    stringResource(R.string.battery_samsung),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
 
-        Section("Sync") {
+        Section(stringResource(R.string.sync)) {
             val (lastAt, lastResult, lastError) = status
             Line(
-                "Letzter Sync",
-                if (lastAt == 0L) "noch keiner"
+                stringResource(R.string.last_sync),
+                if (lastAt == 0L) stringResource(R.string.none_yet)
                 else DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(lastAt)),
             )
-            if (lastResult.isNotEmpty()) Line("Ergebnis", lastResult)
+            if (lastResult.isNotEmpty()) Line(stringResource(R.string.result), lastResult)
             if (lastError.isNotEmpty()) {
-                Text("Fehler: $lastError", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.error, lastError), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             OutlinedTextField(
                 value = days,
@@ -241,7 +249,7 @@ private fun BridgeScreen() {
                     days = value.filter(Char::isDigit).take(4)
                     days.toIntOrNull()?.let { settings.initialDays = it }
                 },
-                label = { Text("Erster Sync: so viele Tage zurück") },
+                label = { Text(stringResource(R.string.initial_days)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -250,15 +258,14 @@ private fun BridgeScreen() {
                 Button(
                     onClick = { SyncWorker.runNow(context) },
                     enabled = !running && settings.configured && device.grantedTypes > 0,
-                ) { Text(if (running) "Läuft …" else "Jetzt synchronisieren") }
+                ) { Text(stringResource(if (running) R.string.running else R.string.sync_now)) }
                 TextButton(onClick = {
                     settings.resetSync()
                     refresh++
-                }) { Text("Neu einlesen") }
+                }) { Text(stringResource(R.string.read_again)) }
             }
             Text(
-                "Läuft stündlich im Hintergrund. \"Neu einlesen\" schickt beim nächsten Sync " +
-                    "alles aus dem eingestellten Zeitraum noch einmal, Compass legt dabei nichts doppelt an.",
+                stringResource(R.string.sync_hint, stringResource(R.string.read_again)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

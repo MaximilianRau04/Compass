@@ -14,8 +14,8 @@ import { AREA_BG, daysBetween } from '../lib/format'
 
 type View = 'list' | 'board'
 
-// The view lives in the URL (?ansicht=board), so it survives reloads and can be linked.
-const VIEW_PARAM: Record<View, string> = { list: 'liste', board: 'board' }
+// The view lives in the URL (?view=board), so it survives reloads and can be linked.
+const VIEW_PARAM: Record<View, string> = { list: 'list', board: 'board' }
 type Scope = 'active' | 'done' | 'cancelled'
 
 const SCOPES: Record<Scope, { label: MessageKey; status: TaskStatus[] }> = {
@@ -53,8 +53,8 @@ const toggle = (active: boolean) =>
 export function TasksPage() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
-  const view = (Object.keys(VIEW_PARAM) as View[]).find((v) => VIEW_PARAM[v] === params.get('ansicht')) ?? 'list'
-  const setView = (next: View) => setParams(next === 'list' ? {} : { ansicht: VIEW_PARAM[next] }, { replace: true })
+  const view = (Object.keys(VIEW_PARAM) as View[]).find((v) => VIEW_PARAM[v] === params.get('view')) ?? 'list'
+  const setView = (next: View) => setParams(next === 'list' ? {} : { view: VIEW_PARAM[next] }, { replace: true })
   const [scope, setScope] = useState<Scope>('active')
   const [areaId, setAreaId] = useState<number | null>(null)
   const [q, setQ] = useState('')
@@ -69,7 +69,7 @@ export function TasksPage() {
   const list = tasks.data ?? []
 
   // The calendar used to be a view of this page; old links and bookmarks still lead there.
-  if (params.get('ansicht') === 'kalender') return <Navigate to="/kalender" replace />
+  if (params.get('ansicht') === 'kalender') return <Navigate to="/calendar" replace />
 
   return (
     <>

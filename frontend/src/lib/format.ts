@@ -106,7 +106,7 @@ export function clockTime(timestamp: string, locale: string): string {
   return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
-/** "14:00–15:30", "ganztägig" or just the start time for point-in-time entries. */
+/** "14:00–15:30", "all day" or just the start time for point-in-time entries. */
 export function eventTime(event: CalendarEvent, t: Translate, locale: string): string {
   if (event.all_day) return t('event.allDay')
   const start = clockTime(event.starts_at, locale)

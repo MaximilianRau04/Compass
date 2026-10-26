@@ -85,8 +85,8 @@ def test_saved_as_weekly_brief(session):
     review.save_weekly(session)
     brief = briefs.latest(session, "weekly")
     assert brief.local_date == TODAY and brief.actor == "worker"
-    assert brief.body.startswith("## Empfehlung: Kalorien so lassen")
-    assert "## Schlaf und Puls" in brief.body
+    assert brief.body.startswith("## Recommendation: keep calories as they are")
+    assert "## Sleep and heart rate" in brief.body
 
 
 @pytest.fixture
@@ -111,6 +111,6 @@ async def test_weekly_review_mcp_tool(session):
         data = r.structured_content
         assert data["recommendation"]["action"] == "keep"
         assert data["numbers"]["loss_per_week"] == 0.3
-        assert data["markdown"].startswith("## Empfehlung")
+        assert data["markdown"].startswith("## Recommendation")
     finally:
         mcp_db.set_session_factory(mcp_db.SessionLocal)

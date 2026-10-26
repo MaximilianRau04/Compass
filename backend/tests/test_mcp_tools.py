@@ -98,10 +98,10 @@ async def test_tools_are_listed_with_annotations(client):
 async def test_add_task_and_see_it_today(client, session):
     today = local_today()
     task = await call(
-        client, "add_task", title="Paper lesen", scheduled_date=today.isoformat(), area="arbeit"
+        client, "add_task", title="Paper lesen", scheduled_date=today.isoformat(), area="work"
     )
     assert task["source"] == "claude"
-    assert task["area"] == "arbeit"
+    assert task["area"] == "work"
 
     overview = await call(client, "get_today")
     assert [t["title"] for t in overview["scheduled"]] == ["Paper lesen"]
@@ -166,7 +166,7 @@ async def test_deadlines(client):
 @pytest.mark.anyio
 async def test_helpful_errors_and_failed_writes_are_audited(client, session):
     error = await call_error(client, "add_task", title="x", area="nope")
-    assert "Valid areas: uni, arbeit" in error
+    assert "Valid areas: uni, work" in error
     assert "No task with id 999" in await call_error(client, "complete_task", task_id=999)
     task = await call(client, "add_task", title="exists")
     assert "Nothing to change" in await call_error(client, "update_task", task_id=task["id"])

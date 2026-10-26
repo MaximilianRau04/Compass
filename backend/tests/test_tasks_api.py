@@ -19,7 +19,7 @@ def area_id(client, slug: str) -> int:
 
 def test_seeded_areas(client):
     slugs = [a["slug"] for a in client.get("/api/areas").json()]
-    assert slugs == ["uni", "arbeit", "sport", "projekte", "privat"]
+    assert slugs == ["uni", "work", "sport", "projects", "personal"]
 
 
 def test_quick_add_creates_task_with_parsed_fields(client):
@@ -40,9 +40,9 @@ def test_quick_add_creates_task_with_parsed_fields(client):
 
 
 def test_quick_add_preview_does_not_create(client):
-    preview = client.post("/api/tasks/quick/preview", json={"text": "Paper lesen #arbeit"}).json()
+    preview = client.post("/api/tasks/quick/preview", json={"text": "Paper lesen #work"}).json()
     assert preview["title"] == "Paper lesen"
-    assert preview["area"]["slug"] == "arbeit"
+    assert preview["area"]["slug"] == "work"
     assert client.get("/api/tasks").json() == []
 
 
@@ -113,7 +113,7 @@ def test_update_records_diff_and_cancel_is_the_undo(client):
         f"/api/tasks/{task['id']}",
         json={
             "title": "Neu",
-            "area_id": area_id(client, "privat"),
+            "area_id": area_id(client, "personal"),
             "tags": ["#Einkauf", "einkauf"],
         },
     )

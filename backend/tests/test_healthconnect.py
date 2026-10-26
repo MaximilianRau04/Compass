@@ -582,7 +582,7 @@ def test_watch_workout_without_gymday_becomes_a_session(client, session):
     [s] = session.scalars(select(TrainingSession)).all()
     assert (s.source, s.workout_name, s.activity, s.duration_minutes) == (
         "watch",
-        "Klettern",
+        "Climbing",
         "rock_climbing",
         90,
     )
@@ -637,4 +637,4 @@ def test_old_exercise_type_numbers_get_their_name(session):
         ],
     )
     s = session.scalar(select(TrainingSession))
-    assert (s.workout_name, s.activity) == ("Klettern", "rock_climbing")
+    assert (s.workout_name, s.activity) == ("Climbing", "rock_climbing")

@@ -11,7 +11,7 @@ data itself.
   deletions. The token only moves on after Compass accepted a batch; the import is idempotent, so a
   broken-off run just resends a few records.
 - If the changes token expires (30 days without a sync) or other permissions are granted, the app
-  reads the window again. "Neu einlesen" in the app does the same by hand.
+  reads the window again. "Read again" in the app does the same by hand.
 
 ## Build and install
 
@@ -33,11 +33,13 @@ update over an existing install when the key is the same, so always build on the
 
 1. On the server, set `HEALTHCONNECT_TOKEN` in `.env` (`openssl rand -hex 32`) and redeploy.
 2. Tailscale on the phone must be connected; the app talks to the dashboard address over the VPN.
-3. In the app: server address (`https://<dashboard host>`, no `/api`), the token, "Speichern und testen".
-4. "Berechtigungen erteilen": allow all data types, reading in the background and older data.
+3. In the app: server address (`https://<dashboard host>`, no `/api`), the token, "Save and test".
+4. "Grant permissions": allow all data types, reading in the background and older data.
 5. Battery: switch off battery optimisation (button in the app). On Samsung also make sure the app is
-   not under "Schlafende Apps" or "Apps im Tiefschlaf" in the battery settings.
-6. "Jetzt synchronisieren" for the first run. The hourly job starts by itself.
+   not under "Sleeping apps" or "Deep sleeping apps" in the battery settings.
+6. "Sync now" for the first run. The hourly job starts by itself.
+
+The app follows the phone's language (English, German).
 
 The Sleep tab in Compass shows the last sync and its device; the app shows its own last result or error.
 

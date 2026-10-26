@@ -62,11 +62,11 @@ export function NotesPage() {
   const areas = useAreas()
 
   const param = params.get('id')
-  const open: number | 'new' | null = param === 'neu' ? 'new' : param ? Number(param) : null
+  const open: number | 'new' | null = param === 'new' ? 'new' : param ? Number(param) : null
   const setOpen = (id: number | 'new' | null) => {
     const next = new URLSearchParams(params)
     if (id === null) next.delete('id')
-    else next.set('id', id === 'new' ? 'neu' : String(id))
+    else next.set('id', id === 'new' ? 'new' : String(id))
     setParams(next, { replace: id === null })
   }
 

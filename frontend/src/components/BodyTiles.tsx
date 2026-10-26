@@ -56,7 +56,7 @@ export function BodyTiles({
     tiles.push(
       <Tile
         key="sleep"
-        to="/schlaf"
+        to="/sleep"
         label={t('tile.sleep')}
         value={`${h}:${String(m).padStart(2, '0')}`}
         unit="h"
@@ -78,7 +78,7 @@ export function BodyTiles({
       heart.last ? t('tile.hrLast', { bpm: heart.last.bpm, time: clockTime(heart.last.time, locale) }) : null,
     ].filter(Boolean)
     tiles.push(
-      <Tile key="hr" to="/schlaf#puls" label={t('tile.hr')} value={heart.resting !== null ? String(heart.resting) : '–'} unit={t('tile.hrUnit')} note={parts.join(' · ')}>
+      <Tile key="hr" to="/sleep#heart-rate" label={t('tile.hr')} value={heart.resting !== null ? String(heart.resting) : '–'} unit={t('tile.hrUnit')} note={parts.join(' · ')}>
         <Sparkline values={heart.points.map((p) => p.bpm)} ariaLabel={t('tile.hrTrend')} />
       </Tile>,
     )
@@ -89,7 +89,7 @@ export function BodyTiles({
     const known = week.map((d) => metrics.get(d)?.steps).filter((v): v is number => typeof v === 'number')
     const avg = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null
     tiles.push(
-      <Tile key="steps" to="/schlaf" label={t('tile.steps')} value={steps != null ? steps.toLocaleString(locale) : '–'} note={avg !== null ? t('tile.avg7', { value: avg.toLocaleString(locale) }) : undefined}>
+      <Tile key="steps" to="/sleep" label={t('tile.steps')} value={steps != null ? steps.toLocaleString(locale) : '–'} note={avg !== null ? t('tile.avg7', { value: avg.toLocaleString(locale) }) : undefined}>
         <MiniBars
           values={week.map((d) => metrics.get(d)?.steps ?? null)}
           titles={week.map((d) => `${weekday(d, locale)}: ${metrics.get(d)?.steps?.toLocaleString(locale) ?? '–'}`)}
@@ -106,7 +106,7 @@ export function BodyTiles({
     tiles.push(
       <Tile
         key="food"
-        to="/ernaehrung"
+        to="/nutrition"
         label={t('tile.food')}
         value={day ? Math.round(day.kcal).toLocaleString(locale) : '–'}
         unit={day ? 'kcal' : undefined}

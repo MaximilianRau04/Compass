@@ -39,7 +39,7 @@ function useMoney() {
     new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
 }
 
-/** Finish an approval when the bank redirected back to /finanzen?code=…&state=…. */
+/** Finish an approval when the bank redirected back to /finance?code=…&state=…. */
 function useConnectCallback() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
@@ -69,7 +69,7 @@ function useConnectCallback() {
 
 function BankPicker({ suggested }: { suggested?: string }) {
   const { t } = useI18n()
-  const [q, setQ] = useState(suggested ?? 'Volksbank')
+  const [q, setQ] = useState(suggested ?? '')
   const banks = useBanks(q)
   const [busy, setBusy] = useState(false)
   const go = (name: string) => {
@@ -194,7 +194,7 @@ function Categories({ data }: { data: FinanceOverview }) {
           return (
             <li key={c} className="text-sm">
               <div className="flex items-baseline justify-between gap-2">
-                <span>{categoryLabel(t, c === 'unsortiert' ? null : c)}</span>
+                <span>{categoryLabel(t, c === 'uncategorized' ? null : c)}</span>
                 <span className={`font-mono tabular-nums ${over ? 'text-signal' : ''}`}>
                   {money(spent)}
                   {budget !== undefined && <span className="text-muted"> / {money(budget)}</span>}

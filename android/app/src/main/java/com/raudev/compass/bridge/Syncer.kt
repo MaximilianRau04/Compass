@@ -28,24 +28,24 @@ import kotlin.reflect.KClass
 class Syncer(private val context: Context, private val settings: Settings) {
 
     suspend fun run(): String = lock.withLock {
-        check(settings.configured) { "Server-Adresse und Token fehlen" }
+        check(settings.configured) { context.getString(R.string.error_not_configured) }
         check(HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
-            "Health Connect ist nicht verfügbar"
+            context.getString(R.string.error_hc_unavailable)
         }
         val client = HealthConnectClient.getOrCreate(context)
         val granted = client.permissionController.getGrantedPermissions()
         val types = HealthTypes.ALL.filter { it.permission in granted }
-        check(types.isNotEmpty()) { "Keine Leseberechtigung für Health Connect" }
+        check(types.isNotEmpty()) { context.getString(R.string.error_no_permission) }
 
         val typesKey = types.joinToString(",") { it.name }
-        val batch = Batch(Api(settings.serverUrl, settings.token))
+        val batch = Batch(Api(context, settings.serverUrl, settings.token))
         val token = settings.changesToken.takeIf { settings.changesTypes == typesKey }
         if (token == null || !readChanges(client, token, batch)) {
             readWindow(client, types, typesKey, batch)
         }
         batch.flush()
         snapshot(client, types, batch)
-        "${batch.sent} Datensätze, ${batch.deletedSent} gelöscht"
+        context.getString(R.string.sync_result, batch.sent, batch.deletedSent)
     }
 
     /** Returns false when the token expired and a full read is needed instead. */

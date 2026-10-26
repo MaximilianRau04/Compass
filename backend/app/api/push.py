@@ -2,6 +2,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 
 from app.api.deps import SessionDep
 from app.config import get_settings
+from app.i18n import t
 from app.models.push import PushSubscription
 from app.schemas.push import (
     PushConfigRead,
@@ -93,8 +94,8 @@ def test(data: PushEndpoint, session: SessionDep):
         [sub],
         push.Message(
             title="Compass",
-            body="Benachrichtigungen funktionieren.",
-            url="/einstellungen",
+            body=t("push.test"),
+            url="/settings",
             tag="test",
             ttl=600,
         ),

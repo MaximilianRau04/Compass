@@ -7,16 +7,16 @@ import type { MessageKey } from '../i18n/messages'
 // On the phone the bottom bar has room for five entries; `more` ones sit behind "More" there.
 const NAV: { to: string; label: MessageKey; icon: string; more?: boolean }[] = [
   { to: '/', label: 'nav.today', icon: 'M12 3v2M12 19v2M3 12h2M19 12h2M12 8l2 4-2 4-2-4z' },
-  { to: '/aufgaben', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
-  { to: '/kalender', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
+  { to: '/tasks', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
+  { to: '/calendar', label: 'nav.calendar', icon: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4' },
   { to: '/mail', label: 'nav.mail', icon: 'M4 6h16v12H4zM4 7l8 6 8-6' },
   { to: '/training', label: 'nav.training', icon: 'M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12', more: true },
-  { to: '/schlaf', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', more: true },
-  { to: '/notizen', label: 'nav.notes', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5', more: true },
+  { to: '/sleep', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', more: true },
+  { to: '/notes', label: 'nav.notes', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5', more: true },
   { to: '/news', label: 'nav.news', icon: 'M5 4h11v16H6a1 1 0 0 1-1-1zM16 8h3v11a1 1 0 0 1-1 1h-2M8 8h5M8 12h5M8 16h3', more: true },
-  { to: '/ernaehrung', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3', more: true },
-  { to: '/finanzen', label: 'nav.finance', icon: 'M3 7h18v12H3zM3 11h18M7 15h3M16 3l-4 4-4-4', more: true },
-  { to: '/einstellungen', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1', more: true },
+  { to: '/nutrition', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3', more: true },
+  { to: '/finance', label: 'nav.finance', icon: 'M3 7h18v12H3zM3 11h18M7 15h3M16 3l-4 4-4-4', more: true },
+  { to: '/settings', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1', more: true },
 ]
 const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01'
 
@@ -101,7 +101,7 @@ export function Layout() {
   const { t } = useI18n()
   // The calendar grid and the today dashboard need the room; text pages stay at a readable width.
   const { pathname } = useLocation()
-  const wide = pathname === '/' || pathname.startsWith('/kalender')
+  const wide = pathname === '/' || pathname.startsWith('/calendar')
   return (
     <div className="relative min-h-dvh sm:flex">
       <LanguageSwitch />

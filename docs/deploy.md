@@ -85,6 +85,8 @@ Set these values in `.env`. The IMAP entries can stay empty for now.
 | `POSTGRES_PASSWORD` | output of `openssl rand -base64 32 \| tr -d '/+='` |
 | `COMPASS_BASIC_AUTH_USER` | your login name |
 | `COMPASS_BASIC_AUTH_HASH` | output of `make password-hash` |
+| `COMPASS_LANGUAGE` | `en` (default) or `de`: language of push notifications, the weekly review, mail summaries and the MCP prompts |
+| `TIMEZONE` | your time zone, default `Europe/Berlin` |
 
 Keep the defaults `COMPASS_HTTP_PORT=127.0.0.1:8080`, `COMPASS_SITE_ADDRESS=:80` and `COMPASS_TLS_MODE=off`.
 

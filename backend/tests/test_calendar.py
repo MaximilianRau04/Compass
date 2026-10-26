@@ -191,7 +191,7 @@ def test_sync_keeps_user_fields_and_records_deadline_changes(client, session):
         session, "ilias", ics(deadline("ex-1", "Blatt 3", TODAY + timedelta(days=3))), TODAY
     )
     (task,) = ilias_tasks(session)
-    privat = next(a["id"] for a in client.get("/api/areas").json() if a["slug"] == "privat")
+    privat = next(a["id"] for a in client.get("/api/areas").json() if a["slug"] == "personal")
     planned = (TODAY + timedelta(days=1)).isoformat()
     client.patch(
         f"/api/tasks/{task.id}",

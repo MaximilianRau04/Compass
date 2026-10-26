@@ -145,8 +145,8 @@ def upgrade() -> None:
         [
             {"slug": "uni", "name": "Uni", "color": "blue", "sort_order": 10, "archived": False},
             {
-                "slug": "arbeit",
-                "name": "Arbeit",
+                "slug": "work",
+                "name": "Work",
                 "color": "violet",
                 "sort_order": 20,
                 "archived": False,
@@ -159,15 +159,15 @@ def upgrade() -> None:
                 "archived": False,
             },
             {
-                "slug": "projekte",
-                "name": "Projekte",
+                "slug": "projects",
+                "name": "Projects",
                 "color": "amber",
                 "sort_order": 40,
                 "archived": False,
             },
             {
-                "slug": "privat",
-                "name": "Privat",
+                "slug": "personal",
+                "name": "Personal",
                 "color": "rose",
                 "sort_order": 50,
                 "archived": False,

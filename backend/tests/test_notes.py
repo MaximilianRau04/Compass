@@ -75,9 +75,9 @@ def test_append_keeps_existing_text(session):
 
 
 def test_quick_note(session):
-    note = note_service.quick_note(session, "notiz: Idee für Compass #projekte #ideen #Ideen")
+    note = note_service.quick_note(session, "notiz: Idee für Compass #projects #ideen #Ideen")
     assert note.title == "Idee für Compass"
-    assert note.area.slug == "projekte"
+    assert note.area.slug == "projects"
     assert note.tags == ["ideen"]
     assert note.body == ""
 
@@ -151,9 +151,9 @@ async def test_mcp_notes(mcp_client, session):
     assert empty["notes"] == [] and "No context notes" in empty["note"]
 
     note = await call(
-        mcp_client, "add_note", title="Compass Ideen", body="- Tagesnotiz", area="projekte"
+        mcp_client, "add_note", title="Compass Ideen", body="- Tagesnotiz", area="projects"
     )
-    assert note["source"] == "claude" and note["area"] == "projekte"
+    assert note["source"] == "claude" and note["area"] == "projects"
     await call(mcp_client, "append_note", note_id=note["id"], text="- Korrelationen")
     found = await call(mcp_client, "search_notes", query="korrelation")
     assert [n["title"] for n in found["notes"]] == ["Compass Ideen"]

@@ -111,7 +111,7 @@ function HeartRateDay({ today }: { today: string }) {
   }
   const nav = 'rounded-md border border-rule px-2.5 py-1 text-sm text-muted hover:border-ink hover:text-ink disabled:opacity-30'
   return (
-    <section id="puls" className="scroll-mt-6">
+    <section id="heart-rate" className="scroll-mt-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionLabel>{t('hr.title')}</SectionLabel>
         <div className="flex items-center gap-1.5">

@@ -8,6 +8,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.i18n import t
 from app.mail.triage import TriageResult
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
@@ -29,7 +30,6 @@ def sender(e: Email) -> str:
 
 
 PRIORITY_RANK = {"low": 0, "normal": 1, "high": 2}
-INSTRUCTIONS_WARNING = "Achtung: Die Mail enthält Anweisungen an KI-Assistenten."
 
 
 def apply_triage(e: Email, result: TriageResult, by: str) -> None:
@@ -41,7 +41,7 @@ def apply_triage(e: Email, result: TriageResult, by: str) -> None:
         priority = "normal"
     summary = result.summary or ""
     if result.contains_ai_instructions:
-        summary = f"{INSTRUCTIONS_WARNING} {summary}".strip()
+        summary = f"{t('mail.ai_warning')} {summary}".strip()
     e.priority = priority
     e.needs_action = result.needs_action
     e.category = result.category

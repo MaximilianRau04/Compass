@@ -9,6 +9,7 @@ from statistics import mean
 from sqlalchemy import Integer, and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from app import i18n
 from app.config import get_settings
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.training import TrainingSession
@@ -65,38 +66,6 @@ EXERCISE_TYPES = {
     79: "walking",
     81: "weightlifting",
     83: "yoga",
-}
-ACTIVITY_NAMES = {
-    "rock_climbing": "Klettern",
-    "running": "Laufen",
-    "running_treadmill": "Laufband",
-    "walking": "Gehen",
-    "hiking": "Wandern",
-    "biking": "Radfahren",
-    "biking_stationary": "Ergometer",
-    "swimming_pool": "Schwimmen",
-    "swimming_open_water": "Freiwasserschwimmen",
-    "elliptical": "Crosstrainer",
-    "rowing_machine": "Rudergerät",
-    "stair_climbing_machine": "Stepper",
-    "stretching": "Dehnen",
-    "yoga": "Yoga",
-    "pilates": "Pilates",
-    "soccer": "Fußball",
-    "basketball": "Basketball",
-    "volleyball": "Volleyball",
-    "badminton": "Badminton",
-    "tennis": "Tennis",
-    "table_tennis": "Tischtennis",
-    "boxing": "Boxen",
-    "squash": "Squash",
-    "rowing": "Rudern",
-    "martial_arts": "Kampfsport",
-    "dancing": "Tanzen",
-    "strength_training": "Krafttraining",
-    "weightlifting": "Gewichtheben",
-    "calisthenics": "Calisthenics",
-    "hiit": "HIIT",
 }
 
 
@@ -326,7 +295,7 @@ def watch_session_name(record: HealthRecord) -> str:
     data = record.raw.get("data") or {}
     title = (data.get("title") or "").strip()
     activity = _activity(record) or ""
-    return (title or ACTIVITY_NAMES.get(activity) or activity.replace("_", " ") or "Training")[:120]
+    return (title or i18n.activity(activity) or activity.replace("_", " ") or "Training")[:120]
 
 
 def match_watch_sessions(session: Session, first: date, last: date) -> int:

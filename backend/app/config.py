@@ -27,6 +27,9 @@ class Settings(BaseSettings):
 
     timezone: str = "Europe/Berlin"
     log_level: str = "INFO"
+    # Language of the texts the server writes itself (push notifications, the weekly review, mail
+    # summaries, the MCP prompts): "en" or "de". The web app follows the browser instead.
+    compass_language: str = "en"
 
     # MCP server and its built-in OAuth server. The public URL is what Claude connects to;
     # the MCP endpoint is <public url>/mcp.
@@ -107,7 +110,7 @@ class Settings(BaseSettings):
     )
     # Bank accounts through Enable Banking (PSD2). The app id and its private key (the PEM file,
     # base64 encoded on one line) come from the Enable Banking control panel; the redirect URL is
-    # Compass' /finanzen page and must be registered for the app there. Empty disables it.
+    # Compass' /finance page and must be registered for the app there. Empty disables it.
     enablebanking_app_id: str = ""
     enablebanking_private_key: str = ""
     enablebanking_redirect_url: str = ""
@@ -213,6 +216,10 @@ class Settings(BaseSettings):
                 raise ValueError('CALENDAR_ICS_FEEDS: "ilias" is reserved, use ILIAS_ICS_URL')
             feeds[name.lower()] = url
         return feeds
+
+    @property
+    def language(self) -> str:
+        return "de" if self.compass_language.strip().lower().startswith("de") else "en"
 
     @property
     def database_url(self) -> str:

@@ -452,7 +452,7 @@ def test_instructions_to_an_ai_are_flagged_without_trusting_the_model(session, a
     )
     mail_service.apply_triage(row, flagged, "local")
     assert row.priority == "normal"
-    assert row.summary == "Achtung: Die Mail enthält Anweisungen an KI-Assistenten. Alles ok."
+    assert row.summary == "Warning: this mail contains instructions to AI assistants. Alles ok."
     # A deadline the rules found in the subject cannot be talked down to low either.
     mail_service.apply_triage(deadline, obeyed, "local")
     assert deadline.priority == "normal"

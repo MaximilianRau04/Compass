@@ -23,7 +23,7 @@ Müll rausbringen jeden Montag #privat
 | `!`, `!!`, `!!!`, `!hoch`/`!high`, `!dringend`/`!urgent`, `!niedrig`/`!low` | priority |
 | `täglich`/`daily`, `werktags`/`weekdays`, `jeden Montag`/`every monday`, `alle 2 wochen`/`every 2 weeks`, `monatlich`/`monthly` | recurrence |
 
-The interface is available in German and English (switch in the navigation). On Android, links and text can be shared into Compass from any app once the PWA is installed.
+The interface is available in German and English (switch in the navigation). Texts the server writes itself (push notifications, the weekly review, mail summaries, MCP prompts) follow `COMPASS_LANGUAGE` (`en` or `de`). On Android, links and text can be shared into Compass from any app once the PWA is installed.
 
 ## Structure
 

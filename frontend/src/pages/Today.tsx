@@ -200,7 +200,7 @@ export function TodayPage() {
 
         <div className="space-y-8 lg:col-start-1 lg:row-span-2 lg:row-start-1">
           <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 px-3 sm:static sm:px-0">
-            <QuickAdd today={today} autoFocus={params.get('neu') === '1'} />
+            <QuickAdd today={today} autoFocus={params.get('new') === '1' || params.get('neu') === '1'} />
           </div>
 
           <Bedtime />

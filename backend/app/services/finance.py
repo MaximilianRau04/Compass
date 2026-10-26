@@ -9,7 +9,7 @@ securities account (entered by hand).
 - Categories: the user's rules first, then the built-in ones; a match on counterparty or purpose
   sets the category. Money in without a match is income. Claude sorts the rest (MCP).
 - Months: spending is the money out in spending categories (refunds in the same category count
-  against it); "sparen" (to the securities account) and "umbuchung" (own accounts) are not
+  against it); "savings" (to the securities account) and "transfer" (own accounts) are not
   spending.
 """
 
@@ -41,81 +41,81 @@ from app.services.clock import local_today, utc_now
 log = logging.getLogger("compass.finance")
 
 SPENDING = (
-    "wohnen",
-    "lebensmittel",
-    "essen",
-    "mobilitaet",
-    "abos",
-    "versicherung",
-    "gesundheit",
+    "housing",
+    "groceries",
+    "eating_out",
+    "transport",
+    "subscriptions",
+    "insurance",
+    "health",
     "sport",
     "shopping",
-    "freizeit",
-    "bildung",
-    "bargeld",
-    "gebuehren",
-    "sonstiges",
+    "leisure",
+    "education",
+    "cash",
+    "fees",
+    "other",
 )
-CATEGORIES = (*SPENDING, "einkommen", "sparen", "umbuchung")
+CATEGORIES = (*SPENDING, "income", "savings", "transfer")
 
 # Lowercase substrings of counterparty or purpose. The user's rules (FinanceRule) come first.
 DEFAULT_RULES: tuple[tuple[str, str], ...] = (
-    ("trade republic", "sparen"),
-    ("miete", "wohnen"),
-    ("stadtwerke", "wohnen"),
-    ("rundfunk", "wohnen"),
-    ("rewe", "lebensmittel"),
-    ("edeka", "lebensmittel"),
-    ("aldi", "lebensmittel"),
-    ("lidl", "lebensmittel"),
-    ("netto", "lebensmittel"),
-    ("penny", "lebensmittel"),
-    ("kaufland", "lebensmittel"),
-    ("dm-drogerie", "lebensmittel"),
-    ("dm drogerie", "lebensmittel"),
-    ("rossmann", "lebensmittel"),
-    ("lieferando", "essen"),
-    ("wolt", "essen"),
-    ("uber eats", "essen"),
-    ("mcdonald", "essen"),
-    ("burger king", "essen"),
-    ("mensa", "essen"),
-    ("studierendenwerk", "essen"),
-    ("deutsche bahn", "mobilitaet"),
-    ("db vertrieb", "mobilitaet"),
-    ("flixbus", "mobilitaet"),
-    ("aral", "mobilitaet"),
-    ("shell", "mobilitaet"),
-    ("esso", "mobilitaet"),
-    ("tankstelle", "mobilitaet"),
-    ("spotify", "abos"),
-    ("netflix", "abos"),
-    ("disney plus", "abos"),
-    ("youtube", "abos"),
-    ("apple.com", "abos"),
-    ("google play", "abos"),
-    ("anthropic", "abos"),
-    ("openai", "abos"),
-    ("github", "abos"),
-    ("hetzner", "abos"),
-    ("versicherung", "versicherung"),
-    ("allianz", "versicherung"),
-    ("huk-coburg", "versicherung"),
-    ("apotheke", "gesundheit"),
+    ("trade republic", "savings"),
+    ("miete", "housing"),
+    ("stadtwerke", "housing"),
+    ("rundfunk", "housing"),
+    ("rewe", "groceries"),
+    ("edeka", "groceries"),
+    ("aldi", "groceries"),
+    ("lidl", "groceries"),
+    ("netto", "groceries"),
+    ("penny", "groceries"),
+    ("kaufland", "groceries"),
+    ("dm-drogerie", "groceries"),
+    ("dm drogerie", "groceries"),
+    ("rossmann", "groceries"),
+    ("lieferando", "eating_out"),
+    ("wolt", "eating_out"),
+    ("uber eats", "eating_out"),
+    ("mcdonald", "eating_out"),
+    ("burger king", "eating_out"),
+    ("mensa", "eating_out"),
+    ("studierendenwerk", "eating_out"),
+    ("deutsche bahn", "transport"),
+    ("db vertrieb", "transport"),
+    ("flixbus", "transport"),
+    ("aral", "transport"),
+    ("shell", "transport"),
+    ("esso", "transport"),
+    ("tankstelle", "transport"),
+    ("spotify", "subscriptions"),
+    ("netflix", "subscriptions"),
+    ("disney plus", "subscriptions"),
+    ("youtube", "subscriptions"),
+    ("apple.com", "subscriptions"),
+    ("google play", "subscriptions"),
+    ("anthropic", "subscriptions"),
+    ("openai", "subscriptions"),
+    ("github", "subscriptions"),
+    ("hetzner", "subscriptions"),
+    ("versicherung", "insurance"),
+    ("allianz", "insurance"),
+    ("huk-coburg", "insurance"),
+    ("apotheke", "health"),
     ("mcfit", "sport"),
     ("fitx", "sport"),
     ("urban sports", "sport"),
     ("amazon", "shopping"),
     ("zalando", "shopping"),
     ("decathlon", "shopping"),
-    ("geldautomat", "bargeld"),
-    ("bargeldauszahlung", "bargeld"),
-    ("kontoführung", "gebuehren"),
-    ("entgelt", "gebuehren"),
-    ("lohn", "einkommen"),
-    ("gehalt", "einkommen"),
-    ("bezüge", "einkommen"),
-    ("bafög", "einkommen"),
+    ("geldautomat", "cash"),
+    ("bargeldauszahlung", "cash"),
+    ("kontoführung", "fees"),
+    ("entgelt", "fees"),
+    ("lohn", "income"),
+    ("gehalt", "income"),
+    ("bezüge", "income"),
+    ("bafög", "income"),
 )
 
 # Each sync starts this far before the newest booking it already has.
@@ -343,7 +343,7 @@ def categorize(t: BankTransaction, rules: list[tuple[str, str]]) -> str | None:
     for pattern, category in rules:
         if pattern in text:
             return category
-    return "einkommen" if t.amount > 0 else None
+    return "income" if t.amount > 0 else None
 
 
 def set_category(
@@ -510,15 +510,15 @@ def months(session: Session, n: int = 6, today: date | None = None) -> list[Mont
         if m is None:
             continue
         amount = float(t.amount)
-        if t.category == "umbuchung":
+        if t.category == "transfer":
             continue
-        if t.category == "sparen":
+        if t.category == "savings":
             m.saved -= amount
-        elif t.category == "einkommen":
+        elif t.category == "income":
             m.income += amount
         elif t.category in SPENDING or (t.category is None and amount < 0):
             m.spending -= amount
-            m.by_category[t.category or "unsortiert"] -= amount
+            m.by_category[t.category or "uncategorized"] -= amount
             if t.category is None:
                 m.uncategorized += 1
     out = []
@@ -548,7 +548,7 @@ def recurring(session: Session, today: date | None = None) -> list[Recurring]:
             BankTransaction.booking_date >= today - timedelta(days=400),
         )
     ):
-        if t.category in ("umbuchung", "sparen"):
+        if t.category in ("transfer", "savings"):
             continue
         party = _norm(t.counterparty)
         # PayPal pays everybody: the merchant is in the purpose.
@@ -593,7 +593,7 @@ def overview(session: Session, n: int = 6, today: date | None = None) -> Overvie
     today = today or local_today()
     invested = session.scalar(
         select(func.coalesce(func.sum(BankTransaction.amount), 0)).where(
-            BankTransaction.category == "sparen"
+            BankTransaction.category == "savings"
         )
     )
     return Overview(
