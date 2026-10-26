@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from app.ingestion import calendar
 from app.models.health import DailyMetrics
@@ -17,7 +17,9 @@ def sleep(id, wake_day, bed_day_offset, bed, wake):
 
 
 def test_bedtimes_around_midnight_and_short_and_early_nights(session):
-    d = lambda n: TODAY - timedelta(days=n)  # noqa: E731
+    # A fixed week in June: a night across a clock change would last 7 or 9 hours.
+    today = date(2026, 6, 18)
+    d = lambda n: today - timedelta(days=n)  # noqa: E731
     ingest(
         session,
         [
@@ -26,8 +28,8 @@ def test_bedtimes_around_midnight_and_short_and_early_nights(session):
             sleep("n3", d(1), 0, "00:00", "08:00"),  # 8 h
         ],
     )
-    calendar.sync_feed(session, "campus", ics(vevent("l", "Vorlesung", stamp(d(2), "0800"))), TODAY)
-    c = analysis.sleep_consistency(session, 7)
+    calendar.sync_feed(session, "campus", ics(vevent("l", "Vorlesung", stamp(d(2), "0800"))), today)
+    c = analysis.sleep_consistency(session, 7, today)
     assert (c.nights, c.median_bedtime, c.median_wake_time) == (3, "00:00", "07:30")
     assert c.bedtime_sd_minutes == 24  # 23:30, 00:00, 00:30 counted from noon: -30, 0, +30
     assert c.short_nights == [d(2)]

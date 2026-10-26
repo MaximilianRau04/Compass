@@ -1,3 +1,4 @@
+import imaplib
 from contextlib import nullcontext
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -16,6 +17,9 @@ from app.models.tasks import Task
 
 UTC = ZoneInfo("UTC")
 TOKEN = "mail-triage-token-123"
+# The fake mailbox delivers every mail as received yesterday, so the day windows of the API and
+# the MCP tools (7 or 14 days) always include it.
+INTERNALDATE = imaplib.Time2Internaldate(datetime.now(UTC) - timedelta(days=1)).strip('"').encode()
 
 
 def raw_mail(
@@ -81,9 +85,7 @@ class FakeMailbox:
             header_part = raw.split(b"\n\n", 1)[0] + b"\n\n"
             flags = b"\\Seen" if seen else b""
             out.append(
-                imap.parse_header(
-                    self.folder, uidvalidity, uid, flags, b"19-Oct-2026 09:30:00 +0200", header_part
-                )
+                imap.parse_header(self.folder, uidvalidity, uid, flags, INTERNALDATE, header_part)
             )
         return out
 
