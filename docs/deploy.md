@@ -85,14 +85,23 @@ Set these values in `.env`. The IMAP entries can stay empty for now.
 | `POSTGRES_PASSWORD` | output of `openssl rand -base64 32 \| tr -d '/+='` |
 | `COMPASS_BASIC_AUTH_USER` | your login name |
 | `COMPASS_BASIC_AUTH_HASH` | output of `make password-hash` |
+| `COMPASS_REGISTRY` | `ghcr.io/<owner>` in lowercase, where CI pushes the images |
 | `COMPASS_LANGUAGE` | `en` (default) or `de`: language of push notifications, the weekly review, mail summaries and the MCP prompts |
 | `TIMEZONE` | your time zone, default `Europe/Berlin` |
 
 Keep the defaults `COMPASS_HTTP_PORT=127.0.0.1:8080`, `COMPASS_SITE_ADDRESS=:80` and `COMPASS_TLS_MODE=off`.
 
-If there is no proxy in front and Compass's Caddy should terminate TLS itself, set `COMPASS_TLS_MODE=netcup`
-(Let's Encrypt through the netcup DNS challenge, fill in the `NETCUP_*` values), use the domain as
-`COMPASS_SITE_ADDRESS` and publish port 443 on the VPN address in your own compose override.
+If there is no proxy in front, Compass's Caddy can terminate TLS itself. Use the domain as
+`COMPASS_SITE_ADDRESS` and publish ports 80 and 443 in your own compose override. Then:
+
+- **Server reachable from the internet:** keep `COMPASS_TLS_MODE=off`. With a domain as site address,
+  Caddy gets a Let's Encrypt certificate on its own through the HTTP challenge.
+- **Server only reachable in the VPN:** Let's Encrypt cannot reach it, so the certificate has to come
+  through a DNS challenge. The image has the module for netcup DNS built in: set `COMPASS_TLS_MODE=netcup`
+  and fill in the `NETCUP_*` values. For another DNS provider, add its
+  [caddy-dns](https://github.com/caddy-dns) module to the `xcaddy build` line in `frontend/Dockerfile` and
+  a `(tls-<provider>)` snippet next to `(tls-netcup)` in `infra/caddy/Caddyfile`, then set
+  `COMPASS_TLS_MODE=<provider>`.
 
 ### Restricting the dashboard
 

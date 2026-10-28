@@ -1,7 +1,47 @@
 # Compass
 
-Personal productivity and life dashboard: tasks, deadlines, training, sleep, nutrition,
-mail, news and notes, with its own MCP server for Claude.
+A self-hosted dashboard for one person: tasks and deadlines, calendars, training, sleep, nutrition,
+body measurements, mail, news, notes and bank accounts, with its own MCP server so Claude can read and
+maintain all of it.
+
+Compass was built for its author's own setup (a German university with ILIAS, a Zepp watch, Gym Day,
+MyFitnessPal). Everything except tasks, calendars and notes is optional and stays off until you
+configure it.
+
+## Features
+
+- **Tasks:** one-line quick add in German or English (dates, planned days, times, areas, priorities,
+  recurrence), list and board view, areas and tags.
+- **Calendar:** read-only ICS feeds (Google, Outlook, university calendars) in a week, month and agenda
+  view. Deadlines from an ILIAS calendar become tasks.
+- **Today:** events, due and planned tasks, important mails, the daily brief and live health tiles.
+- **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
+  from the phone.
+- **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
+  Connect, plus the latest bedtime before the next day's first appointment.
+- **Training:** strength training log with double progression, imports from Gym Day, volume and
+  progression per exercise.
+- **Nutrition and body:** meals from MyFitnessPal (through Health Connect or its export), goals, weight
+  and waist trends, and a weekly review with a calorie recommendation by fixed rules.
+- **Mail:** read-only IMAP for up to three accounts, triaged by Claude Haiku or a local Ollama model.
+- **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
+- **Finance:** bank accounts through Enable Banking (EU/EEA), categories, budgets and recurring payments.
+- **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access.
+- **MCP server** for Claude with OAuth: Claude can read everything above, plan your week and write
+  briefs that show up on the dashboard.
+
+## Integrations
+
+| Integration | Needs | Off when |
+|---|---|---|
+| Calendars | ICS links (`ILIAS_ICS_URL`, `CALENDAR_ICS_FEEDS`) | no links set |
+| Health, sleep, nutrition | the Android bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
+| Training import | a Gym Day CSV export, uploaded or shared from the phone | not used |
+| Mail | IMAP accounts; `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
+| News | RSS feeds (`NEWS_FEEDS`, a small default list otherwise) | `NEWS_FEEDS` empty |
+| Finance | an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
+| Push | a VAPID key pair (`make vapid-keys`) | no keys set |
+| Claude | the MCP server, see [docs/deploy.md](docs/deploy.md); routines in [docs/routines.md](docs/routines.md) | not connected |
 
 ## Quick add
 
@@ -10,8 +50,8 @@ Tasks can be captured in one line. German and English keywords both work:
 ```
 morgen 14 Uhr Blatt 3 abgeben #uni !hoch
 tomorrow 2pm hand in sheet 3 #uni !high
-Bericht schreiben @montag bis 30.10. #arbeit
-Müll rausbringen jeden Montag #privat
+Bericht schreiben @montag bis 30.10. #work
+Müll rausbringen jeden Montag #personal
 ```
 
 | Syntax | Meaning |
@@ -37,12 +77,18 @@ The interface is available in German and English (switch in the navigation). Tex
 
 ## Setup
 
+The smallest setup (tasks, calendars, notes) needs Docker and three values in `.env`:
+
 ```bash
-cp .env.example .env    # fill in values, at least POSTGRES_PASSWORD
+cp .env.example .env
+# POSTGRES_PASSWORD:       any long random string
+# COMPASS_BASIC_AUTH_USER: your login name
+# COMPASS_BASIC_AUTH_HASH: output of `make password-hash`
 make up                 # build and start everything in Docker
 ```
 
 The app is then available at http://localhost:8080, the API docs at http://localhost:8080/api/docs.
+Add calendars and the other integrations in `.env` when you want them; `make up` again applies them.
 
 ## Development
 
@@ -125,17 +171,34 @@ or delete; read mails stay unread. With it, the Compass prompt `sort_mails` lets
 on demand (`mails_to_triage`, `save_mail_triage`) without an API key:
 
 ```bash
-claude mcp add --scope user uni-mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
+claude mcp add --scope user compass-mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
 ```
 
 ## MCP server
 
 Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
-built-in login. Tools: `get_today`, `list_tasks`, `get_deadlines`, `get_task`, `list_areas`,
-`get_calendar`, `training_summary`, `exercise_progress`, `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `list_important_mails`, `add_task`, `quick_add`, `update_task`,
-`complete_task`; prompts: `daily_brief`, `weekly_review`.
+built-in login.
+
+| Area | Tools |
+|---|---|
+| Tasks | `get_today`, `get_deadlines`, `list_tasks`, `get_task`, `list_areas`, `add_task`, `quick_add`, `update_task`, `complete_task` |
+| Calendar | `get_calendar` |
+| Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
+| Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
+| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review` |
+| Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage` |
+| News | `get_news_digest`, `feedback_news` |
+| Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `set_budget`, `log_depot_value` |
+| Dashboard | `save_brief`, `get_brief`, `send_notification` |
+
+Prompts: `daily_brief`, `news_report`, `sort_mails`, `weekly_review`.
+
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 
 ## Deployment
 
 See [docs/deploy.md](docs/deploy.md): server setup behind a reverse proxy and a VPN, login, MCP and backups.
+
+## License
+
+[MIT](LICENSE)

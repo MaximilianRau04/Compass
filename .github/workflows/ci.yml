@@ -79,10 +79,10 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      REGISTRY: ghcr.io/maximilianrau04
     steps:
       - uses: actions/checkout@v4
+      # GHCR names must be lowercase, the owner often is not.
+      - run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v3
       # Images are only published from main; the server pulls them instead of building.
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'

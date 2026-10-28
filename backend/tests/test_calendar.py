@@ -162,7 +162,8 @@ def test_sync_all_records_failure_without_leaking_the_url(session, monkeypatch):
 # --- ILIAS deadlines -------------------------------------------------------------------------
 
 
-def test_ilias_deadlines_become_tasks(session):
+def test_ilias_deadlines_become_tasks(session, monkeypatch):
+    monkeypatch.setattr(get_settings(), "ilias_deadline_area", "uni")
     feed = ics(
         lecture(),
         deadline("ex-1", "Blatt 3", TODAY + timedelta(days=3), extra="DESCRIPTION:Kurs: TI II"),
@@ -304,7 +305,8 @@ def test_a_new_export_timestamp_is_not_a_change(session):
     assert again["updated"] == 0
 
 
-def test_events_take_the_area_of_their_calendar(client, session):
+def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
+    monkeypatch.setattr(get_settings(), "calendar_feed_areas", "campus=uni")
     today = local_today()
     calendar.sync_feed(
         session, "campus", ics(vevent("l", "Vorlesung", stamp(today, "1000"))), today

@@ -25,6 +25,9 @@ cd android
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
+In a fork, change `applicationId` in `app/build.gradle.kts` to a package name of your
+own. A different id installs as a separate app.
+
 The release APK is signed with the debug key of the machine that builds it. Android only installs an
 update over an existing install when the key is the same, so always build on the same machine (or copy
 `~/.android/debug.keystore`). CI builds and tests the app but does not publish an APK for that reason.

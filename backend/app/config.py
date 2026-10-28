@@ -49,11 +49,11 @@ class Settings(BaseSettings):
     calendar_sync_minutes: int = 30
     # Area per calendar (space separated feed=area slug): its events get that area's colour and
     # follow the area filter. Calendars without an entry have no area.
-    calendar_feed_areas: str = "ilias=uni campus=uni"
+    calendar_feed_areas: str = ""
     # ILIAS marks exercise deadlines with this suffix in the title (German and English UI).
     ilias_deadline_suffixes: str = "(Abgabetermin),(Deadline)"
     # Area for new ILIAS deadline tasks (slug); empty or unknown means no area.
-    ilias_deadline_area: str = "uni"
+    ilias_deadline_area: str = ""
 
     # Health Connect bridge app on the phone. It sends this token as a bearer token to
     # /api/ingest/healthconnect, which is not behind the basic auth. Empty disables the endpoint.
@@ -98,15 +98,9 @@ class Settings(BaseSettings):
     # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
     # General items are shown as they come; personal ones are ranked by the interest profile.
     news_feeds: str = (
-        "general:tagesschau=https://www.tagesschau.de/index~rss2.xml "
-        "general:heise=https://www.heise.de/rss/heise-top-atom.xml "
+        "general:bbc=https://feeds.bbci.co.uk/news/world/rss.xml "
         "personal:hn=https://hnrss.org/frontpage?points=100 "
-        "personal:lobsters=https://lobste.rs/rss "
-        "personal:simonw=https://simonwillison.net/atom/everything/ "
-        "personal:localllama=https://www.reddit.com/r/LocalLLaMA/top/.rss?t=day "
-        "personal:golem=https://www.golem.de/rss.php?feed=ATOM1.0 "
-        "personal:bleeping=https://www.bleepingcomputer.com/feed/ "
-        "personal:thehackernews=https://feeds.feedburner.com/TheHackersNews"
+        "personal:lobsters=https://lobste.rs/rss"
     )
     # Bank accounts through Enable Banking (PSD2). The app id and its private key (the PEM file,
     # base64 encoded on one line) come from the Enable Banking control panel; the redirect URL is

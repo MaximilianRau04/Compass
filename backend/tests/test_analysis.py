@@ -62,7 +62,7 @@ def test_zone2_minutes_cap_gaps(session):
     ingest(
         session, [record("hr", "heart_rate", start, start + timedelta(minutes=61), samples=samples)]
     )
-    # HRmax 178: zone 2 is 107-125. 115, 120 count a minute each; 118 at 04:00 counts 5 minutes
+    # HRmax 190: zone 2 is 114-133. 115, 120 count a minute each; 118 at 04:00 counts 5 minutes
     # (the gap to the next sample is capped), 118 at 01:00 later counts to the week's end, capped.
     weeks = analysis.zone2_weeks(session, 1)
     assert weeks[-1].minutes == 12

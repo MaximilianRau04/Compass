@@ -5,7 +5,12 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
-REGISTRY="${COMPASS_REGISTRY:-ghcr.io/maximilianrau04}"
+# Where CI pushes the images, from the environment or else from .env (like Compose reads it).
+REGISTRY="${COMPASS_REGISTRY:-$(sed -n 's/^COMPASS_REGISTRY=//p' .env | tail -n 1)}"
+if [[ -z "$REGISTRY" ]]; then
+  echo "COMPASS_REGISTRY missing in .env, e.g. ghcr.io/<github user>" >&2
+  exit 1
+fi
 BRANCH="${COMPASS_DEPLOY_BRANCH:-main}"
 COMPOSE=(docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.prod.yml)
 

@@ -3,11 +3,11 @@
 - Bed and wake times: median and standard deviation. Bed times are counted from noon, so 23:30
   and 00:30 are an hour apart and not 23 hours.
 - Short nights: asleep under SHORT_NIGHT minutes. Early nights: the night before a day whose first
-  timed calendar event starts before EARLY_EVENT. Events at 00:00 without a duration (e.g. the
-  campus feed's block courses) mark a date, not an appointment, and do not count.
+  timed calendar event starts before EARLY_EVENT. Events at 00:00 without a duration (e.g. block
+  courses in a university calendar) mark a date, not an appointment, and do not count.
 - Resting heart rate: a 7-day mean per day and a warning when the latest 7-day mean is at least
   RESTING_ALERT bpm above the median of the period (often illness, stress or too little recovery).
-- Zone 2: 60 to 70 % of the maximum heart rate (goal hr_max, default 178). Each heart rate sample
+- Zone 2: 60 to 70 % of the maximum heart rate (goal hr_max, default 190). Each heart rate sample
   counts until the next one, at most MAX_SAMPLE_GAP, so a watch taken off does not count.
 """
 
@@ -28,7 +28,8 @@ from app.services.health import _record_window, _session_window, main_nights
 SHORT_NIGHT = 7 * 60
 EARLY_EVENT = time(10, 0)
 RESTING_ALERT = 5
-DEFAULT_HR_MAX = 178
+# 220 minus an age of 30; set the goal hr_max to your own value.
+DEFAULT_HR_MAX = 190
 ZONE2 = (0.60, 0.70)
 MAX_SAMPLE_GAP = timedelta(minutes=5)
 
