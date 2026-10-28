@@ -42,7 +42,10 @@ migration: db  ## New migration: make migration m="description"
 	cd backend && uv run alembic revision --autogenerate -m "$(m)"
 
 deploy:        ## Server: pull the CI images and restart (no local build)
-	git pull --ff-only
+	# Like auto-deploy.sh: fetch and merge the remote branch, git pull trips over a FETCH_HEAD
+	# that lists main twice ("Cannot fast-forward to multiple branches").
+	git fetch --quiet origin main
+	git merge --ff-only --quiet origin/main
 	$(COMPOSE_PROD) pull
 	$(COMPOSE_PROD) up -d --no-build --remove-orphans
 	docker image prune -f
