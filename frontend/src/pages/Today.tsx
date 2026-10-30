@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 
 import { useMailOverview } from '../api/mail'
 import { useBriefs, useNewsOverview, useTodayBrief } from '../api/news'
 import { useNutritionSummary } from '../api/nutrition'
+import { useSetup } from '../api/setup'
 import { useBedtime, useDayHeartRate, useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
 import { useTrainingSummary } from '../api/training'
@@ -161,9 +162,11 @@ export function TodayPage() {
   const brief = useTodayBrief()
   const briefs = useBriefs()
   const news = useNewsOverview()
+  const setup = useSetup()
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
 
+  if (setup.data?.first_run) return <Navigate to="/welcome" replace />
   if (error) return <p className="text-signal">{t('common.apiUnreachable', { message: error.message })}</p>
   if (isPending) return <p className="font-mono text-sm text-muted">{t('common.loading')}</p>
 

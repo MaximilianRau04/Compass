@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or support for another app
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Compass runs for one person per instance and keeps every integration optional. Ideas that
+        fit that are the most likely to make it in.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: The problem or use case, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could it work?
+  - type: textarea
+    id: format
+    attributes:
+      label: Data format
+      description: |
+        For another app: a few lines of its export with made-up values, including the header row.
+      render: text
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Help
+      options:
+        - label: I would like to work on this myself

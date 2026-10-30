@@ -22,6 +22,7 @@ import { SleepPage } from './pages/Sleep'
 import { TasksPage } from './pages/Tasks'
 import { TodayPage } from './pages/Today'
 import { TrainingPage } from './pages/Training'
+import { WelcomePage } from './pages/Welcome'
 import { WorkoutLogPage } from './pages/WorkoutLog'
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="finance" element={<FinancePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="share" element={<SharePage />} />
+            <Route path="welcome" element={<WelcomePage />} />
             {Object.entries(LEGACY_PATHS).map(([from, to]) => (
               <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
             ))}

@@ -45,6 +45,22 @@ export function useAreas() {
   return useQuery({ queryKey: keys.areas, queryFn: () => api<Area[]>('/areas'), staleTime: 5 * 60_000 })
 }
 
+export function useCreateArea() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { slug: string; name: string; color: string; sort_order: number }) => post<Area>('/areas', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.areas }),
+  })
+}
+
+export function useUpdateArea() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: number; name?: string; archived?: boolean }) => patch<Area>(`/areas/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.areas }),
+  })
+}
+
 export function useTaskEvents(id: number | null) {
   return useQuery({
     queryKey: keys.events(id ?? 0),

@@ -1,0 +1,57 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please keep private data out of this issue: no tokens, passwords or calendar links, and no real
+        mails, health data or bank transactions. Logs and screenshots are public here, so check them
+        first. Security problems do not belong here, see the link on the previous page.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Tasks or notes
+        - Calendar or deadlines
+        - Health or nutrition
+        - Training
+        - Mail
+        - News
+        - Finance
+        - Push notifications
+        - MCP server or Claude
+        - Android app
+        - Setup or deployment
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The commit or image tag you run.
+      placeholder: e.g. 195dc6f
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output, with secrets removed.
+      render: text

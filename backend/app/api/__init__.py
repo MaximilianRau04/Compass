@@ -12,6 +12,7 @@ from app.api import (
     notes,
     nutrition,
     push,
+    setup,
     sleep,
     tasks,
     training,
@@ -19,6 +20,7 @@ from app.api import (
 
 router = APIRouter(prefix="/api")
 router.include_router(health.router)
+router.include_router(setup.router)
 router.include_router(areas.router)
 router.include_router(tasks.router)
 router.include_router(calendar.router)

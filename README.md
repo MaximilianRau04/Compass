@@ -96,6 +96,7 @@ make up                 # build and start everything in Docker
 ```
 
 The app is then available at http://localhost:8080, the API docs at http://localhost:8080/api/docs.
+On the first start, a short welcome page lets you adjust the areas and shows which sources are set up.
 Add calendars and the other integrations in `.env` when you want them; `make up` again applies them.
 
 ## Development
@@ -224,6 +225,10 @@ There is no delete tool, cancelling a task is the undo, and every write is recor
 ## Deployment
 
 See [docs/deploy.md](docs/deploy.md): server setup behind a reverse proxy and a VPN, login, MCP and backups.
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
