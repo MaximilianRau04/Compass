@@ -1,7 +1,10 @@
+import os
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 
+from dotenv import dotenv_values
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,8 +19,34 @@ class MailAccount:
     triage: str
 
 
+ENV_FILES = ("../.env", ".env")
+# Hosts that are the same for everybody, so the variable can stay unset.
+KNOWN_IMAP_HOSTS = {"gmail": "imap.gmail.com"}
+
+
+def _pairs(value: str) -> dict[str, str]:
+    """Space separated key=value pairs, lowercase."""
+    out = {}
+    for pair in value.split():
+        key, sep, item = pair.partition("=")
+        if sep and key and item:
+            out[key.strip().lower()] = item.strip().lower()
+    return out
+
+
+def _variable(name: str, default: str = "") -> str:
+    """A variable whose name is not known in advance: the environment beats the .env files, like
+    for the fields of Settings."""
+    if name in os.environ:
+        return os.environ[name]
+    found = None
+    for path in ENV_FILES:
+        found = dotenv_values(path).get(name, found)
+    return default if found is None else found
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
+    model_config = SettingsConfigDict(env_file=ENV_FILES, extra="ignore")
 
     postgres_user: str = "compass"
     postgres_password: str = "compass"
@@ -42,17 +71,21 @@ class Settings(BaseSettings):
     compass_basic_auth_user: str = ""
     compass_basic_auth_hash: str = ""
 
-    # Calendar feeds (ICS). The ILIAS feed is special: its deadline entries become tasks.
+    # Calendar feeds (ICS). Entries of a deadline feed become tasks instead of events: the ILIAS
+    # feed by its suffixes below, any other feed by a pattern in calendar_deadlines.
     # Other feeds: space separated name=url pairs, e.g. "google=https://... uni=https://...".
     ilias_ics_url: str = ""
     calendar_ics_feeds: str = ""
     calendar_sync_minutes: int = 30
+    # Semicolon separated feed=regex: entries of that feed whose title matches become tasks, and the
+    # matching part is cut from the title, e.g. "moodle= is due$". Case does not matter.
+    calendar_deadlines: str = ""
     # Area per calendar (space separated feed=area slug): its events get that area's colour and
     # follow the area filter. Calendars without an entry have no area.
     calendar_feed_areas: str = ""
     # ILIAS marks exercise deadlines with this suffix in the title (German and English UI).
     ilias_deadline_suffixes: str = "(Abgabetermin),(Deadline)"
-    # Area for new ILIAS deadline tasks (slug); empty or unknown means no area.
+    # Area for new ILIAS deadline tasks (slug); empty means the area of the feed, unknown no area.
     ilias_deadline_area: str = ""
 
     # Health Connect bridge app on the phone. It sends this token as a bearer token to
@@ -62,30 +95,16 @@ class Settings(BaseSettings):
     # the sessions from the CSV export). Space separated package names.
     healthconnect_gymday_apps: str = "com.anthonyng.workoutapp"
 
-    # Mail accounts (IMAP, read-only). An account is active when host and user are set.
-    uni_imap_host: str = ""
-    uni_imap_port: int = 993
-    uni_imap_user: str = ""
-    uni_imap_password: str = ""
-    gmail_imap_host: str = "imap.gmail.com"
-    gmail_imap_port: int = 993
-    gmail_imap_user: str = ""
-    gmail_imap_password: str = ""
-    domain_imap_host: str = ""
-    domain_imap_port: int = 993
-    domain_imap_user: str = ""
-    domain_imap_password: str = ""
+    # Mail accounts (IMAP, read-only): their names, space or comma separated. Each name has its own
+    # variables, see mail_accounts. An account is active when host and user are set.
+    mail_account_names: str = Field("uni gmail domain", validation_alias="MAIL_ACCOUNTS")
+    # Area of tasks made from a mail, per account (space separated account=area slug).
+    mail_account_areas: str = ""
     # Space separated folders per account; Exchange also lists calendars etc. as folders.
     mail_folders: str = "INBOX"
     mail_sync_minutes: int = 15
     # The first sync of an account looks this far back.
     mail_lookback_days: int = 14
-    # Who summarises an account's mails: "claude" (Anthropic API, on the server), "local" (Ollama
-    # on the laptop, see app.mail.local_triage) or "rules" (no model, priority from headers only).
-    # Uni mails contain personal data of third parties, so they default to the local model.
-    mail_triage_uni: str = "local"
-    mail_triage_gmail: str = "claude"
-    mail_triage_domain: str = "claude"
     anthropic_api_key: str = ""
     mail_claude_model: str = "claude-haiku-4-5"
     # Laptop side of the local triage.
@@ -110,6 +129,10 @@ class Settings(BaseSettings):
     enablebanking_redirect_url: str = ""
     # Banks allow about 4 fetches a day without the user present.
     finance_sync_hours: int = 6
+    # The country Enable Banking lists banks of (ISO code).
+    finance_country: str = "DE"
+    # Built-in merchant rules by country, space separated (see app.services.finance).
+    finance_rule_sets: str = "de"
 
     # Web push (VAPID). Create the pair with: make vapid-keys. Empty disables push.
     vapid_public_key: str = ""
@@ -121,6 +144,15 @@ class Settings(BaseSettings):
     push_quiet_end: int = 8
     # The bedtime reminder comes this long before the latest bedtime.
     push_bedtime_lead_minutes: int = 30
+
+    # The latest bedtime: up this long before the first appointment, before that this much sleep
+    # and this long to fall asleep.
+    wake_buffer_minutes: int = 120
+    sleep_need_minutes: int = 450
+    fall_asleep_minutes: int = 30
+    # Zone 2 as a share of the maximum heart rate.
+    zone2_min_percent: int = 60
+    zone2_max_percent: int = 70
 
     news_sync_minutes: int = 60
     # Items older than this are removed; the learned profile keeps what their thumbs taught.
@@ -148,28 +180,40 @@ class Settings(BaseSettings):
 
     @property
     def mail_accounts(self) -> dict[str, "MailAccount"]:
-        """Configured accounts by name (uni, gmail, domain)."""
+        """Configured accounts by name. Each name in MAIL_ACCOUNTS has <NAME>_IMAP_HOST, _PORT,
+        _USER and _PASSWORD, and MAIL_TRIAGE_<NAME>. Without that, an account gets priorities from
+        its headers only: its mails may hold personal data of others, so sending them to a model is
+        a choice to make per account."""
         out = {}
-        for name in ("uni", "gmail", "domain"):
-            host = getattr(self, f"{name}_imap_host").strip()
-            user = getattr(self, f"{name}_imap_user").strip()
+        for name in re.split(r"[,\s]+", self.mail_account_names.strip().lower()):
+            if not name:
+                continue
+            if not re.fullmatch(r"[a-z0-9_]{1,20}", name):
+                raise ValueError(f"MAIL_ACCOUNTS: {name!r} is not a name (a-z, 0-9, _)")
+            prefix = name.upper()
+            host = _variable(f"{prefix}_IMAP_HOST", KNOWN_IMAP_HOSTS.get(name, "")).strip()
+            user = _variable(f"{prefix}_IMAP_USER").strip()
             if not host or not user:
                 continue
-            triage = getattr(self, f"mail_triage_{name}").strip().lower()
+            triage = _variable(f"MAIL_TRIAGE_{prefix}", "rules").strip().lower()
             if triage not in ("claude", "local", "rules"):
-                raise ValueError(f"MAIL_TRIAGE_{name.upper()}: use claude, local or rules")
+                raise ValueError(f"MAIL_TRIAGE_{prefix}: use claude, local or rules")
             if triage == "claude" and not self.anthropic_api_key:
                 triage = "rules"
             out[name] = MailAccount(
                 name=name,
                 host=host,
-                port=getattr(self, f"{name}_imap_port"),
+                port=int(_variable(f"{prefix}_IMAP_PORT", "993")),
                 user=user,
-                password=getattr(self, f"{name}_imap_password"),
+                password=_variable(f"{prefix}_IMAP_PASSWORD"),
                 folders=tuple(self.mail_folders.split()) or ("INBOX",),
                 triage=triage,
             )
         return out
+
+    @property
+    def mail_area_map(self) -> dict[str, str]:
+        return _pairs(self.mail_account_areas)
 
     @property
     def owner_password_hash(self) -> str:
@@ -186,11 +230,27 @@ class Settings(BaseSettings):
 
     @property
     def calendar_area_map(self) -> dict[str, str]:
+        return _pairs(self.calendar_feed_areas)
+
+    @property
+    def deadline_patterns(self) -> dict[str, re.Pattern]:
+        """Per feed, what marks an entry as a deadline."""
         out = {}
-        for pair in self.calendar_feed_areas.split():
-            feed, sep, area = pair.partition("=")
-            if sep and feed and area:
-                out[feed.strip().lower()] = area.strip().lower()
+        suffixes = [s.strip() for s in self.ilias_deadline_suffixes.split(",") if s.strip()]
+        if suffixes:
+            out["ilias"] = re.compile("(?:" + "|".join(map(re.escape, suffixes)) + r")\s*$")
+        for number, entry in enumerate(self.calendar_deadlines.split(";"), start=1):
+            if not entry.strip():
+                continue
+            feed, sep, pattern = entry.partition("=")
+            try:
+                if not sep or not feed.strip() or not pattern:
+                    raise re.error("no pattern")
+                out[feed.strip().lower()] = re.compile(pattern, re.IGNORECASE)
+            except re.error:
+                raise ValueError(
+                    f"CALENDAR_DEADLINES: entry {number} is not feed=regex (e.g. moodle= is due$)"
+                ) from None
         return out
 
     @property

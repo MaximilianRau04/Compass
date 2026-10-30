@@ -7,8 +7,9 @@
   courses in a university calendar) mark a date, not an appointment, and do not count.
 - Resting heart rate: a 7-day mean per day and a warning when the latest 7-day mean is at least
   RESTING_ALERT bpm above the median of the period (often illness, stress or too little recovery).
-- Zone 2: 60 to 70 % of the maximum heart rate (goal hr_max, default 190). Each heart rate sample
-  counts until the next one, at most MAX_SAMPLE_GAP, so a watch taken off does not count.
+- Zone 2: ZONE2_MIN_PERCENT to ZONE2_MAX_PERCENT of the maximum heart rate (goal hr_max, default
+  190). Each heart rate sample counts until the next one, at most MAX_SAMPLE_GAP, so a watch taken
+  off does not count.
 """
 
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from statistics import median, pstdev
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models.calendar import CalendarEvent
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.training import TrainingSession
@@ -30,7 +32,6 @@ EARLY_EVENT = time(10, 0)
 RESTING_ALERT = 5
 # 220 minus an age of 30; set the goal hr_max to your own value.
 DEFAULT_HR_MAX = 190
-ZONE2 = (0.60, 0.70)
 MAX_SAMPLE_GAP = timedelta(minutes=5)
 
 
@@ -187,7 +188,8 @@ def hr_max(session: Session, day: date | None = None) -> int:
 
 
 def zone2_bounds(maximum: int) -> tuple[int, int]:
-    return round(maximum * ZONE2[0]), round(maximum * ZONE2[1])
+    s = get_settings()
+    return round(maximum * s.zone2_min_percent / 100), round(maximum * s.zone2_max_percent / 100)
 
 
 def _samples(session: Session, start: datetime, end: datetime) -> list[tuple[datetime, int]]:
@@ -274,23 +276,19 @@ def zone2_weeks(session: Session, weeks: int = 8, today: date | None = None) -> 
 
 # --- Bedtime -----------------------------------------------------------------------------------
 
-WAKE_BEFORE = timedelta(hours=2)
-SLEEP_NEED = timedelta(hours=7, minutes=30)
-FALL_ASLEEP = timedelta(minutes=30)
-
 
 @dataclass
 class Bedtime:
     day: date  # the day the event is on
     first_event_at: datetime
     title: str
-    wake_at: datetime  # first event minus WAKE_BEFORE
-    latest_bedtime: datetime  # wake_at minus SLEEP_NEED minus FALL_ASLEEP
+    wake_at: datetime  # first event minus wake_buffer_minutes
+    latest_bedtime: datetime  # wake_at minus sleep_need_minutes minus fall_asleep_minutes
 
 
 def bedtime_for(session: Session, day: date) -> Bedtime | None:
-    """The latest bedtime before a day: up 2 h before its first appointment, before that 7.5 h of
-    sleep and 30 min to fall asleep. None when the day has no appointment."""
+    """The latest bedtime before a day, from its first appointment and the wake_buffer_minutes,
+    sleep_need_minutes and fall_asleep_minutes settings. None when the day has no appointment."""
     tz = local_tz()
     start = datetime.combine(day, time.min, tzinfo=tz)
     events = session.scalars(
@@ -306,5 +304,7 @@ def bedtime_for(session: Session, day: date) -> Bedtime | None:
     if event is None:
         return None
     first = event.starts_at.astimezone(tz)
-    wake = first - WAKE_BEFORE
-    return Bedtime(day, first, event.title, wake, wake - SLEEP_NEED - FALL_ASLEEP)
+    s = get_settings()
+    wake = first - timedelta(minutes=s.wake_buffer_minutes)
+    latest = wake - timedelta(minutes=s.sleep_need_minutes + s.fall_asleep_minutes)
+    return Bedtime(day, first, event.title, wake, latest)

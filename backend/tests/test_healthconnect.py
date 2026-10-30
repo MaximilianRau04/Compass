@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.ingestion import gymday, healthconnect
+from app.ingestion import healthconnect, workouts
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.nutrition import BodyWeight, NutritionMeal
 from app.models.training import TrainingSession
@@ -314,7 +314,7 @@ def test_gymday_duration_from_health_connect_either_order(session):
             )
         ],
     )
-    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:01:00"))
+    workouts.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:01:00"))
     training = session.scalar(select(TrainingSession))
     assert training.duration_minutes == 75
     assert training.health_record_id == "gd"
@@ -330,7 +330,7 @@ def test_gymday_duration_from_health_connect_either_order(session):
 
 def test_gymday_match_ignores_other_apps_and_far_sessions(session):
     day = local_today() - timedelta(days=1)
-    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    workouts.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
     ingest(
         session,
         [
@@ -387,7 +387,7 @@ def test_gymday_sessions_without_export_become_sessions_without_sets(client, ses
     assert placeholder.duration_minutes == 70
 
     # The CSV with the sets arrives later: it takes over, nothing is duplicated.
-    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    workouts.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
     [training] = session.scalars(select(TrainingSession)).all()
     assert (training.source, training.health_record_id, training.duration_minutes) == (
         "gymday",
@@ -493,7 +493,7 @@ def test_summary_endpoint(client, session):
 
 def test_zepp_workout_during_gymday_session_is_a_duplicate(session):
     day = local_today()
-    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    workouts.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
     ingest(session, [record("zepp", "exercise", at(day, "17:58"), at(day, "19:00"))])
     [workout] = health.workouts(session, day, day)
     assert workout.gymday_duplicate is True
@@ -602,7 +602,7 @@ def test_watch_workout_without_gymday_becomes_a_session(client, session):
 
 def test_watch_strength_workout_enriches_the_gymday_session(session):
     day = local_today() - timedelta(days=1)
-    gymday.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
+    workouts.import_csv(session, gymday_csv(f"{day:%Y-%m-%d} 18:00:00"))
     ingest(
         session,
         [

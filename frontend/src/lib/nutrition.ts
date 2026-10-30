@@ -11,7 +11,7 @@ export function mfpImportMessage(result: MfpImportResult, t: Translate): string 
   })
 }
 
-/** Whether a shared or picked file is a MyFitnessPal export rather than a Gym Day export: the
+/** Whether a shared or picked file is a MyFitnessPal export rather than a workout export: the
  * zip MFP mails, or a CSV with its German or English nutrition or weight header. */
 export async function isMfpExport(file: Blob): Promise<boolean> {
   const head = new Uint8Array(await file.slice(0, 400).arrayBuffer())

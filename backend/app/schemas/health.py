@@ -105,7 +105,7 @@ class WorkoutRead(BaseModel):
     duration_minutes: int
     title: str | None
     exercise: str | None
-    gymday_duplicate: bool = Field(description="Same time as a Gym Day session")
+    gymday_duplicate: bool = Field(description="Same time as a gym session")
 
 
 class HealthAverages(BaseModel):

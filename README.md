@@ -4,28 +4,36 @@ A self-hosted dashboard for one person: tasks and deadlines, calendars, training
 body measurements, mail, news, notes and bank accounts, with its own MCP server so Claude can read and
 maintain all of it.
 
-Compass was built for its author's own setup (a German university with ILIAS, a Zepp watch, Gym Day,
-MyFitnessPal). Everything except tasks, calendars and notes is optional and stays off until you
-configure it.
+Compass is built for **one person per instance**: there is one login and no user management. It grew
+out of its author's own setup, a German university with ILIAS, a watch and a few phone apps. Everything
+except tasks, calendars and notes is optional and stays off until you configure it.
+
+| | |
+|---|---|
+| ![Today page](docs/screenshots/today.png) | ![Calendar](docs/screenshots/calendar.png) |
+| ![Health page](docs/screenshots/sleep.png) | ![Finance page](docs/screenshots/finance.png) |
+
+The screenshots show made-up data.
 
 ## Features
 
 - **Tasks:** one-line quick add in German or English (dates, planned days, times, areas, priorities,
   recurrence), list and board view, areas and tags.
 - **Calendar:** read-only ICS feeds (Google, Outlook, university calendars) in a week, month and agenda
-  view. Deadlines from an ILIAS calendar become tasks.
+  view. Deadlines from a learning platform's calendar become tasks.
 - **Today:** events, due and planned tasks, important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
   Connect, plus the latest bedtime before the next day's first appointment.
-- **Training:** strength training log with double progression, imports from Gym Day, volume and
-  progression per exercise.
-- **Nutrition and body:** meals from MyFitnessPal (through Health Connect or its export), goals, weight
-  and waist trends, and a weekly review with a calorie recommendation by fixed rules.
-- **Mail:** read-only IMAP for up to three accounts, triaged by Claude Haiku or a local Ollama model.
+- **Training:** strength training log with double progression, imports from Gym Day, Strong and Hevy,
+  volume and progression per exercise.
+- **Nutrition and body:** meals from any app that writes to Health Connect, a MyFitnessPal export for
+  the past, goals, weight and waist trends, and a weekly review with a calorie recommendation by fixed rules.
+- **Mail:** read-only IMAP for any number of accounts, triaged by Claude Haiku or a local Ollama model.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
-- **Finance:** bank accounts through Enable Banking (EU/EEA), categories, budgets and recurring payments.
+- **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
+  banks in the EU and EEA, see the [note below](#finance).
 - **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access.
 - **MCP server** for Claude with OAuth: Claude can read everything above, plan your week and write
   briefs that show up on the dashboard.
@@ -34,12 +42,12 @@ configure it.
 
 | Integration | Needs | Off when |
 |---|---|---|
-| Calendars | ICS links (`ILIAS_ICS_URL`, `CALENDAR_ICS_FEEDS`) | no links set |
-| Health, sleep, nutrition | the Android bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
-| Training import | a Gym Day CSV export, uploaded or shared from the phone | not used |
-| Mail | IMAP accounts; `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
+| Calendars | ICS links (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
+| Health, sleep, nutrition | Android only: the bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
+| Training import | a CSV export of Gym Day, Strong or Hevy, uploaded or shared from the phone | not used |
+| Mail | IMAP accounts (`MAIL_ACCOUNTS`); `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
 | News | RSS feeds (`NEWS_FEEDS`, a small default list otherwise) | `NEWS_FEEDS` empty |
-| Finance | an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
+| Finance | a bank in the EU or EEA and an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
 | Push | a VAPID key pair (`make vapid-keys`) | no keys set |
 | Claude | the MCP server, see [docs/deploy.md](docs/deploy.md); routines in [docs/routines.md](docs/routines.md) | not connected |
 
@@ -104,44 +112,53 @@ make migration m="description"   # new Alembic migration
 
 Requirements: Docker, [uv](https://docs.astral.sh/uv/), Node 20+ and pnpm.
 
-## Calendars and ILIAS deadlines
+## Calendars and deadlines
 
-The worker fetches ICS calendars every 30 minutes (`ILIAS_ICS_URL`, `CALENDAR_ICS_FEEDS` in `.env`)
-and mirrors their events for the Today page and the calendar view of the Tasks tab. Entries of the
-ILIAS feed that end in "(Abgabetermin)" become tasks with `source=ilias` instead: a sync never
-duplicates them, only changes title and deadline (area, priority, planned day and status stay yours),
-and cancels a deadline that disappears instead of deleting it.
+The worker fetches ICS calendars every 30 minutes (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL` in `.env`) and
+mirrors their events for the Today page and the Calendar tab.
+
+Learning platforms put assignment deadlines into their calendar. Those entries become tasks instead of
+events: for ILIAS by the suffix "(Abgabetermin)" or "(Deadline)", for any other feed by a pattern on
+the title in `CALENDAR_DEADLINES` (see [docs/deploy.md](docs/deploy.md)). A sync never duplicates them,
+only changes title and deadline (area, priority, planned day and status stay yours), and cancels a
+deadline that disappears instead of deleting it.
 
 ## Training
 
-The Training tab imports the Gym Day strength export (`daily_strength.csv`), either uploaded there or
-shared from the phone (the installed PWA is a share target for CSV files). Importing the same or an
-overlapping export again changes nothing. It shows volume per week, the push/pull/legs split and the
-progression per exercise (estimated 1RM, top weight, reps). Exercises renamed in Gym Day can be merged
-so their progression continues in one line.
+Log a session in the Training tab, or import the CSV export of Gym Day (`daily_strength.csv`), Strong or
+Hevy, uploaded there or shared from the phone (the installed PWA is a share target for CSV files). The
+format is recognised by its columns, and importing the same or an overlapping export again changes
+nothing. Warm-up sets are left out. Another app is one small parser in `app/ingestion/workouts.py`.
+
+The tab shows volume per week, the push/pull/legs split and the progression per exercise (estimated 1RM,
+top weight, reps). Exercises renamed in the app can be merged so their progression continues in one line.
 
 ## Sleep and health
 
-Sleep, steps, heart rate and workouts come from the watch (Zepp) through Health Connect. Health Connect
-only lives on the phone, so a small Android app (`android/`, see its README) pushes the changes every
+Sleep, steps, heart rate and workouts come from any watch or app that writes to Health Connect. Health
+Connect only lives on Android phones, so a small Android app (`android/`, see its README) pushes the changes every
 hour to `/api/ingest/healthconnect`, protected by its own token (`HEALTHCONNECT_TOKEN`) instead of the
 dashboard login. Every record is stored as it arrived; derived from it are sleep sessions with stages
 (a night counts for the day of waking up), heart rate samples and daily metrics. When two apps write the
 same steps or sleep, a day takes the source with the larger total instead of adding them up.
 
 The Sleep tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
-from other apps than Gym Day. Gym Day writes its sessions (without sets) to Health Connect as well;
+outside the training log. Gym Day writes its sessions (without sets) to Health Connect as well;
 Compass matches them with the sessions from the CSV export to fill in the duration in the Training tab.
 A session that is only in Health Connect (no export, e.g. without Gym Day Premium) still shows up there,
 with name, duration and split but without sets; a later export with its sets takes its place.
 Nutrition and weight from Health Connect feed the Nutrition tab (below).
 
+The latest bedtime and zone 2 use `WAKE_BUFFER_MINUTES`, `SLEEP_NEED_MINUTES`, `FALL_ASLEEP_MINUTES`,
+`ZONE2_MIN_PERCENT` and `ZONE2_MAX_PERCENT`. Set your maximum heart rate as the goal `hr_max` (through
+Claude with `set_nutrition_goal`); without it Compass assumes 190.
+
 ## Nutrition
 
-MyFitnessPal writes every meal to Health Connect, so meals arrive with the bridge app like sleep does.
-Compass sums them per day and meal (breakfast, lunch, dinner, snacks). If two apps write nutrition for
-the same day, the one with more calories counts instead of both. The MFP data export (the zip MFP
-mails, or its CSV files) fills in the past: upload it in the Nutrition tab or share it from the phone.
+Nutrition apps such as MyFitnessPal write every meal to Health Connect, so meals arrive with the bridge
+app like sleep does. Compass sums them per day and meal (breakfast, lunch, dinner, snacks). If two apps write nutrition for
+the same day, the one with more calories counts instead of both. The MyFitnessPal data export (the zip
+it mails, or its CSV files) fills in the past: upload it in the Nutrition tab or share it from the phone.
 Importing it again changes nothing, and for days that also have Health Connect data, those win. Days
 without entries were not logged and stay empty in the charts, never 0 kcal. The export's weight file
 fills the weight history; new weights come from Health Connect.
@@ -152,13 +169,12 @@ macros and the full weight history.
 
 ## Mail
 
-The worker reads the inboxes of up to three accounts (university, Gmail, own domain) over IMAP, strictly
-read-only: nothing is marked as read, moved or deleted, and the mail text is never stored. Every mail gets
+The worker reads the inboxes of the accounts in `MAIL_ACCOUNTS` over IMAP, strictly read-only: nothing is marked as read, moved or deleted, and the mail text is never stored. Every mail gets
 a priority from its headers at once (mailing lists and no-reply senders are unimportant, deadline words
 in the subject important). A model then adds priority, whether something is to do, a short summary and a
-suggested task: Claude Haiku on the server for Gmail and the own domain, a local Ollama model on the
-laptop for university mails, which contain data of third parties (`app/mail/local_triage.py`; the laptop
-reads the text itself and sends only the result). The Mail tab sorts by importance, turns a mail into a
+suggested task. You choose per account who does that: Claude Haiku on the server, a local Ollama model
+on a machine of yours for mails with data of third parties (`app/mail/local_triage.py`; that machine
+reads the text itself and sends only the result), or nobody, the default. The Mail tab sorts by importance, turns a mail into a
 task with one click and hides mails from the list; the Today page shows the important ones.
 
 Mail content is untrusted: the model only returns fixed fields, links are stripped, and mails that try to
@@ -173,6 +189,16 @@ on demand (`mails_to_triage`, `save_mail_triage`) without an API key:
 ```bash
 claude mcp add --scope user compass-mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
 ```
+
+## Finance
+
+> **EU and EEA only.** Compass connects to banks through [Enable Banking](https://enablebanking.com), a
+> PSD2 account information service, so it only reaches banks in the EU and EEA. Elsewhere the Finance
+> tab stays usable for the depot value, but it gets no transactions. Another provider would need a new
+> client next to `app/services/enablebanking.py`.
+
+Setup, categories and the merchant rules are in [docs/finance.md](docs/finance.md). Amounts use the
+currency of your bank account, and totals assume that all accounts share one.
 
 ## MCP server
 

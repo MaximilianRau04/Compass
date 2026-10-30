@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import SessionDep
+from app.config import get_settings
 from app.models.health import DailyMetrics, SleepSession
 from app.models.integrations import IntegrationState
 from app.schemas.health import (
@@ -163,8 +164,8 @@ def health_analysis(
 
 @router.get("/bedtime")
 def bedtime(session: SessionDep, day: date | None = None) -> dict:
-    """The latest bedtime before a day (default tomorrow): up 2 h before the first appointment,
-    before that 7.5 h of sleep and 30 min to fall asleep. Empty when the day has no appointment."""
+    """The latest bedtime before a day (default tomorrow), see analysis.bedtime_for. Empty when the
+    day has no appointment."""
     b = analysis.bedtime_for(session, day or local_today() + timedelta(days=1))
     if b is None:
         return {"day": (day or local_today() + timedelta(days=1)).isoformat(), "event": None}
@@ -173,4 +174,6 @@ def bedtime(session: SessionDep, day: date | None = None) -> dict:
         "event": {"title": b.title, "starts_at": b.first_event_at.isoformat()},
         "wake_at": b.wake_at.isoformat(),
         "latest_bedtime": b.latest_bedtime.isoformat(),
+        "sleep_need_minutes": get_settings().sleep_need_minutes,
+        "fall_asleep_minutes": get_settings().fall_asleep_minutes,
     }

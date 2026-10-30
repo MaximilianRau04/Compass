@@ -94,7 +94,7 @@ export function useTransactions(uncategorized: boolean) {
   })
 }
 
-export const startConnect = (name: string) => post<{ url: string }>('/finance/connect', { name, country: 'DE' })
+export const startConnect = (name: string) => post<{ url: string }>('/finance/connect', { name })
 
 export const finishConnect = (code: string, state: string) =>
   post<{ new_transactions: Record<string, number> }>('/finance/connect/finish', { code, state })

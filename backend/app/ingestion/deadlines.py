@@ -1,7 +1,8 @@
-"""ILIAS exercise deadlines from the ILIAS calendar feed, kept in sync as tasks.
+"""Deadlines from calendar feeds, kept in sync as tasks.
 
-ILIAS puts each assignment deadline into the personal calendar as an entry titled
-"<assignment> (Abgabetermin)". Rules (see the sync rules for tasks):
+Learning platforms put assignment deadlines into their calendar feed, e.g. ILIAS as an entry titled
+"<assignment> (Abgabetermin)". Which entries of a feed are deadlines is set per feed
+(Settings.deadline_patterns). Rules (see the sync rules for tasks):
 
 - (source, external_id) is unique, so a sync never creates duplicates.
 - The sync only owns title, due_date and due_time. Area, priority, tags, scheduled_date,
@@ -11,6 +12,7 @@ ILIAS puts each assignment deadline into the personal calendar as an entry title
   If it shows up again, the task is reopened.
 """
 
+import re
 from collections import Counter
 from datetime import date, time
 from typing import TYPE_CHECKING
@@ -27,24 +29,21 @@ from app.services.clock import local_tz
 if TYPE_CHECKING:
     from app.ingestion.calendar import ParsedEvent
 
-ACTOR = "ilias"
 REMOVED = "removed_from_source"
 MAX_NOTES = 1000
 
 
-def _suffixes() -> list[str]:
-    return [s.strip() for s in get_settings().ilias_deadline_suffixes.split(",") if s.strip()]
+def clean_title(title: str, pattern: re.Pattern) -> str:
+    return pattern.sub("", title).strip() or title
 
 
-def is_deadline(title: str) -> bool:
-    return any(title.endswith(suffix) for suffix in _suffixes())
+def _source(feed: str) -> TaskSource:
+    """ILIAS has its own source; the tasks of all other feeds tell them apart by their id."""
+    return TaskSource.ilias if feed == "ilias" else TaskSource.feed
 
 
-def clean_title(title: str) -> str:
-    for suffix in _suffixes():
-        if title.endswith(suffix):
-            return title.removesuffix(suffix).strip() or title
-    return title
+def _prefix(feed: str) -> str:
+    return "" if feed == "ilias" else f"{feed}:"
 
 
 def _due(event: "ParsedEvent") -> tuple[date, time | None]:
@@ -54,7 +53,7 @@ def _due(event: "ParsedEvent") -> tuple[date, time | None]:
     return local.date(), local.time().replace(second=0, microsecond=0)
 
 
-def _keys(events: list["ParsedEvent"]) -> dict[str, "ParsedEvent"]:
+def _keys(feed: str, events: list["ParsedEvent"]) -> dict[str, "ParsedEvent"]:
     """External id per deadline: the UID, plus the date for the rare recurring entry."""
     per_uid = Counter(e.uid for e in events)
     keys = {}
@@ -62,44 +61,52 @@ def _keys(events: list["ParsedEvent"]) -> dict[str, "ParsedEvent"]:
         key = event.uid
         if per_uid[event.uid] > 1:
             key = f"{event.uid}@{_due(event)[0].isoformat()}"
-        keys[key[:200]] = event
+        keys[f"{_prefix(feed)}{key}"[:200]] = event
     return keys
 
 
-def _removed_by_sync(task: Task) -> bool:
+def _removed_by_sync(task: Task, feed: str) -> bool:
     status_events = [
         e for e in task.events if e.type in ("cancelled", "reopened", "completed", "status_changed")
     ]
     if not status_events:
         return False
     last = status_events[-1]
-    return (
-        last.type == "cancelled" and last.actor == ACTOR and last.payload.get("reason") == REMOVED
-    )
+    return last.type == "cancelled" and last.actor == feed and last.payload.get("reason") == REMOVED
 
 
-def _default_area_id(session: Session) -> int | None:
-    slug = get_settings().ilias_deadline_area.strip().lower()
+def _default_area_id(session: Session, feed: str) -> int | None:
+    settings = get_settings()
+    slug = settings.ilias_deadline_area.strip().lower() if feed == "ilias" else ""
+    slug = slug or settings.calendar_area_map.get(feed, "")
     if not slug:
         return None
     return session.scalar(select(Area.id).where(Area.slug == slug))
 
 
 def sync_deadlines(
-    session: Session, events: list["ParsedEvent"], today: date, window_end: date
+    session: Session,
+    feed: str,
+    events: list["ParsedEvent"],
+    pattern: re.Pattern,
+    today: date,
+    window_end: date,
 ) -> dict:
-    deadlines = {k: e for k, e in _keys(events).items() if _due(e)[0] >= today}
+    source = _source(feed)
+    deadlines = {k: e for k, e in _keys(feed, events).items() if _due(e)[0] >= today}
     existing = {
         t.external_id: t
         for t in session.scalars(
-            select(Task).where(Task.source == TaskSource.ilias, Task.external_id.is_not(None))
+            select(Task).where(
+                Task.source == source, Task.external_id.startswith(_prefix(feed), autoescape=True)
+            )
         ).unique()
     }
-    area_id = _default_area_id(session)
+    area_id = _default_area_id(session, feed)
     stats = {"created": 0, "updated": 0, "cancelled": 0, "reopened": 0}
 
     for key, event in deadlines.items():
-        title = clean_title(event.title)
+        title = clean_title(event.title, pattern)
         due_date, due_time = _due(event)
         task = existing.get(key)
         if task is None:
@@ -112,20 +119,20 @@ def sync_deadlines(
                     due_time=due_time,
                     area_id=area_id,
                     notes=notes,
-                    source=TaskSource.ilias,
+                    source=source,
                     external_id=key,
                 ),
-                actor=ACTOR,
+                actor=feed,
             )
             stats["created"] += 1
             continue
 
         owned = {"title": title, "due_date": due_date, "due_time": due_time}
-        if task_service.sync_fields(session, task, owned, ACTOR):
+        if task_service.sync_fields(session, task, owned, feed):
             stats["updated"] += 1
-        if task.status == TaskStatus.cancelled and _removed_by_sync(task):
+        if task.status == TaskStatus.cancelled and _removed_by_sync(task, feed):
             task_service.set_status(
-                session, task, TaskStatus.open, ACTOR, {"reason": "back_in_source"}
+                session, task, TaskStatus.open, feed, {"reason": "back_in_source"}
             )
             stats["reopened"] += 1
 
@@ -134,7 +141,7 @@ def sync_deadlines(
         if key in deadlines or task.status not in task_service.ACTIVE:
             continue
         if task.due_date is not None and today <= task.due_date < window_end:
-            task_service.set_status(session, task, TaskStatus.cancelled, ACTOR, {"reason": REMOVED})
+            task_service.set_status(session, task, TaskStatus.cancelled, feed, {"reason": REMOVED})
             stats["cancelled"] += 1
 
     session.flush()

@@ -8,7 +8,7 @@ from app.models.base import Base, TimestampMixin
 
 class Email(TimestampMixin, Base):
     """Metadata of one mail plus its triage. The text itself is never stored: it is read from
-    IMAP, summarised and dropped (for the uni account on the laptop, see app.mail.local_triage).
+    IMAP, summarised and dropped (for local accounts outside the server, see app.mail.local_triage).
 
     Sender, subject and summary come from outside and may contain anything; whatever passes them
     on (API, MCP) treats them as data, never as instructions."""
@@ -20,7 +20,7 @@ class Email(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    account: Mapped[str] = mapped_column(String(20))  # uni | gmail | domain
+    account: Mapped[str] = mapped_column(String(20))  # a name from MAIL_ACCOUNTS
     # Message-ID, or folder/uidvalidity/uid for mails without one; keeps a sync from duplicating.
     msg_key: Mapped[str] = mapped_column(String(500))
     folder: Mapped[str] = mapped_column(String(200))

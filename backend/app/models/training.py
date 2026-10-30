@@ -63,9 +63,9 @@ class TrainingSession(TimestampMixin, Base):
     health_record_id: Mapped[str | None] = mapped_column(
         ForeignKey("health_records.id", ondelete="SET NULL"), unique=True
     )
-    # gymday (CSV with sets), healthconnect (Gym Day session without a CSV), watch (a workout
-    # from another app, e.g. bouldering with Zepp, that does not overlap a Gym Day session) or
-    # compass (logged in the Compass workout logger).
+    # gymday, strong or hevy (CSV with sets), healthconnect (Gym Day session without a CSV), watch
+    # (a workout from another app, e.g. bouldering with Zepp, that does not overlap a gym session)
+    # or compass (logged in the Compass workout logger).
     source: Mapped[str] = mapped_column(String(40), default="gymday")
     # Id the logger gives a session on the phone, so saving it again (offline retries) updates it.
     client_id: Mapped[str | None] = mapped_column(String(36), unique=True)

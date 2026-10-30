@@ -92,7 +92,7 @@ class FinanceRule(TimestampMixin, Base):
 
 
 class FinanceBudget(TimestampMixin, Base):
-    """Monthly budget of a spending category, in EUR."""
+    """Monthly budget of a spending category."""
 
     __tablename__ = "finance_budgets"
 

@@ -8,6 +8,7 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.i18n import t
 from app.mail.triage import TriageResult
 from app.models.integrations import IntegrationState
@@ -16,9 +17,6 @@ from app.models.tasks import Area, Task, TaskSource
 from app.schemas.tasks import TaskCreate
 from app.services import tasks as task_service
 from app.services.clock import utc_now
-
-# Accounts whose tasks go to the area of the same name, if it exists.
-ACCOUNT_AREAS = {"uni": "uni"}
 
 
 class MailError(ValueError):
@@ -117,7 +115,8 @@ def create_task(session: Session, e: Email, actor: str = "web") -> Task:
     Creating it twice returns the same task."""
     if e.task_id is not None and (task := session.get(Task, e.task_id)) is not None:
         return task
-    area = session.scalar(select(Area).where(Area.slug == ACCOUNT_AREAS.get(e.account, "")))
+    slug = get_settings().mail_area_map.get(e.account, "")
+    area = session.scalar(select(Area).where(Area.slug == slug))
     notes = "\n".join(
         part
         for part in (
@@ -182,7 +181,7 @@ def pending_local(session: Session, accounts_local: list[str], limit: int) -> li
 def apply_local(
     session: Session, results: dict[int, TriageResult], failed: dict[int, str], accounts_local
 ) -> dict:
-    """Store what the laptop sent. Only pending mails of local accounts can be changed."""
+    """Store what the local runner sent. Only pending mails of local accounts can be changed."""
     ids = set(results) | set(failed)
     rows = {
         e.id: e

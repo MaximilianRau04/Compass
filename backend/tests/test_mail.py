@@ -105,11 +105,18 @@ def mailbox(mails: dict[int, tuple[bytes, bool]], uidvalidity=7):
 @pytest.fixture
 def accounts(monkeypatch):
     s = get_settings()
-    monkeypatch.setattr(s, "uni_imap_host", "imap.uni.example")
-    monkeypatch.setattr(s, "uni_imap_user", "st123")
-    monkeypatch.setattr(s, "uni_imap_password", "secret")
-    monkeypatch.setattr(s, "gmail_imap_user", "me@gmail.com")
-    monkeypatch.setattr(s, "gmail_imap_password", "app-password")
+    monkeypatch.setattr(s, "mail_account_names", "uni,gmail")
+    monkeypatch.setattr(s, "mail_account_areas", "uni=uni")
+    for name, value in {
+        "UNI_IMAP_HOST": "imap.uni.example",
+        "UNI_IMAP_USER": "st123",
+        "UNI_IMAP_PASSWORD": "secret",
+        "MAIL_TRIAGE_UNI": "local",
+        "GMAIL_IMAP_USER": "me@gmail.com",
+        "GMAIL_IMAP_PASSWORD": "app-password",
+        "MAIL_TRIAGE_GMAIL": "claude",
+    }.items():
+        monkeypatch.setenv(name, value)
     monkeypatch.setattr(s, "anthropic_api_key", "sk-test")
     monkeypatch.setattr(s, "mail_triage_token", TOKEN)
     return s.mail_accounts
@@ -119,11 +126,37 @@ def result(**kw) -> TriageResult:
     base = {
         "priority": "high",
         "needs_action": True,
-        "category": "uni",
+        "category": "study",
         "summary": "Prof. Müller bittet um Zusage zum Termin bis Freitag.",
         "task_title": "Termin bei Prof. Müller bis Freitag zusagen",
     }
     return TriageResult(**{**base, **kw})
+
+
+# --- Accounts ------------------------------------------------------------------------------------
+
+
+def test_any_account_name_works_and_a_model_is_opt_in(monkeypatch):
+    s = get_settings()
+    monkeypatch.setattr(s, "mail_account_names", "work, private")
+    monkeypatch.setattr(s, "anthropic_api_key", "sk-test")
+    for name, value in {
+        "WORK_IMAP_HOST": "imap.work.example",
+        "WORK_IMAP_PORT": "143",
+        "WORK_IMAP_USER": "me",
+        "PRIVATE_IMAP_HOST": "imap.private.example",
+        "PRIVATE_IMAP_USER": "me",
+        "MAIL_TRIAGE_PRIVATE": "claude",
+    }.items():
+        monkeypatch.setenv(name, value)
+    accounts = s.mail_accounts
+    assert {n: (a.host, a.port, a.triage) for n, a in accounts.items()} == {
+        "work": ("imap.work.example", 143, "rules"),
+        "private": ("imap.private.example", 993, "claude"),
+    }
+    monkeypatch.setattr(s, "mail_account_names", "not-a-name")
+    with pytest.raises(ValueError, match="MAIL_ACCOUNTS"):
+        _ = s.mail_accounts
 
 
 # --- Parsing -----------------------------------------------------------------------------------
@@ -174,7 +207,7 @@ def test_config_rejects_unknown_triage_and_falls_back_without_key(monkeypatch, a
     assert {n: a.triage for n, a in accounts.items()} == {"uni": "local", "gmail": "claude"}
     monkeypatch.setattr(s, "anthropic_api_key", "")
     assert s.mail_accounts["gmail"].triage == "rules"
-    monkeypatch.setattr(s, "mail_triage_uni", "openai")
+    monkeypatch.setenv("MAIL_TRIAGE_UNI", "openai")
     with pytest.raises(ValueError, match="MAIL_TRIAGE_UNI"):
         _ = s.mail_accounts
     assert "secret" not in repr(accounts["uni"])
@@ -606,7 +639,7 @@ def test_sort_mails_with_claude(session, accounts):
                             "needs_action": True,
                             "summary": "Zusage bis Freitag, siehe https://x.de",
                             "task_title": "Termin zusagen",
-                            "category": "uni",
+                            "category": "study",
                         },
                     )
                 ).structured_content

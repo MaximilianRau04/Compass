@@ -1,4 +1,4 @@
-"""Local mail triage, run on the laptop (not on the server):
+"""Local mail triage, run on a machine with Ollama (not on the server):
 
     cd backend && uv run python -m app.mail.local_triage
 
@@ -7,7 +7,7 @@ their text directly from the mailbox over IMAP (read-only), lets the local Ollam
 them and sends back only the result (priority, summary, task title). The text never reaches the
 server or any external service.
 
-Needs in the laptop's .env: COMPASS_URL, MAIL_TRIAGE_TOKEN, the IMAP login of the account
+Needs in that machine's .env: COMPASS_URL, MAIL_TRIAGE_TOKEN, the IMAP login of the account
 (e.g. UNI_IMAP_*), OLLAMA_URL and OLLAMA_MODEL. Meant for a systemd user timer (infra/laptop/);
 exits with status 1 if something failed, so the timer shows it.
 """

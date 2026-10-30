@@ -1,8 +1,8 @@
 """ICS calendar feeds: fetch, expand recurrences and mirror the events into calendar_events.
 
 Feeds are read-only. Events inside the sync window are replaced by what the feed says, so
-moved or removed events disappear here too. For the ILIAS feed, deadline entries are not
-stored as events but turned into tasks (see app.ingestion.ilias).
+moved or removed events disappear here too. Deadline entries of a feed are not stored as events
+but turned into tasks (see app.ingestion.deadlines).
 """
 
 import logging
@@ -18,7 +18,7 @@ from sqlalchemy import delete, select, tuple_
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.ingestion import ilias
+from app.ingestion import deadlines
 from app.models.calendar import CalendarEvent
 from app.services import integrations
 from app.services.clock import local_today, local_tz
@@ -178,10 +178,11 @@ def sync_feed(session: Session, feed: str, data: bytes, today: date | None = Non
     start, end = today - timedelta(days=PAST_DAYS), today + timedelta(days=FUTURE_DAYS)
     events = parse_ics(data, start, end)
     stats: dict = {}
-    if feed == "ilias":
-        deadlines = [e for e in events if ilias.is_deadline(e.title)]
-        events = [e for e in events if not ilias.is_deadline(e.title)]
-        stats["deadlines"] = ilias.sync_deadlines(session, deadlines, today, end)
+    pattern = get_settings().deadline_patterns.get(feed)
+    if pattern is not None:
+        due = [e for e in events if pattern.search(e.title)]
+        events = [e for e in events if not pattern.search(e.title)]
+        stats["deadlines"] = deadlines.sync_deadlines(session, feed, due, pattern, today, end)
     stats.update(store_events(session, feed, events, start, end))
     return stats
 
@@ -193,7 +194,8 @@ def sync_all(session_factory, fetch: Fetcher = fetch_ics) -> dict[str, dict | st
     # A broken setting is reported like a failed feed instead of stopping the worker.
     with session_factory() as session:
         try:
-            feeds = get_settings().calendar_feeds
+            settings = get_settings()
+            feeds, _ = settings.calendar_feeds, settings.deadline_patterns
         except ValueError as exc:
             log.error("calendar config: %s", exc)
             integrations.record_failure(session, CONFIG_STATE, str(exc))

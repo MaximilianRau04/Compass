@@ -6,7 +6,7 @@ from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
-from app.ingestion import gymday
+from app.ingestion import workouts
 from app.models.training import Exercise, TrainingSession
 from app.schemas.training import (
     DoneSetRead,
@@ -60,20 +60,20 @@ def _exercise(session, exercise_id: int) -> Exercise:
 
 
 @router.post("/import", response_model=ImportResult)
-async def import_gymday(request: Request, session: SessionDep):
-    """Import a Gym Day strength export. The CSV is the raw request body."""
-    if int(request.headers.get("content-length") or 0) > gymday.MAX_BYTES:
+async def import_workouts(request: Request, session: SessionDep):
+    """Import a strength export of Gym Day, Strong or Hevy. The CSV is the raw request body."""
+    if int(request.headers.get("content-length") or 0) > workouts.MAX_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "file is larger than 5 MB")
     data = await request.body()
 
     def run() -> dict:
-        result = gymday.import_csv(session, data)
+        result = workouts.import_csv(session, data)
         session.commit()
         return result
 
     try:
         return await run_in_threadpool(run)
-    except gymday.GymDayImportError as exc:
+    except workouts.WorkoutImportError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
 

@@ -8,7 +8,7 @@ from app.models.base import Base, TimestampMixin
 
 
 class IntegrationState(TimestampMixin, Base):
-    """Last run and outcome per data source, e.g. "calendar:ilias" or "gymday"."""
+    """Last run and outcome per data source, e.g. "calendar:ilias" or "strong"."""
 
     __tablename__ = "integration_state"
 

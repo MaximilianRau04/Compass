@@ -25,7 +25,7 @@ class BankRead(BaseModel):
 
 class ConnectStart(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    country: str = Field(default="DE", pattern=r"^[A-Z]{2}$")
+    country: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
 
 
 class ConnectUrl(BaseModel):
@@ -113,7 +113,7 @@ class TransactionUpdated(BaseModel):
 
 
 class BudgetSet(BaseModel):
-    amount: float = Field(ge=0, le=100000, description="Per month in EUR, 0 removes it")
+    amount: float = Field(ge=0, le=100000, description="Per month, 0 removes it")
 
 
 class DepotLog(BaseModel):

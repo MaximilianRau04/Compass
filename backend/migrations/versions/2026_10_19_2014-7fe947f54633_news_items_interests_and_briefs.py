@@ -126,7 +126,6 @@ def upgrade() -> None:
                 ("cve", 1.5),
                 ("ransomware", 1),
                 ("linux", 1),
-                ("uni stuttgart", 2),
                 ("crypto", -1),
                 ("bitcoin", -1),
             ]

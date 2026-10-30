@@ -311,15 +311,27 @@ docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compo
   python -c "from app.mcp.oauth import revoke_all_tokens; print(revoke_all_tokens())"
 ```
 
-## 6. Calendars and ILIAS deadlines
+## 6. Calendars and deadlines
 
 Add the subscription URLs to `.env` on the server and run `make deploy` (the worker picks them up on
 start and then syncs every `CALENDAR_SYNC_MINUTES`):
 
 | Variable | Value |
 |---|---|
-| `ILIAS_ICS_URL` | the subscription link of your ILIAS calendar (calendar → subscribe / export) |
-| `CALENDAR_ICS_FEEDS` | further calendars as `name=url` pairs separated by spaces, e.g. a Google Calendar "secret address in iCal format" |
+| `CALENDAR_ICS_FEEDS` | calendars as `name=url` pairs separated by spaces, e.g. a Google Calendar "secret address in iCal format" |
+| `CALENDAR_DEADLINES` | feeds whose matching entries become tasks, as `feed=regex` separated by semicolons |
+| `CALENDAR_FEED_AREAS` | area per feed as `feed=area` pairs: colour and filter for its events, and the area of its deadline tasks |
+| `ILIAS_ICS_URL` | the subscription link of your ILIAS calendar (calendar → subscribe / export). Its deadlines need no pattern |
+
+A pattern is a regular expression on the entry's title, and the matching part is cut from the task's
+title. How a platform marks deadlines depends on the platform and its language, so look at the titles in
+your feed first. A Moodle calendar in English might need this:
+
+```bash
+CALENDAR_ICS_FEEDS="moodle=https://moodle.example/calendar/export.php?token=..."
+CALENDAR_DEADLINES="moodle= is due$"
+CALENDAR_FEED_AREAS="moodle=uni"
+```
 
 These URLs carry a secret token: anyone with the link can read the calendar. They only live in `.env`,
 and sync errors are logged without them.
@@ -340,7 +352,7 @@ basic auth in Caddy and needs a bearer token instead:
 | `HEALTHCONNECT_TOKEN` | output of `openssl rand -hex 32`; empty disables the endpoint (503) |
 | `HEALTHCONNECT_GYMDAY_APPS` | package of Gym Day (default `com.anthonyng.workoutapp`), for the session durations |
 
-After `make deploy`, check the token from the laptop:
+After `make deploy`, check the token from your computer:
 `curl -H "Authorization: Bearer <token>" https://<dashboard host>/api/ingest/healthconnect`
 must answer `{"ok": true, ...}`. Enter the same address and token in the app. The phone reaches the
 server over the VPN like the dashboard, nothing new becomes public.
@@ -366,19 +378,21 @@ The worker reads the configured mailboxes every `MAIL_SYNC_MINUTES` over IMAP, r
 
 | Variable | Value |
 |---|---|
-| `UNI_IMAP_*`, `GMAIL_IMAP_*`, `DOMAIN_IMAP_*` | host, port, user, password per account; an account is active when host and user are set. Gmail needs an app password (Google account → Security → App passwords, requires 2FA) |
-| `ANTHROPIC_API_KEY` | for accounts with `MAIL_TRIAGE_<ACCOUNT>=claude` (default for Gmail and own domain), model `MAIL_CLAUDE_MODEL` (default `claude-haiku-4-5`). Without a key these accounts get rule priorities only |
-| `MAIL_TRIAGE_UNI` | `local` (default): uni mails contain data of third parties and are summarised on the laptop, see below |
-| `MAIL_TRIAGE_TOKEN` | output of `openssl rand -hex 32`, the same value goes into the laptop's `.env` |
+| `MAIL_ACCOUNTS` | names of your accounts, separated by spaces, e.g. `gmail work`. Without it, `uni gmail domain` |
+| `<NAME>_IMAP_HOST`, `_PORT`, `_USER`, `_PASSWORD` | the login per account, e.g. `WORK_IMAP_HOST`; an account is active when host and user are set. Gmail needs an app password (Google account → Security → App passwords, requires 2FA) |
+| `MAIL_TRIAGE_<NAME>` | who summarises its mails: `claude`, `local` or `rules` (the default, headers only) |
+| `MAIL_ACCOUNT_AREAS` | area of tasks made from a mail, as `account=area` pairs |
+| `ANTHROPIC_API_KEY` | for `claude`, model `MAIL_CLAUDE_MODEL` (default `claude-haiku-4-5`). Without a key these accounts get rule priorities only |
+| `MAIL_TRIAGE_TOKEN` | for `local`: output of `openssl rand -hex 32`, the same value goes into the `.env` of the machine with Ollama |
 
 After `make deploy`, "Fetch now" in the Mail tab runs the first sync (the last `MAIL_LOOKBACK_DAYS` days).
-Gmail and own domain are summarised right away, up to 40 mails per run; uni mails show "waiting for the
-laptop" until the local triage ran.
+Accounts with `claude` are summarised right away, up to 40 mails per run; `local` accounts show "waiting
+for the local model" until the local triage ran.
 
-**Local triage on the laptop** (uni mails, the text stays on the laptop):
+**Local triage on a machine with Ollama** (the mail text stays on that machine, e.g. your laptop):
 
-The server cannot reach the laptop, so the laptop asks: it fetches the list of pending mails from
-`/api/ingest/mail/pending`, reads their text from the uni mailbox itself, lets Ollama triage them and sends
+The server cannot reach that machine, so the machine asks: it fetches the list of pending mails from
+`/api/ingest/mail/pending`, reads their text from the mailbox itself, lets Ollama triage them and sends
 only the result back.
 
 ```bash
@@ -386,10 +400,10 @@ sudo systemctl enable --now ollama          # Ollama service, listens on localho
 ollama pull qwen2.5:7b                      # about 4.7 GB; any model with JSON output works (OLLAMA_MODEL)
 ```
 
-In the laptop's `.env` (the one in the repo checkout): `UNI_IMAP_*` (already there for development),
-`COMPASS_URL=https://<dashboard host>`, `MAIL_TRIAGE_TOKEN` (same as on the server), optionally
-`OLLAMA_MODEL`. Test once by hand, then install the timer (every 15 minutes while the laptop is on, catches
-up after sleep):
+In that machine's `.env` (the one in the repo checkout): `MAIL_ACCOUNTS` and the IMAP login of the
+account, `COMPASS_URL=https://<dashboard host>`, `MAIL_TRIAGE_TOKEN` (same as on the server), optionally
+`OLLAMA_MODEL`. Test once by hand, then install the timer (every 15 minutes while the machine is on,
+catches up after sleep):
 
 ```bash
 cd backend && uv run python -m app.mail.local_triage     # prints e.g. {"pending": 3, "applied": 3, "failed": 0}
@@ -404,7 +418,7 @@ journalctl --user -u compass-mail-triage -n 20            # last runs
 The model reads untrusted text. A mail that tries to give instructions to an AI is detected with a pattern
 check (independent of what the model says), marked with a warning and never ranked below "normal".
 
-## Sharing the Gym Day export from the phone
+## Sharing a workout export from the phone
 
 The installed PWA is a share target for CSV files. After an update that changed the share target,
 Android may need a day to refresh the installed app. If Compass does not show up when sharing the export,

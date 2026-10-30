@@ -9,7 +9,7 @@ from app.config import Settings, get_settings
 from app.ingestion import calendar
 from app.models.calendar import CalendarEvent
 from app.models.integrations import IntegrationState
-from app.models.tasks import Task, TaskSource
+from app.models.tasks import Task, TaskSource, TaskStatus
 from app.services.clock import local_today
 
 TODAY = date(2026, 10, 19)  # a Monday
@@ -317,3 +317,49 @@ def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
     ).json()
     assert {e["title"]: e["area"] for e in events} == {"Vorlesung": "uni", "Kino": None}
     assert [e["area"] for e in client.get("/api/today").json()["events"]] == ["uni", None]
+
+
+# --- Deadlines of other feeds --------------------------------------------------------------------
+
+
+def test_other_feeds_turn_entries_into_deadline_tasks(session, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "calendar_deadlines", "moodle= is due$;canvas=^Due: ")
+    monkeypatch.setattr(settings, "calendar_feed_areas", "moodle=uni")
+    soon = TODAY + timedelta(days=3)
+    entry = vevent("essay", "Essay is due", stamp(soon, "2359"))
+    stats = calendar.sync_feed(session, "moodle", ics(lecture(), entry), TODAY)
+    assert stats["deadlines"]["created"] == 1
+    titles = set(session.scalars(select(CalendarEvent.title)))
+    assert "Essay is due" not in titles and titles  # the lecture stays an event
+
+    task = session.scalar(select(Task).where(Task.source == TaskSource.feed))
+    assert (task.title, task.external_id, task.due_date) == ("Essay", "moodle:essay", soon)
+    assert task.area.slug == "uni"
+
+    # The same UID in another feed is another task, and neither sync touches the other's.
+    other = vevent("essay", "Due: Lab report", stamp(soon, "1200"))
+    calendar.sync_feed(session, "canvas", ics(other), TODAY)
+    titles = {t.title for t in session.scalars(select(Task).where(Task.source == TaskSource.feed))}
+    assert titles == {"Essay", "Lab report"}
+
+    # A future deadline that is gone from its feed is cancelled, not deleted.
+    assert (
+        calendar.sync_feed(session, "moodle", ics(lecture()), TODAY)["deadlines"]["cancelled"] == 1
+    )
+    session.refresh(task)
+    assert task.status == TaskStatus.cancelled
+
+
+def test_feeds_without_a_pattern_only_have_events(session):
+    entry = vevent("essay", "Essay is due", stamp(TODAY + timedelta(days=3), "2359"))
+    stats = calendar.sync_feed(session, "google", ics(entry), TODAY)
+    assert "deadlines" not in stats and stats["events"] == 1
+
+
+def test_a_broken_deadline_pattern_is_reported_without_the_feed_url(session, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "calendar_deadlines", "moodle=(")
+    monkeypatch.setattr(settings, "calendar_ics_feeds", "moodle=https://m.example/SECRET")
+    results = calendar.sync_all(lambda: nullcontext(session))
+    assert "CALENDAR_DEADLINES" in results["config"] and "SECRET" not in results["config"]

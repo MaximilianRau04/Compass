@@ -26,6 +26,8 @@ export interface Bedtime {
   event: { title: string; starts_at: string } | null
   wake_at?: string
   latest_bedtime?: string
+  sleep_need_minutes?: number
+  fall_asleep_minutes?: number
 }
 
 export function useBedtime(enabled: boolean) {

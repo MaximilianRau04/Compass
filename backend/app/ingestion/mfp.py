@@ -6,7 +6,7 @@ or a single CSV and recognises the files by their columns, not by their names:
 
 - nutrition: one row per day and meal (Frühstück, Mittagessen, Abendessen, Snacks)
 - weight: one row per day (kg)
-- workouts: ignored, workouts come from Gym Day and Zepp
+- workouts: ignored, workouts come from the Training tab and the watch
 
 The import is idempotent over (day, meal) and day: the same or an overlapping export can be imported
 any number of times. Days without any row stay empty (MFP was not used), they are never 0 kcal.
@@ -95,9 +95,9 @@ def _parse_csv(name: str, data: bytes, out: Parsed) -> None:
     meal_col = _column(fields, ("Mahlzeit", "Meal"))
     weight_col = _column(fields, ("Gewicht", "Weight"))
 
-    if "Workout name" in fields or "Exercise" in fields:
+    if {"Workout name", "Exercise", "Exercise Name"} & set(fields):
         # Has "Date" and "Weight" too; without this check its sets would become body weights.
-        raise MfpImportError(f"{name}: this is a Gym Day export, import it in the Training tab")
+        raise MfpImportError(f"{name}: this is a workout export, import it in the Training tab")
     if date_col and meal_col:
         columns = {f: _column(fields, names) for f, names in NUTRITION_COLUMNS.items()}
         if columns["kcal"] is None:

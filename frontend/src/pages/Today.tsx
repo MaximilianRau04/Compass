@@ -48,8 +48,7 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
   )
 }
 
-/** In the evening: the latest bedtime before tomorrow's first event (up 2 h before it, 7.5 h of
- * sleep and 30 min to fall asleep). */
+/** In the evening: the latest bedtime before tomorrow's first event. */
 function Bedtime() {
   const { t, locale } = useI18n()
   const [evening] = useState(() => new Date().getHours() >= 16)
@@ -66,6 +65,8 @@ function Bedtime() {
             time: clockTime(b.event.starts_at, locale),
             title: b.event.title,
             wake: clockTime(b.wake_at, locale),
+            sleep: ((b.sleep_need_minutes ?? 0) / 60).toLocaleString(locale),
+            fall: b.fall_asleep_minutes ?? 0,
           })}
         </span>
       </p>

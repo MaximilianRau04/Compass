@@ -1,6 +1,6 @@
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled'
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent'
-export type TaskSource = 'manual' | 'ilias' | 'email' | 'claude'
+export type TaskSource = 'manual' | 'ilias' | 'feed' | 'email' | 'claude'
 
 export interface Area {
   id: number
@@ -108,7 +108,7 @@ export interface SessionBrief {
   sets: number
   volume_kg: number
   duration_minutes: number | null
-  source: 'gymday' | 'healthconnect' | 'watch' | 'compass'
+  source: 'gymday' | 'strong' | 'hevy' | 'healthconnect' | 'watch' | 'compass'
   activity: string | null
   hr_avg: number | null
   hr_max: number | null
@@ -300,12 +300,11 @@ export interface MfpImportResult {
   ignored_files: string[]
 }
 
-export type MailAccountName = 'uni' | 'gmail' | 'domain'
 
 /** Sender, subject and summary come from outside the app. Render as text, never as HTML. */
 export interface Mail {
   id: number
-  account: MailAccountName
+  account: string
   from_name: string | null
   from_addr: string
   subject: string
@@ -323,7 +322,7 @@ export interface Mail {
 }
 
 export interface MailOverview {
-  accounts: { account: MailAccountName; triage: string; last_success_at: string | null; last_error: string | null; pending: number }[]
+  accounts: { account: string; triage: string; last_success_at: string | null; last_error: string | null; pending: number }[]
   important: number
   unread_important: number
   top: Mail[]

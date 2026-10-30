@@ -1,9 +1,8 @@
 """What Compass pushes, and when. The worker runs check_all every few minutes.
 
-- bedtime: PUSH_BEDTIME_LEAD_MINUTES before the latest bedtime (up 2 h before the next day's
-  first appointment, before that 7.5 h of sleep and 30 min to fall asleep), and only when that is
-  earlier than the usual bedtime (median of the last 14 nights); otherwise you would be in bed by
-  then anyway.
+- bedtime: PUSH_BEDTIME_LEAD_MINUTES before the latest bedtime (see analysis.bedtime_for), and
+  only when that is earlier than the usual bedtime (median of the last 14 nights); otherwise you
+  would be in bed by then anyway.
 - deadlines: open tasks due within 24 hours, one notification for all new ones. A task without
   a time is due at the end of its day.
 - resting: the resting heart rate alert (7-day mean at least 5 bpm above the median), at most
@@ -22,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.i18n import number, short_date, t, weekday
+from app.i18n import number, number_trimmed, short_date, t, weekday
 from app.models.tasks import Task, TaskStatus
 from app.services import analysis, finance, push
 from app.services.clock import local_tz
@@ -89,6 +88,7 @@ def check_bedtime(session: Session, now: datetime) -> int:
                 when=_when(first, now).capitalize(),
                 event=bed.title,
                 wake=f"{wake:%H:%M}",
+                hours=number_trimmed(get_settings().sleep_need_minutes / 60),
             ),
             url="/",
             tag="bedtime",

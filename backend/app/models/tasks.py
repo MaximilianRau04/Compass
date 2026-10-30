@@ -38,6 +38,7 @@ class TaskPriority(enum.StrEnum):
 class TaskSource(enum.StrEnum):
     manual = "manual"
     ilias = "ilias"
+    feed = "feed"  # a deadline from another calendar feed, see app.ingestion.deadlines
     email = "email"
     claude = "claude"
 

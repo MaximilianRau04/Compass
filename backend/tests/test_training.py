@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy import func, select
 
-from app.ingestion import gymday
+from app.ingestion import workouts
 from app.models.training import Exercise, ExerciseSet, TrainingSession
 from app.services import training
 from app.services.clock import local_today
@@ -42,7 +42,7 @@ def count(session, model) -> int:
 
 
 def test_import_creates_sessions_sets_and_exercises(session):
-    stats = gymday.import_csv(session, SAMPLE)
+    stats = workouts.import_csv(session, SAMPLE)
     assert stats == {
         "rows": 4,
         "sessions_created": 2,
@@ -68,8 +68,8 @@ def test_import_creates_sessions_sets_and_exercises(session):
 
 
 def test_import_is_idempotent_and_updates_changed_sets(session):
-    gymday.import_csv(session, SAMPLE)
-    again = gymday.import_csv(session, SAMPLE)
+    workouts.import_csv(session, SAMPLE)
+    again = workouts.import_csv(session, SAMPLE)
     assert again["sessions_created"] == 0
     assert again["sets_created"] == 0
     assert again["sets_unchanged"] == 4
@@ -79,7 +79,7 @@ def test_import_is_idempotent_and_updates_changed_sets(session):
         row("2025-09-04 20:01:06", "Push A", "Supine Press", 2, "107.5", 8),
         row("2025-09-08 19:00:00", "Leg", "Beinstrecken", 1, "60", 12),
     )
-    stats = gymday.import_csv(session, corrected)
+    stats = workouts.import_csv(session, corrected)
     assert stats["sets_updated"] == 1
     assert stats["sets_created"] == 1
     assert stats["sessions_created"] == 1
@@ -90,7 +90,7 @@ def test_import_is_idempotent_and_updates_changed_sets(session):
 def test_import_rejects_other_files(client):
     response = client.post("/api/training/import", content=b"name,amount\nfoo,1\n")
     assert response.status_code == 422
-    assert "not a Gym Day strength export" in response.json()["detail"]
+    assert "not a workout export" in response.json()["detail"]
 
     broken = export('"yesterday","Push","Bench","1","50","x","","","kg",')
     response = client.post("/api/training/import", content=broken)
@@ -123,7 +123,7 @@ def test_e1rm_and_split():
 
 
 def test_summary_counts_weeks_volume_and_split(client, session):
-    gymday.import_csv(
+    workouts.import_csv(
         session,
         export(
             row(recent(0), "Push A", "Supine Press", 1, "100", 10),
@@ -151,7 +151,7 @@ def test_summary_counts_weeks_volume_and_split(client, session):
 
 
 def test_progress_per_session(client, session):
-    gymday.import_csv(
+    workouts.import_csv(
         session,
         export(
             row(recent(14), "Pull", "Latzug mit engem Griff", 1, "65", 10),
@@ -168,8 +168,8 @@ def test_progress_per_session(client, session):
 
 
 def test_rename_in_gymday_and_merge(client, session):
-    gymday.import_csv(session, export(row(recent(10), "Pull", "Latzug eng", 1, "60", 10)))
-    gymday.import_csv(
+    workouts.import_csv(session, export(row(recent(10), "Pull", "Latzug eng", 1, "60", 10)))
+    workouts.import_csv(
         session, export(row(recent(3), "Pull", "Latzug mit engem Griff", 1, "65", 10))
     )
     old = session.scalar(select(Exercise).where(Exercise.name == "Latzug eng"))
@@ -182,14 +182,14 @@ def test_rename_in_gymday_and_merge(client, session):
     assert session.get(Exercise, old.id) is None
 
     # A later export with the old name lands on the merged exercise.
-    stats = gymday.import_csv(session, export(row(recent(1), "Pull", "Latzug eng", 1, "67.5", 9)))
+    stats = workouts.import_csv(session, export(row(recent(1), "Pull", "Latzug eng", 1, "67.5", 9)))
     assert stats["exercises_created"] == 0
     progress = client.get(f"/api/training/exercises/{new.id}/progress").json()
     assert [p["top_weight"] for p in progress] == [60, 65, 67.5]
 
 
 def test_merge_refuses_overlapping_sets(client, session):
-    gymday.import_csv(
+    workouts.import_csv(
         session,
         export(
             row(recent(2), "Push", "Butterfly", 1, "50", 10),
@@ -203,7 +203,7 @@ def test_merge_refuses_overlapping_sets(client, session):
 
 
 def test_update_exercise(client, session):
-    gymday.import_csv(session, SAMPLE)
+    workouts.import_csv(session, SAMPLE)
     press = session.scalar(select(Exercise).where(Exercise.name == "Supine Press"))
     response = client.patch(
         f"/api/training/exercises/{press.id}",
@@ -213,7 +213,7 @@ def test_update_exercise(client, session):
     assert response.json()["muscle_group"] == "Brust"
     # The export name stays as an alias, so the next import still finds the exercise.
     assert response.json()["aliases"] == ["Supine Press"]
-    assert gymday.import_csv(session, SAMPLE)["exercises_created"] == 0
+    assert workouts.import_csv(session, SAMPLE)["exercises_created"] == 0
 
     taken = client.patch(
         f"/api/training/exercises/{press.id}", json={"name": "Latzug mit engem Griff"}
@@ -222,7 +222,7 @@ def test_update_exercise(client, session):
 
 
 def test_find_exercise_by_part_of_the_name(session):
-    gymday.import_csv(
+    workouts.import_csv(
         session,
         export(
             row(recent(1), "Leg", "Beinpresse einbeinig", 1, "80", 10),
@@ -236,3 +236,67 @@ def test_find_exercise_by_part_of_the_name(session):
         training.find_exercise(session, "beinpresse")
     with pytest.raises(training.TrainingError, match="No exercise"):
         training.find_exercise(session, "Kreuzheben")
+
+
+# --- Other apps ----------------------------------------------------------------------------------
+
+STRONG = (
+    b"Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,"
+    b"Workout Notes,RPE\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Bench Press,W,40,10,0,0,,,\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Bench Press,1,60,10,0,0,,,8\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Bench Press,2,60,9,0,0,,,\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Dips,1,0,12,0,0,,,\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Bench Press,1,50,12,0,0,,,\n"
+    b"2026-09-01 18:00:00,Push,1h 5m,Rowing,1,0,0,500,120,,,\n"
+)
+HEVY = (
+    b"title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,"
+    b"set_type,weight_kg,reps,distance_km,duration_seconds,rpe\n"
+    b'Pull,"1 Sep 2026, 18:00","1 Sep 2026, 19:10",,Barbell Row,,,0,warmup,40,10,,,\n'
+    b'Pull,"1 Sep 2026, 18:00","1 Sep 2026, 19:10",,Barbell Row,,,1,normal,70,8,,,\n'
+    b'Pull,"1 Sep 2026, 18:00","1 Sep 2026, 19:10",,Pull Up,,,0,normal,,10,,,\n'
+)
+
+
+def sets_of(session, exercise):
+    rows = session.scalars(
+        select(ExerciseSet).join(Exercise).where(Exercise.name == exercise)
+    ).all()
+    return sorted((s.set_index, s.weight_kg, s.reps) for s in rows)
+
+
+def test_strong_export(session):
+    stats = workouts.import_csv(session, STRONG)
+    assert stats["sessions_created"] == 1
+    s = session.scalar(select(TrainingSession))
+    assert (s.source, s.workout_name, s.duration_minutes) == ("strong", "Push", 65)
+    # Without the warm-up; the exercise done twice keeps all its sets; 0 kg is bodyweight.
+    assert sets_of(session, "Bench Press") == [
+        (1, Decimal("60.00"), 10),
+        (2, Decimal("60.00"), 9),
+        (3, Decimal("50.00"), 12),
+    ]
+    assert sets_of(session, "Dips") == [(1, None, 12)]
+    assert sets_of(session, "Rowing") == []
+    again = workouts.import_csv(session, STRONG)
+    assert (again["sets_created"], again["sessions_created"]) == (0, 0)
+
+
+def test_strong_export_with_semicolons_and_pounds(session):
+    data = (
+        b"Date;Workout Name;Duration (sec);Exercise Name;Set Order;Weight (lbs);Reps\n"
+        b"2026-09-01 18:00:00;Push;3600;Bench Press;1;100;10\n"
+    )
+    workouts.import_csv(session, data)
+    assert sets_of(session, "Bench Press") == [(1, Decimal("45.36"), 10)]
+    assert session.scalar(select(TrainingSession)).duration_minutes == 60
+
+
+def test_hevy_export(session):
+    workouts.import_csv(session, HEVY)
+    s = session.scalar(select(TrainingSession))
+    assert (s.source, s.workout_name, s.duration_minutes) == ("hevy", "Pull", 70)
+    assert sets_of(session, "Barbell Row") == [(1, Decimal("70.00"), 8)]
+    assert sets_of(session, "Pull Up") == [(1, None, 10)]
+    assert workouts.import_csv(session, HEVY)["sets_created"] == 0

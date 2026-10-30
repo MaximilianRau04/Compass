@@ -73,11 +73,11 @@ def finance_status(session: SessionDep):
 @router.get("/banks", response_model=list[BankRead])
 def banks(
     q: Annotated[str, Query(max_length=80)] = "",
-    country: Annotated[str, Query(pattern=r"^[A-Z]{2}$")] = "DE",
+    country: Annotated[str | None, Query(pattern=r"^[A-Z]{2}$")] = None,
 ):
     """Banks Enable Banking can connect, filtered by name."""
     try:
-        found = enablebanking.aspsps(country)
+        found = enablebanking.aspsps(country or get_settings().finance_country)
     except enablebanking.BankingError as exc:
         raise _fail(exc) from exc
     words = q.lower().split()
@@ -92,7 +92,9 @@ def banks(
 def connect(data: ConnectStart, session: SessionDep):
     """Start connecting a bank; the browser goes to the returned URL to approve."""
     try:
-        url = finance.start_connect(session, data.name, data.country)
+        url = finance.start_connect(
+            session, data.name, data.country or get_settings().finance_country
+        )
     except (finance.FinanceError, enablebanking.BankingError) as exc:
         raise _fail(exc) from exc
     session.commit()

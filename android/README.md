@@ -35,7 +35,8 @@ update over an existing install when the key is the same, so always build on the
 ## Setup on the phone
 
 1. On the server, set `HEALTHCONNECT_TOKEN` in `.env` (`openssl rand -hex 32`) and redeploy.
-2. Tailscale on the phone must be connected; the app talks to the dashboard address over the VPN.
+2. Your VPN must be connected on the phone if the server is only reachable there; the app talks to the
+   dashboard address.
 3. In the app: server address (`https://<dashboard host>`, no `/api`), the token, "Save and test".
 4. "Grant permissions": allow all data types, reading in the background and older data.
 5. Battery: switch off battery optimisation (button in the app). On Samsung also make sure the app is

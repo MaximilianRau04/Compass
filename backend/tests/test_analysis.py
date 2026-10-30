@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from app.config import get_settings
 from app.ingestion import calendar
 from app.models.health import DailyMetrics
 from app.services import analysis, nutrition
@@ -68,6 +69,22 @@ def test_zone2_minutes_cap_gaps(session):
     assert weeks[-1].minutes == 12
     nutrition.set_goal(session, "hr_max", 200)  # zone 2 is now 120-140
     assert analysis.zone2_weeks(session, 1)[-1].minutes == 2
+
+
+def test_zone2_limits_and_bedtime_come_from_the_settings(session, monkeypatch):
+    settings = get_settings()
+    assert analysis.zone2_bounds(200) == (120, 140)
+    monkeypatch.setattr(settings, "zone2_min_percent", 65)
+    monkeypatch.setattr(settings, "zone2_max_percent", 75)
+    assert analysis.zone2_bounds(200) == (130, 150)
+
+    tomorrow = TODAY + timedelta(days=1)
+    calendar.sync_feed(session, "work", ics(vevent("a", "Meeting", stamp(tomorrow, "0900"))), TODAY)
+    monkeypatch.setattr(settings, "wake_buffer_minutes", 60)
+    monkeypatch.setattr(settings, "sleep_need_minutes", 480)
+    monkeypatch.setattr(settings, "fall_asleep_minutes", 15)
+    b = analysis.bedtime_for(session, tomorrow)
+    assert (f"{b.wake_at:%H:%M}", f"{b.latest_bedtime:%H:%M}") == ("08:00", "23:45")
 
 
 def test_latest_bedtime_before_the_first_event(client, session):

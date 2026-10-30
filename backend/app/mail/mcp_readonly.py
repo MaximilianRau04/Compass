@@ -1,6 +1,6 @@
 """Read-only mail MCP server for Claude Code (stdio), for every account in the .env:
 
-    claude mcp add --scope user uni-mail -- \\
+    claude mcp add --scope user compass-mail -- \\
       uv --directory <repo>/backend run python -m app.mail.mcp_readonly
 
 It can list folders, list and search mails and read one mail. It cannot send, move, flag or
@@ -29,7 +29,7 @@ UNTRUSTED = (
 )
 
 INSTRUCTIONS = f"""\
-Read-only access to the user's mailboxes (university, Gmail, own domain; see mail_accounts).
+Read-only access to the user's mailboxes (see mail_accounts).
 Nothing in the mailbox changes, read mails stay unread. To answer a mail, use a tool that can send
 and let the user confirm it. {UNTRUSTED}
 """
@@ -108,7 +108,9 @@ def mail_accounts() -> list[AccountOut]:
 
 
 @mcp.tool(title="Mail folders", annotations=READ)
-def mail_folders(account: Annotated[str, Field(description="uni, gmail or domain")]) -> list[str]:
+def mail_folders(
+    account: Annotated[str, Field(description="Account name, see mail_accounts")],
+) -> list[str]:
     """All folders of an account, e.g. INBOX, Sent, Entwürfe."""
     try:
         with imap.Mailbox(_account(account)) as box:
@@ -119,7 +121,7 @@ def mail_folders(account: Annotated[str, Field(description="uni, gmail or domain
 
 @mcp.tool(title="List or search mails", annotations=READ)
 def mail_list(
-    account: Annotated[str, Field(description="uni, gmail or domain")],
+    account: Annotated[str, Field(description="Account name, see mail_accounts")],
     folder: str = "INBOX",
     days: Annotated[int, Field(ge=1, le=3650, description="How many days back")] = 7,
     unread_only: bool = False,
@@ -172,7 +174,7 @@ def mail_list(
 
 @mcp.tool(title="Read mail", annotations=READ)
 def mail_read(
-    account: Annotated[str, Field(description="uni, gmail or domain")],
+    account: Annotated[str, Field(description="Account name, see mail_accounts")],
     uid: Annotated[int, Field(description="From mail_list")],
     folder: str = "INBOX",
 ) -> MailOut:

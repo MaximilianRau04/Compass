@@ -13,7 +13,7 @@ class SessionBrief(BaseModel):
     volume_kg: float
     duration_minutes: int | None
     source: str = Field(
-        description="gymday (CSV with sets), healthconnect (Gym Day session only) or watch "
+        description="gymday, strong, hevy (CSV with sets), healthconnect (Gym Day only) or watch "
         "(another app's workout, e.g. bouldering)"
     )
     activity: str | None = Field(

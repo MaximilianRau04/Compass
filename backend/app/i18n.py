@@ -16,7 +16,7 @@ TEXT: dict[str, dict[str, str]] = {
         "months": "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec",
         # Push notifications
         "push.bedtime.title": "Bed by {time} at the latest",
-        "push.bedtime.body": "{when} {event}, get up at {wake}. For 7.5 h of sleep.",
+        "push.bedtime.body": "{when} {event}, get up at {wake}. For {hours} h of sleep.",
         "push.deadline.one": "Due {when}",
         "push.deadline.many": "{n} deadlines within 24 h",
         "push.resting.title": "Resting heart rate up",
@@ -65,7 +65,7 @@ TEXT: dict[str, dict[str, str]] = {
         "tomorrow": "morgen",
         "weekdays": "Mo Di Mi Do Fr Sa So",
         "push.bedtime.title": "Spätestens {time} ins Bett",
-        "push.bedtime.body": "{when} {event}, aufstehen {wake}. Für 7,5 h Schlaf.",
+        "push.bedtime.body": "{when} {event}, aufstehen {wake}. Für {hours} h Schlaf.",
         "push.deadline.one": "Fällig {when}",
         "push.deadline.many": "{n} Abgaben in 24 h",
         "push.resting.title": "Ruhepuls erhöht",
@@ -190,6 +190,11 @@ def number(value: float, digits: int = 0) -> str:
     """A number with the language's decimal mark ("7,5" in German)."""
     text = f"{value:.{digits}f}"
     return text.replace(".", ",") if lang() == "de" else text
+
+
+def number_trimmed(value: float) -> str:
+    """Like number, with one digit only when it is needed: "7.5" but "8"."""
+    return number(value, 0 if value == int(value) else 1)
 
 
 def short_date(day: date) -> str:

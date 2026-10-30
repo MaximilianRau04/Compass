@@ -44,8 +44,8 @@ function useInvalidateTraining() {
   return () => void client.invalidateQueries({ queryKey: ['training'] })
 }
 
-/** Upload a Gym Day export (daily_strength.csv) as the raw request body. */
-export function useImportGymDay() {
+/** Upload a workout export (Gym Day, Strong or Hevy CSV) as the raw request body. */
+export function useImportWorkouts() {
   const invalidate = useInvalidateTraining()
   return useMutation({
     mutationFn: (file: Blob) =>

@@ -1,8 +1,8 @@
 """Money: bank accounts through Enable Banking, categories, budgets, recurring payments and the
 securities account (entered by hand).
 
-- Connecting: the user picks the bank, approves at the bank (SecureGo plus for Volksbanken) and
-  comes back with a code; the consent lasts up to 180 days, then the user approves again.
+- Connecting: the user picks the bank, approves at the bank and comes back with a code; the
+  consent lasts up to 180 days, then the user approves again.
 - Sync: booked transactions only (pending ones change their ids when booked). Each sync fetches
   again from 10 days before the newest booking, so late bookings are not missed; the external id
   keeps it free of duplicates.
@@ -58,36 +58,56 @@ SPENDING = (
 )
 CATEGORIES = (*SPENDING, "income", "savings", "transfer")
 
-# Lowercase substrings of counterparty or purpose. The user's rules (FinanceRule) come first.
-DEFAULT_RULES: tuple[tuple[str, str], ...] = (
-    ("trade republic", "savings"),
-    ("miete", "housing"),
-    ("stadtwerke", "housing"),
-    ("rundfunk", "housing"),
-    ("rewe", "groceries"),
-    ("edeka", "groceries"),
-    ("aldi", "groceries"),
-    ("lidl", "groceries"),
-    ("netto", "groceries"),
-    ("penny", "groceries"),
-    ("kaufland", "groceries"),
-    ("dm-drogerie", "groceries"),
-    ("dm drogerie", "groceries"),
-    ("rossmann", "groceries"),
-    ("lieferando", "eating_out"),
+# Lowercase substrings of counterparty or purpose. The user's rules (FinanceRule) come first, then
+# the sets of FINANCE_RULE_SETS, then the international ones.
+RULES_BY_COUNTRY: dict[str, tuple[tuple[str, str], ...]] = {
+    "de": (
+        ("trade republic", "savings"),
+        ("miete", "housing"),
+        ("stadtwerke", "housing"),
+        ("rundfunk", "housing"),
+        ("rewe", "groceries"),
+        ("edeka", "groceries"),
+        ("aldi", "groceries"),
+        ("lidl", "groceries"),
+        ("netto", "groceries"),
+        ("penny", "groceries"),
+        ("kaufland", "groceries"),
+        ("dm-drogerie", "groceries"),
+        ("dm drogerie", "groceries"),
+        ("rossmann", "groceries"),
+        ("lieferando", "eating_out"),
+        ("mensa", "eating_out"),
+        ("studierendenwerk", "eating_out"),
+        ("deutsche bahn", "transport"),
+        ("db vertrieb", "transport"),
+        ("flixbus", "transport"),
+        ("aral", "transport"),
+        ("tankstelle", "transport"),
+        ("versicherung", "insurance"),
+        ("huk-coburg", "insurance"),
+        ("apotheke", "health"),
+        ("mcfit", "sport"),
+        ("fitx", "sport"),
+        ("urban sports", "sport"),
+        ("zalando", "shopping"),
+        ("geldautomat", "cash"),
+        ("bargeldauszahlung", "cash"),
+        ("kontoführung", "fees"),
+        ("entgelt", "fees"),
+        ("lohn", "income"),
+        ("gehalt", "income"),
+        ("bezüge", "income"),
+        ("bafög", "income"),
+    ),
+}
+INTERNATIONAL_RULES: tuple[tuple[str, str], ...] = (
     ("wolt", "eating_out"),
     ("uber eats", "eating_out"),
     ("mcdonald", "eating_out"),
     ("burger king", "eating_out"),
-    ("mensa", "eating_out"),
-    ("studierendenwerk", "eating_out"),
-    ("deutsche bahn", "transport"),
-    ("db vertrieb", "transport"),
-    ("flixbus", "transport"),
-    ("aral", "transport"),
     ("shell", "transport"),
     ("esso", "transport"),
-    ("tankstelle", "transport"),
     ("spotify", "subscriptions"),
     ("netflix", "subscriptions"),
     ("disney plus", "subscriptions"),
@@ -98,24 +118,9 @@ DEFAULT_RULES: tuple[tuple[str, str], ...] = (
     ("openai", "subscriptions"),
     ("github", "subscriptions"),
     ("hetzner", "subscriptions"),
-    ("versicherung", "insurance"),
     ("allianz", "insurance"),
-    ("huk-coburg", "insurance"),
-    ("apotheke", "health"),
-    ("mcfit", "sport"),
-    ("fitx", "sport"),
-    ("urban sports", "sport"),
     ("amazon", "shopping"),
-    ("zalando", "shopping"),
     ("decathlon", "shopping"),
-    ("geldautomat", "cash"),
-    ("bargeldauszahlung", "cash"),
-    ("kontoführung", "fees"),
-    ("entgelt", "fees"),
-    ("lohn", "income"),
-    ("gehalt", "income"),
-    ("bezüge", "income"),
-    ("bafög", "income"),
 )
 
 # Each sync starts this far before the newest booking it already has.
@@ -132,7 +137,7 @@ class FinanceError(ValueError):
 # --- Connecting --------------------------------------------------------------------------------
 
 
-def start_connect(session: Session, name: str, country: str = "DE", client=None) -> str:
+def start_connect(session: Session, name: str, country: str, client=None) -> str:
     """Create a pending connection and return the bank's login URL."""
     client = client or enablebanking
     redirect = get_settings().enablebanking_redirect_url.strip()
@@ -335,7 +340,9 @@ def check_category(category: str) -> str:
 def rule_list(session: Session) -> list[tuple[str, str]]:
     own = [(r.pattern, r.category) for r in session.scalars(select(FinanceRule))]
     # Longer patterns first: "amazon prime" beats "amazon".
-    return sorted(own, key=lambda r: -len(r[0])) + list(DEFAULT_RULES)
+    sets = get_settings().finance_rule_sets.lower().split()
+    built_in = [rule for name in sets for rule in RULES_BY_COUNTRY.get(name, ())]
+    return sorted(own, key=lambda r: -len(r[0])) + built_in + list(INTERNATIONAL_RULES)
 
 
 def categorize(t: BankTransaction, rules: list[tuple[str, str]]) -> str | None:
@@ -611,6 +618,11 @@ def overview(session: Session, n: int = 6, today: date | None = None) -> Overvie
         invested=round(-float(invested or 0), 2),
         recurring=recurring(session, today),
     )
+
+
+def currency(session: Session) -> str:
+    """The currency amounts are shown in. Totals assume all accounts share one."""
+    return session.scalar(select(BankAccount.currency).order_by(BankAccount.id)) or "EUR"
 
 
 def expiring(session: Session, now: datetime | None = None) -> list[BankConnection]:

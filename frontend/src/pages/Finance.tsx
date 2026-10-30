@@ -35,8 +35,10 @@ const categoryLabel = (t: Translate, category: string | null) =>
 
 function useMoney() {
   const { locale } = useI18n()
+  // Totals assume all accounts share one currency.
+  const currency = useFinanceOverview(6).data?.accounts[0]?.currency ?? 'EUR'
   return (value: number, digits = 0) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
+    new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
 }
 
 /** Finish an approval when the bank redirected back to /finance?code=…&state=…. */

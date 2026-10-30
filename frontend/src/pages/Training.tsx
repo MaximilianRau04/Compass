@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { useTodayDate } from '../api/tasks'
 import {
   useExercises,
-  useImportGymDay,
+  useImportWorkouts,
   useMergeExercise,
   useProgress,
   useProgression,
@@ -31,7 +31,7 @@ type Metric = 'best_e1rm' | 'top_weight' | 'max_reps' | 'volume_kg'
 function ImportButton() {
   const { t } = useI18n()
   const input = useRef<HTMLInputElement>(null)
-  const upload = useImportGymDay()
+  const upload = useImportWorkouts()
   return (
     <>
       <input
@@ -217,7 +217,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
   const detail = useSessionDetail(open ? session.id : null)
   const when = relativeDay(localDay(session.started_at), today, t, locale)
   const duration = session.duration_minutes !== null ? `${t('training.duration', { n: session.duration_minutes })} · ` : ''
-  // Heart rate from the watch, for Gym Day sessions as well as for workouts tracked only there.
+  // Heart rate from the watch, for logged sessions as well as for workouts tracked only there.
   const heart =
     session.hr_avg !== null
       ? `${t('training.hr', { avg: session.hr_avg, max: session.hr_max ?? '–' })}${session.zone2_minutes ? ` · ${t('zone2.short', { n: session.zone2_minutes })}` : ''} · `

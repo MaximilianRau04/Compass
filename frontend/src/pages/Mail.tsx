@@ -8,11 +8,11 @@ import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { clockTime, localDay, pill, relativeDay } from '../lib/format'
-import { isImportant } from '../lib/mail'
+import { accountName, isImportant } from '../lib/mail'
 
 const DAYS = 14
 
-function MailItem({ mail, today }: { mail: Mail; today: string }) {
+function MailItem({ mail, today, local }: { mail: Mail; today: string; local: boolean }) {
   const { t, locale } = useI18n()
   const toTask = useMailToTask()
   const dismiss = useDismissMail()
@@ -29,7 +29,7 @@ function MailItem({ mail, today }: { mail: Mail; today: string }) {
           </span>
         </p>
         <p className="shrink-0 font-mono text-[11px] text-muted">
-          {t(`mail.account.${mail.account}` as MessageKey)} · {relativeDay(localDay(mail.received_at), today, t, locale)}{' '}
+          {accountName(mail.account)} · {relativeDay(localDay(mail.received_at), today, t, locale)}{' '}
           {clockTime(mail.received_at, locale)}
         </p>
       </div>
@@ -38,7 +38,7 @@ function MailItem({ mail, today }: { mail: Mail; today: string }) {
         <p className="mt-1 text-sm text-muted">{mail.summary}</p>
       ) : (
         <p className="mt-1 font-mono text-[11px] text-muted">
-          {pending ? (mail.account === 'uni' ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
+          {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
         </p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -82,7 +82,7 @@ function Accounts({ overview, today }: { overview: MailOverview; today: string }
     <ul className="mb-6 space-y-0.5 font-mono text-[11px] text-muted">
       {overview.accounts.map((a) => (
         <li key={a.account}>
-          {t(`mail.account.${a.account}` as MessageKey)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
+          {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
           {a.last_success_at
             ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
             : t('mail.syncNever')}
@@ -103,7 +103,7 @@ const FILTERS: { key: Filter; label: MessageKey; test: (m: Mail) => boolean }[] 
 ]
 
 /** Mails newest first, one section per day. */
-function ByDay({ mails, today }: { mails: Mail[]; today: string }) {
+function ByDay({ mails, today, local }: { mails: Mail[]; today: string; local: Set<string> }) {
   const { t, locale } = useI18n()
   const days = new Map<string, Mail[]>()
   for (const mail of mails) {
@@ -117,7 +117,7 @@ function ByDay({ mails, today }: { mails: Mail[]; today: string }) {
           <SectionLabel count={items.length}>{relativeDay(day, today, t, locale)}</SectionLabel>
           <ul className="divide-y divide-rule/60">
             {items.map((m) => (
-              <MailItem key={m.id} mail={m} today={today} />
+              <MailItem key={m.id} mail={m} today={today} local={local.has(m.account)} />
             ))}
           </ul>
         </section>
@@ -163,6 +163,8 @@ export function MailPage() {
   }
   if (overview.isPending || mails.isPending) return <>{header}<p className="font-mono text-sm text-muted">{t('common.loading')}</p></>
 
+  const local = new Set(overview.data.accounts.filter((a) => a.triage === 'local').map((a) => a.account))
+
   if (overview.data.accounts.length === 0) {
     return (
       <>
@@ -196,14 +198,14 @@ export function MailPage() {
         </button>
         {overview.data.accounts.map((a) => (
           <button key={a.account} type="button" aria-pressed={account === a.account} onClick={() => setAccount(account === a.account ? undefined : a.account)} className={account === a.account ? 'text-brass' : 'text-muted hover:text-ink'}>
-            {t(`mail.account.${a.account}` as MessageKey)}
+            {accountName(a.account)}
           </button>
         ))}
       </div>
 
       {shown.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
       <div className="space-y-8">
-        <ByDay mails={shown} today={today} />
+        <ByDay mails={shown} today={today} local={local} />
         <p className="max-w-xl text-sm text-muted">{t('mail.hint')}</p>
       </div>
     </>

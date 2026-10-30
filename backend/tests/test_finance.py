@@ -5,9 +5,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from sqlalchemy import select
 
 from app.config import get_settings
-from app.models.finance import BankConnection, BankTransaction
+from app.models.finance import BankAccount, BankConnection, BankTransaction
 from app.services import enablebanking, finance, notify, push
 from app.services.clock import local_today
 from tests.test_healthconnect import at
@@ -267,3 +268,18 @@ def sent(monkeypatch):
     out = []
     monkeypatch.setattr(push, "_deliver", lambda sub, message: out.append((sub.endpoint, message)))
     return out
+
+
+def test_rule_sets_and_currency(session, bank, monkeypatch):
+    settings = get_settings()
+    assert ("rewe", "groceries") in finance.rule_list(session)
+    assert ("spotify", "subscriptions") in finance.rule_list(session)
+    monkeypatch.setattr(settings, "finance_rule_sets", "")
+    assert ("rewe", "groceries") not in finance.rule_list(session)
+    assert ("spotify", "subscriptions") in finance.rule_list(session)
+
+    assert finance.currency(session) == "EUR"
+    connect(session, bank)
+    session.scalar(select(BankAccount)).currency = "SEK"
+    session.flush()
+    assert finance.currency(session) == "SEK"

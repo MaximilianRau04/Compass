@@ -104,7 +104,7 @@ def test_import_endpoint_rejects_other_files(client):
     )
     response = client.post("/api/nutrition/import", content=gymday)
     assert response.status_code == 422
-    assert "Gym Day export" in response.json()["detail"]
+    assert "workout export" in response.json()["detail"]
 
     other = client.post("/api/nutrition/import", content=b"a,b\n1,2\n")
     assert "not a MyFitnessPal" in other.json()["detail"]

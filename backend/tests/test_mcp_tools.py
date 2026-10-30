@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 from mcp import Client
 
-from app.ingestion import calendar, gymday
+from app.ingestion import calendar, workouts
 from app.mcp import db as mcp_db
 from app.mcp.server import mcp
 from app.models.oauth import AuditLog
@@ -227,7 +227,7 @@ async def test_training_tools(client, session):
             f'"{when(1)}","Pull","Klimmzüge","1","","8","","","kg",',
         ]
     ).encode()
-    gymday.import_csv(session, csv)
+    workouts.import_csv(session, csv)
 
     summary = await call(client, "training_summary", weeks=4)
     assert summary["sessions"] == 2
