@@ -17,9 +17,9 @@ import recurring_ical_events
 from sqlalchemy import delete, select, tuple_
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.ingestion import deadlines
 from app.models.calendar import CalendarEvent
+from app.services import feeds as feed_config
 from app.services import integrations
 from app.services.clock import local_today, local_tz
 
@@ -178,7 +178,7 @@ def sync_feed(session: Session, feed: str, data: bytes, today: date | None = Non
     start, end = today - timedelta(days=PAST_DAYS), today + timedelta(days=FUTURE_DAYS)
     events = parse_ics(data, start, end)
     stats: dict = {}
-    pattern = get_settings().deadline_patterns.get(feed)
+    pattern = feed_config.deadline_patterns(session).get(feed)
     if pattern is not None:
         due = [e for e in events if pattern.search(e.title)]
         events = [e for e in events if not pattern.search(e.title)]
@@ -194,8 +194,7 @@ def sync_all(session_factory, fetch: Fetcher = fetch_ics) -> dict[str, dict | st
     # A broken setting is reported like a failed feed instead of stopping the worker.
     with session_factory() as session:
         try:
-            settings = get_settings()
-            feeds, _ = settings.calendar_feeds, settings.deadline_patterns
+            feeds, _ = feed_config.calendars(session), feed_config.deadline_patterns(session)
         except ValueError as exc:
             log.error("calendar config: %s", exc)
             integrations.record_failure(session, CONFIG_STATE, str(exc))

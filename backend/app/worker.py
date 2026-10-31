@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import i18n
 from app.config import get_settings
@@ -13,6 +14,7 @@ from app.db import SessionLocal, engine
 from app.ingestion import calendar
 from app.ingestion import mail as mail_sync
 from app.ingestion import news as news_sync
+from app.services import feeds
 
 log = logging.getLogger("compass.worker")
 
@@ -29,10 +31,6 @@ def heartbeat() -> None:
 
 
 def sync_calendars() -> None:
-    settings = get_settings()
-    if not settings.ilias_ics_url.strip() and not settings.calendar_ics_feeds.strip():
-        log.debug("no calendar feeds configured")
-        return
     calendar.sync_all(SessionLocal)
 
 
@@ -92,9 +90,12 @@ def notifications() -> None:
 
 def feed_names() -> str:
     try:
-        return ", ".join(get_settings().calendar_feeds) or "none"
+        with SessionLocal() as session:
+            return ", ".join(feeds.calendars(session)) or "none"
     except ValueError as exc:
         return f"invalid configuration ({exc})"
+    except SQLAlchemyError:  # the API runs the migrations and may not be done yet
+        return "unknown until the database is ready"
 
 
 def main() -> None:

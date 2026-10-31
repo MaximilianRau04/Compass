@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.news import NewsItem
+from app.services import feeds as feed_config
 from app.services import integrations
 from app.services.clock import utc_now
 from app.services.news import terms_of
@@ -143,7 +144,7 @@ def sync_all(session_factory, fetch: Fetcher = fetch_feed) -> dict[str, dict | s
     results: dict[str, dict | str] = {}
     with session_factory() as session:
         try:
-            feeds = get_settings().news_feed_list
+            feeds = feed_config.news(session)
         except ValueError as exc:
             log.error("news config: %s", exc)
             integrations.record_failure(session, CONFIG_STATE, str(exc))

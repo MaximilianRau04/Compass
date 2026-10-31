@@ -43,11 +43,11 @@ The screenshots show made-up data.
 
 | Integration | Needs | Off when |
 |---|---|---|
-| Calendars | ICS links (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
+| Calendars | ICS links, added under Settings or in `.env` (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
 | Health, sleep, nutrition | Android only: the bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
 | Training import | a CSV export of Gym Day, or Strong or Hevy (experimental), uploaded or shared from the phone | not used |
 | Mail | IMAP accounts (`MAIL_ACCOUNTS`); `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
-| News | RSS feeds (`NEWS_FEEDS`, a small default list otherwise) | `NEWS_FEEDS` empty |
+| News | RSS feeds, added under Settings or in `.env` (`NEWS_FEEDS`, a small default list otherwise) | no feeds left |
 | Finance | a bank in the EU or EEA and an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
 | Push | a VAPID key pair (`make vapid-keys`) | no keys set |
 | AI assistant | an MCP client, see [docs/deploy.md](docs/deploy.md); routines in [docs/routines.md](docs/routines.md) | not connected |
@@ -87,19 +87,18 @@ available in German and English (switch in the navigation). Texts the server wri
 
 ## Setup
 
-The smallest setup (tasks, calendars, notes) needs Docker and three values in `.env`:
+The smallest setup (tasks, calendars, notes, news) only needs Docker:
 
 ```bash
-cp .env.example .env
-# POSTGRES_PASSWORD:       any long random string
-# COMPASS_BASIC_AUTH_USER: your login name
-# COMPASS_BASIC_AUTH_HASH: output of `make password-hash`
+make setup              # asks for a login and writes a small .env
 make up                 # build and start everything in Docker
 ```
 
 The app is then available at http://localhost:8080, the API docs at http://localhost:8080/api/docs.
-On the first start, a short welcome page lets you adjust the areas and shows which sources are set up.
-Add calendars and the other integrations in `.env` when you want them; `make up` again applies them.
+On the first start, a short welcome page lets you adjust the areas, add calendars and news feeds, and
+shows which sources are set up. Both can be changed later under Settings. The other integrations and all
+remaining options are in [.env.example](.env.example): copy what you need into `.env`, and `make up` again
+applies it.
 
 ## Development
 
@@ -117,12 +116,11 @@ Requirements: Docker, [uv](https://docs.astral.sh/uv/), Node 20+ and pnpm.
 
 ## Calendars and deadlines
 
-The worker fetches ICS calendars every 30 minutes (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL` in `.env`) and
-mirrors their events for the Today page and the Calendar tab.
+The worker fetches ICS calendars every 30 minutes and mirrors their events for the Today page and the Calendar tab.
 
 Learning platforms put assignment deadlines into their calendar. Those entries become tasks instead of
 events: for ILIAS by the suffix "(Abgabetermin)" or "(Deadline)", for any other feed by a pattern on
-the title in `CALENDAR_DEADLINES` (see [docs/deploy.md](docs/deploy.md)). A sync never duplicates them,
+the title (see [docs/deploy.md](docs/deploy.md)). A sync never duplicates them,
 only changes title and deadline (area, priority, planned day and status stay yours), and cancels a
 deadline that disappears instead of deleting it.
 

@@ -316,8 +316,13 @@ docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compo
 
 ## 6. Calendars and deadlines
 
-Add the subscription URLs to `.env` on the server and run `make deploy` (the worker picks them up on
-start and then syncs every `CALENDAR_SYNC_MINUTES`):
+The easiest way is the app: under Settings, add a calendar with its subscription URL, an area and,
+if needed, a deadline pattern. Compass fetches it right away, so a wrong link shows up at once, and then
+syncs every `CALENDAR_SYNC_MINUTES`. A calendar called `ilias` gets the ILIAS deadlines without a pattern.
+News feeds work the same way.
+
+Alternatively, add them to `.env` on the server and run `make deploy`. Feeds from `.env` are listed under
+Settings too. They can only be hidden there, not edited:
 
 | Variable | Value |
 |---|---|
@@ -336,8 +341,10 @@ CALENDAR_DEADLINES="moodle= is due$"
 CALENDAR_FEED_AREAS="moodle=uni"
 ```
 
-These URLs carry a secret token: anyone with the link can read the calendar. They only live in `.env`,
-and sync errors are logged without them.
+These URLs carry a secret token: anyone with the link can read the calendar. They live in `.env` or, if
+added in the app, in the database and therefore in its backups. The API only ever returns their host, and
+sync errors are logged without them. Removing a calendar in the app deletes its events; deadline tasks
+stay.
 
 Check the first sync in the Tasks tab (calendar view, "fetch now") or on the server with
 `curl -u <user> -X POST http://127.0.0.1:8080/api/calendar/sync` (straight to Compass's Caddy, which

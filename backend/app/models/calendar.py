@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column
 
 from app.config import get_settings
 from app.models.base import Base, TimestampMixin
+from app.models.feeds import Feed
 
 
 class CalendarEvent(TimestampMixin, Base):
@@ -26,8 +27,15 @@ class CalendarEvent(TimestampMixin, Base):
     # All-day events start at local midnight; ends_at is then the exclusive end day.
     all_day: Mapped[bool] = mapped_column(default=False)
     raw: Mapped[str] = mapped_column(Text)
+    # The area of a calendar added in the app. Loaded with the event: lists have hundreds of them.
+    feed_area: Mapped[str | None] = column_property(
+        select(Feed.area)
+        .where(Feed.kind == "calendar", Feed.name == feed)
+        .correlate_except(Feed)
+        .scalar_subquery()
+    )
 
     @property
     def area_slug(self) -> str | None:
-        """The area of its calendar (CALENDAR_FEED_AREAS), e.g. uni for the C@MPUS timetable."""
-        return get_settings().calendar_area_map.get(self.feed)
+        """The area of its calendar, e.g. uni for the C@MPUS timetable."""
+        return get_settings().calendar_area_map.get(self.feed) or self.feed_area

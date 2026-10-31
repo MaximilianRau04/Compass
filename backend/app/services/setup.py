@@ -11,7 +11,7 @@ from app.config import get_settings
 from app.models.integrations import IntegrationState
 from app.models.notes import Note
 from app.models.tasks import Task
-from app.services import integrations
+from app.services import feeds, integrations
 
 STATE = "onboarding"
 
@@ -29,17 +29,24 @@ def finish(session: Session) -> None:
     integrations.record_success(session, STATE, {})
 
 
-def sources() -> dict[str, bool]:
+def _any(find, session: Session) -> bool:
+    try:
+        return bool(find(session))
+    except ValueError:  # a broken setting in .env, reported on the settings page
+        return False
+
+
+def sources(session: Session) -> dict[str, bool]:
     s = get_settings()
     try:
         mail = bool(s.mail_accounts)
     except ValueError:  # the mail tab reports a broken setting
         mail = False
     return {
-        "calendars": bool(s.calendar_ics_feeds.strip() or s.ilias_ics_url.strip()),
+        "calendars": _any(feeds.calendars, session),
         "health": bool(s.healthconnect_token),
         "mail": mail,
-        "news": bool(s.news_feeds.strip()),
+        "news": _any(feeds.news, session),
         "finance": bool(
             s.enablebanking_app_id and s.enablebanking_private_key and s.enablebanking_redirect_url
         ),

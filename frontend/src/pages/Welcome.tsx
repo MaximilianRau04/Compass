@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { type SetupSource, useFinishSetup, useSetup } from '../api/setup'
 import { useAreas, useCreateArea, useUpdateArea } from '../api/tasks'
 import type { Area } from '../api/types'
+import { FeedSettings } from '../components/FeedSettings'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -141,6 +142,8 @@ export function WelcomePage() {
           ))}
         </ul>
       </section>
+
+      <FeedSettings />
 
       <button
         type="button"

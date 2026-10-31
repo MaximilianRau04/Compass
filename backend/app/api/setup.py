@@ -15,7 +15,7 @@ def read_setup(session: SessionDep):
         first_run=setup.first_run(session),
         timezone=settings.timezone,
         language=settings.language,
-        sources=setup.sources(),
+        sources=setup.sources(session),
     )
 
 

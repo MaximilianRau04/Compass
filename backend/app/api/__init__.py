@@ -4,6 +4,7 @@ from app.api import (
     areas,
     body,
     calendar,
+    feeds,
     finance,
     health,
     ingest,
@@ -24,6 +25,7 @@ router.include_router(setup.router)
 router.include_router(areas.router)
 router.include_router(tasks.router)
 router.include_router(calendar.router)
+router.include_router(feeds.router)
 router.include_router(training.router)
 router.include_router(sleep.router)
 router.include_router(nutrition.router)

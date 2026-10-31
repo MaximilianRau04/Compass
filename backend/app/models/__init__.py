@@ -1,5 +1,6 @@
 from app.models.base import Base
 from app.models.calendar import CalendarEvent
+from app.models.feeds import Feed
 from app.models.finance import (
     BankAccount,
     BankConnection,
@@ -36,6 +37,7 @@ __all__ = [
     "Exercise",
     "ExerciseAlias",
     "ExerciseSet",
+    "Feed",
     "FinanceBudget",
     "FinanceRule",
     "Goal",

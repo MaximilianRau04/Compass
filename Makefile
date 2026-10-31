@@ -2,7 +2,10 @@ COMPOSE = docker compose --env-file .env -f infra/docker-compose.yml
 COMPOSE_DEV = $(COMPOSE) -f infra/docker-compose.dev.yml
 COMPOSE_PROD = $(COMPOSE) -f infra/docker-compose.prod.yml
 
-.PHONY: up down logs ps db api web test lint migrate migration deploy backup password-hash vapid-keys mcp
+.PHONY: setup up down logs ps db api web test lint migrate migration deploy backup password-hash vapid-keys mcp
+
+setup:         ## First start: ask for the login and write a small .env
+	infra/setup.sh
 
 up:            ## Build and start everything in Docker (locally, Postgres stays reachable on localhost)
 	$(COMPOSE_DEV) up -d --build

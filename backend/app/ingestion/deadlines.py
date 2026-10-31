@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models.tasks import Area, Task, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate
+from app.services import feeds
 from app.services import tasks as task_service
 from app.services.clock import local_tz
 
@@ -78,7 +79,7 @@ def _removed_by_sync(task: Task, feed: str) -> bool:
 def _default_area_id(session: Session, feed: str) -> int | None:
     settings = get_settings()
     slug = settings.ilias_deadline_area.strip().lower() if feed == "ilias" else ""
-    slug = slug or settings.calendar_area_map.get(feed, "")
+    slug = slug or feeds.calendar_areas(session).get(feed, "")
     if not slug:
         return None
     return session.scalar(select(Area.id).where(Area.slug == slug))

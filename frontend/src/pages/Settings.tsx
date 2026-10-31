@@ -9,6 +9,7 @@ import {
   usePushDevice,
   useSetPushTopics,
 } from '../api/push'
+import { FeedSettings } from '../components/FeedSettings'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -132,6 +133,9 @@ export function SettingsPage() {
           <Notifications />
         </div>
       </section>
+      <div className="mt-10">
+        <FeedSettings />
+      </div>
     </>
   )
 }
