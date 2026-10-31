@@ -1,6 +1,6 @@
-"""Texts Claude writes for a day: the daily brief, the news report, other routines' output.
+"""Texts an assistant writes for a day: the daily brief, the news report, other routines.
 
-Claude saves them with the MCP tool save_brief, usually from a scheduled routine. One text per
+It saves them with the MCP tool save_brief, usually from a scheduled routine. One text per
 kind and day; saving again replaces it. The body is a small subset of Markdown (headings,
 lists, bold, links) that the web app renders as text, never as HTML.
 """

@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # summaries, the MCP prompts): "en" or "de". The web app follows the browser instead.
     compass_language: str = "en"
 
-    # MCP server and its built-in OAuth server. The public URL is what Claude connects to;
+    # MCP server and its built-in OAuth server. The public URL is what the assistant connects to;
     # the MCP endpoint is <public url>/mcp.
     mcp_public_url: str = "http://localhost:8001"
     mcp_access_token_ttl: int = 3600

@@ -1,8 +1,8 @@
 # Compass
 
 A self-hosted dashboard for one person: tasks and deadlines, calendars, training, sleep, nutrition,
-body measurements, mail, news, notes and bank accounts, with its own MCP server so Claude can read and
-maintain all of it.
+body measurements, mail, news, notes and bank accounts, with its own MCP server so an AI assistant can
+read and maintain all of it.
 
 Compass is built for **one person per instance**: there is one login and no user management. It grew
 out of its author's own setup, a German university with ILIAS, a watch and a few phone apps. Everything
@@ -26,17 +26,17 @@ The screenshots show made-up data.
   from the phone.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
   Connect, plus the latest bedtime before the next day's first appointment.
-- **Training:** strength training log with double progression, imports from Gym Day, Strong and Hevy,
-  volume and progression per exercise.
+- **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy
+  are experimental), volume and progression per exercise.
 - **Nutrition and body:** meals from any app that writes to Health Connect, a MyFitnessPal export for
   the past, goals, weight and waist trends, and a weekly review with a calorie recommendation by fixed rules.
-- **Mail:** read-only IMAP for any number of accounts, triaged by Claude Haiku or a local Ollama model.
+- **Mail:** read-only IMAP for any number of accounts, triaged by a cloud model (Anthropic API) or a local Ollama model.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
 - **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
   banks in the EU and EEA, see the [note below](#finance).
 - **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access.
-- **MCP server** for Claude with OAuth: Claude can read everything above, plan your week and write
-  briefs that show up on the dashboard.
+- **MCP server** for AI assistants, with OAuth: your assistant can read everything above, plan your week
+  and write briefs that show up on the dashboard.
 
 ## Integrations
 
@@ -44,12 +44,12 @@ The screenshots show made-up data.
 |---|---|---|
 | Calendars | ICS links (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
 | Health, sleep, nutrition | Android only: the bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
-| Training import | a CSV export of Gym Day, Strong or Hevy, uploaded or shared from the phone | not used |
+| Training import | a CSV export of Gym Day, or Strong or Hevy (experimental), uploaded or shared from the phone | not used |
 | Mail | IMAP accounts (`MAIL_ACCOUNTS`); `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
 | News | RSS feeds (`NEWS_FEEDS`, a small default list otherwise) | `NEWS_FEEDS` empty |
 | Finance | a bank in the EU or EEA and an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
 | Push | a VAPID key pair (`make vapid-keys`) | no keys set |
-| Claude | the MCP server, see [docs/deploy.md](docs/deploy.md); routines in [docs/routines.md](docs/routines.md) | not connected |
+| AI assistant | an MCP client, see [docs/deploy.md](docs/deploy.md); routines in [docs/routines.md](docs/routines.md) | not connected |
 
 ## Quick add
 
@@ -77,7 +77,7 @@ The interface is available in German and English (switch in the navigation). Tex
 
 | Directory | Contents |
 |---|---|
-| `backend/` | FastAPI API, worker (APScheduler) and MCP server for Claude. Python 3.12, uv, SQLAlchemy 2, Alembic |
+| `backend/` | FastAPI API, worker (APScheduler) and MCP server for AI assistants. Python 3.12, uv, SQLAlchemy 2, Alembic |
 | `frontend/` | React + TypeScript + Vite, served from the Caddy image |
 | `android/` | Health Connect bridge app (Kotlin), pushes sleep and health data to the API |
 | `infra/` | Docker Compose, Caddyfile |
@@ -131,6 +131,10 @@ Hevy, uploaded there or shared from the phone (the installed PWA is a share targ
 format is recognised by its columns, and importing the same or an overlapping export again changes
 nothing. Warm-up sets are left out. Another app is one small parser in `app/ingestion/workouts.py`.
 
+The Strong and Hevy importers are experimental: they follow the known column layout of these exports but
+have not been tested with real files yet. If your export fails, please open an issue with its header row
+and a few lines of made-up data.
+
 The tab shows volume per week, the push/pull/legs split and the progression per exercise (estimated 1RM,
 top weight, reps). Exercises renamed in the app can be merged so their progression continues in one line.
 
@@ -152,7 +156,7 @@ Nutrition and weight from Health Connect feed the Nutrition tab (below).
 
 The latest bedtime and zone 2 use `WAKE_BUFFER_MINUTES`, `SLEEP_NEED_MINUTES`, `FALL_ASLEEP_MINUTES`,
 `ZONE2_MIN_PERCENT` and `ZONE2_MAX_PERCENT`. Set your maximum heart rate as the goal `hr_max` (through
-Claude with `set_nutrition_goal`); without it Compass assumes 190.
+your AI assistant with `set_nutrition_goal`); without it Compass assumes 190.
 
 ## Nutrition
 
@@ -173,8 +177,8 @@ macros and the full weight history.
 The worker reads the inboxes of the accounts in `MAIL_ACCOUNTS` over IMAP, strictly read-only: nothing is marked as read, moved or deleted, and the mail text is never stored. Every mail gets
 a priority from its headers at once (mailing lists and no-reply senders are unimportant, deadline words
 in the subject important). A model then adds priority, whether something is to do, a short summary and a
-suggested task. You choose per account who does that: Claude Haiku on the server, a local Ollama model
-on a machine of yours for mails with data of third parties (`app/mail/local_triage.py`; that machine
+suggested task. You choose per account who does that: a cloud model through the Anthropic API, a local
+Ollama model on a machine of yours for mails with data of third parties (`app/mail/local_triage.py`; that machine
 reads the text itself and sends only the result), or nobody, the default. The Mail tab sorts by importance, turns a mail into a
 task with one click and hides mails from the list; the Today page shows the important ones.
 
@@ -182,10 +186,10 @@ Mail content is untrusted: the model only returns fixed fields, links are stripp
 instruct an AI are flagged by a pattern check and never ranked below normal. The MCP tool marks every
 field as external content.
 
-For reading mails in Claude Code there is a separate read-only mail MCP (`app/mail/mcp_readonly.py`) for
+For reading mails in a local MCP client there is a separate read-only mail MCP (`app/mail/mcp_readonly.py`) for
 all accounts in the `.env`: list folders, list and search mails, read one mail. It cannot send, move, flag
-or delete; read mails stay unread. With it, the Compass prompt `sort_mails` lets Claude summarise new mails
-on demand (`mails_to_triage`, `save_mail_triage`) without an API key:
+or delete; read mails stay unread. With it, the Compass prompt `sort_mails` lets your assistant summarise new
+mails on demand (`mails_to_triage`, `save_mail_triage`) without an API key. For Claude Code:
 
 ```bash
 claude mcp add --scope user compass-mail -- uv --directory "$PWD/backend" run python -m app.mail.mcp_readonly
@@ -203,8 +207,10 @@ currency of your bank account, and totals assume that all accounts share one.
 
 ## MCP server
 
-Claude connects to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
-built-in login.
+AI assistants connect to Compass through its own MCP server (`app/mcp`), protected by OAuth with a
+built-in login. It uses plain MCP with OAuth and dynamic client registration, so it is not tied to one
+assistant. So far it has only been tested with Claude; others with remote MCP support, such as ChatGPT
+in developer mode, should work the same way.
 
 | Area | Tools |
 |---|---|

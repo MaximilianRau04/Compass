@@ -18,7 +18,7 @@ export function TaskItem({
 }) {
   const toggle = useToggleDone()
   const { t, locale } = useI18n()
-  const sourceLabel = { ilias: 'ILIAS', feed: t('source.feed'), email: t('source.email'), claude: 'Claude', manual: null }[task.source]
+  const sourceLabel = { ilias: 'ILIAS', feed: t('source.feed'), email: t('source.email'), claude: t('source.ai'), manual: null }[task.source]
   const done = task.status === 'done'
   const overdue = isOverdue(task, today)
 

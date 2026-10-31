@@ -2,7 +2,7 @@
 
 Three ways, chosen per account (MAIL_TRIAGE_<ACCOUNT>):
 - rules: headers only (mailing list, no-reply sender, deadline words in the subject), no summary
-- claude: the Anthropic API, on the server
+- claude: a cloud model through the Anthropic API, on the server
 - local: Ollama on a machine of your own (app.mail.local_triage), so the text stays there
 
 The mail is untrusted input. The prompt says so, the model only returns a fixed set of fields,

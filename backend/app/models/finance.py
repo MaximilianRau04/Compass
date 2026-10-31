@@ -73,7 +73,7 @@ class BankTransaction(Base):
     counterparty: Mapped[str | None] = mapped_column(String(200))
     counterparty_iban: Mapped[str | None] = mapped_column(String(40))
     purpose: Mapped[str | None] = mapped_column(Text)
-    # A category slug (app.services.finance.CATEGORIES); set by a rule, by hand or by Claude.
+    # A category slug (app.services.finance.CATEGORIES); set by a rule, by hand or by an assistant.
     category: Mapped[str | None] = mapped_column(String(30), index=True)
     category_source: Mapped[str | None] = mapped_column(String(20))  # rule | manual | claude
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

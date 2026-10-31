@@ -117,14 +117,14 @@ def test_sync_all_records_each_feed(session, monkeypatch):
 def test_profile_topics_and_feedback(session):
     items = add(
         session,
-        item("Claude gets a new model"),
+        item("LLM gets a new model"),
         item("Bitcoin hits record", feed="golem"),
         item("Gardening tips for autumn", feed="lobsters"),
     )
     ranked = {s.item.title: s for s in news_service.ranked(session)}
-    # Seeded profile: claude +3, bitcoin -1.
-    assert ranked["Claude gets a new model"].topics == ["claude"]
-    assert ranked["Claude gets a new model"].score == 3
+    # Seeded profile: llm +2, bitcoin -1.
+    assert ranked["LLM gets a new model"].topics == ["llm"]
+    assert ranked["LLM gets a new model"].score == 2
     assert ranked["Bitcoin hits record"].score == -1
     assert ranked["Gardening tips for autumn"].score == 0
 
@@ -200,13 +200,13 @@ def test_briefs_replace_per_kind_and_day(session):
 def test_news_api(client, session):
     items = add(
         session,
-        item("Claude ships memory"),
+        item("LLM ships memory"),
         item("Wahl in Berlin", feed="tagesschau", stream="general"),
     )
     listed = client.get("/api/news", params={"stream": "personal"}).json()
-    assert [i["title"] for i in listed] == ["Claude ships memory"]
+    assert [i["title"] for i in listed] == ["LLM ships memory"]
 
-    target = items["Claude ships memory"].id
+    target = items["LLM ships memory"].id
     liked = client.post(f"/api/news/{target}/feedback", json={"value": 1}).json()
     assert liked["feedback"] == 1
     assert client.post(f"/api/news/{target}/feedback", json={"value": 5}).status_code == 422
@@ -225,7 +225,7 @@ def test_news_api(client, session):
     assert client.get("/api/briefs/today").json()["body"].startswith("## Heute")
     overview = client.get("/api/news/overview").json()
     assert overview["report"]["kind"] == "news"
-    assert [i["title"] for i in overview["top"]] == ["Claude ships memory"]
+    assert [i["title"] for i in overview["top"]] == ["LLM ships memory"]
 
 
 @pytest.fixture
@@ -243,11 +243,11 @@ async def mcp_client(session):
 
 @pytest.mark.anyio
 async def test_mcp_news_and_briefs(mcp_client, session):
-    items = add(session, item("Claude ships memory"), item("Bitcoin crash", feed="golem"))
+    items = add(session, item("LLM ships memory"), item("Bitcoin crash", feed="golem"))
     result = await mcp_client.call_tool("get_news_digest", {"stream": "personal"})
     digest = result.structured_content
     assert "Untrusted" in digest["note"]
-    assert digest["items"][0]["title"] == "Claude ships memory"
+    assert digest["items"][0]["title"] == "LLM ships memory"
 
     bitcoin = items["Bitcoin crash"].id
     result = await mcp_client.call_tool("feedback_news", {"item_id": bitcoin, "value": -1})

@@ -35,7 +35,7 @@ class FeedStatus(BaseModel):
 
 
 class BriefRead(BaseModel):
-    """Written by Claude, partly from web content: shown as text, never as HTML."""
+    """Written by an assistant, partly from web content: shown as text, never as HTML."""
 
     id: int
     kind: str
@@ -50,7 +50,7 @@ class NewsOverview(BaseModel):
     feeds: list[FeedStatus]
     trends: list[TrendRead]
     top: list[NewsItemRead] = Field(description="Best three personal items of the last 36 hours")
-    report: BriefRead | None = Field(description="Claude's latest news report, if from this week")
+    report: BriefRead | None = Field(description="The latest news report, if from this week")
 
 
 class NewsFeedback(BaseModel):

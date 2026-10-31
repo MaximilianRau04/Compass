@@ -1,4 +1,4 @@
-"""The Compass MCP server: tools and prompts for Claude.
+"""The Compass MCP server: tools and prompts for AI assistants.
 
 Tools reuse app.services, the same logic the REST API uses. Write tools are deliberately
 limited (no deleting; cancelling a task is the undo), are rate limited per OAuth client and
@@ -1749,7 +1749,7 @@ def complete_task(task_id: int) -> CompleteOut:
 
 # --- Prompts -----------------------------------------------------------------------------------
 
-# The scheduled Claude routines use longer versions of these (docs/routines.md); keep in sync.
+# The scheduled routines use longer versions of these (docs/routines.md); keep in sync.
 DAILY_BRIEF = (
     "Write my daily brief in Compass. Call get_today, get_deadlines (14 days), "
     "sleep_summary (2 days), nutrition_summary (2 days), list_important_mails (2 days) and "
@@ -1793,7 +1793,7 @@ def news_report() -> str:
 
 @mcp.prompt(title="Sort mails")
 def sort_mails() -> str:
-    """Summarise and prioritise new mails (needs the read-only mail MCP in Claude Code)."""
+    """Summarise and prioritise new mails (needs the read-only mail MCP)."""
     return (
         "Sort my new mails in Compass. Call mails_to_triage. For each mail, read it with the "
         "mail MCP (mail_read with its account, folder and uid), then call save_mail_triage: "

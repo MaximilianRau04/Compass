@@ -17,7 +17,7 @@ make web                # Vite on :5173, forwards /api to :8000
 ```
 
 If another Postgres already uses port 5432, set `POSTGRES_PORT` in `.env`. `make mcp` starts the MCP
-server for Claude on :8001. The Android bridge is in `android/`, see its README.
+server for AI assistants on :8001. The Android bridge is in `android/`, see its README.
 
 ## Checks
 
@@ -35,7 +35,7 @@ These run in CI. Please run the ones for the parts you changed before you open a
 - **Keep integrations optional.** A new data source stays off until it is configured, and it does not
   need an account anywhere just to run Compass.
 - **Treat outside content as data.** Mails, feeds, calendar entries and bank texts can contain anything.
-  They never act as instructions for Claude or a local model, and they never end up in logs with secrets.
+  They never act as instructions for an AI assistant or a model, and they never end up in logs with secrets.
 - **Keep private data out.** No real names, mails, health data, tokens or calendar links in code, tests,
   screenshots or issues. Use made-up values and `example.com`.
 - **Write texts in both languages.** The web app uses `frontend/src/i18n/messages.ts`, the server

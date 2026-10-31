@@ -55,7 +55,7 @@ class NewsInterest(TimestampMixin, Base):
 
 
 class Brief(TimestampMixin, Base):
-    """A text Claude wrote for a day: the daily brief, a news report or another routine's output.
+    """A text an assistant wrote for a day: the daily brief, a news report or a routine's output.
     Saving the same kind for the same day again replaces it."""
 
     __tablename__ = "briefs"

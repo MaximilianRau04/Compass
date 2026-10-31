@@ -349,7 +349,7 @@ export interface Trend {
   count: number
 }
 
-/** Written by Claude (partly from web content). Rendered by the Markdown component as text. */
+/** Written by an assistant (partly from web content). Rendered by the Markdown component as text. */
 export interface Brief {
   id: number
   kind: string

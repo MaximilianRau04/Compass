@@ -1,6 +1,6 @@
 """Owner login and consent page for the built-in OAuth server.
 
-This page is public (Claude's OAuth flow opens it in the browser), so it is hardened:
+This page is public (the assistant's OAuth flow opens it in the browser), so it is hardened:
 password checked against the same bcrypt hash as the Caddy login, failed attempts are
 throttled per IP and globally, and the page cannot be framed.
 """
@@ -37,7 +37,7 @@ TEXT = {
         "deny": "Ablehnen",
         "wrong": "Benutzer oder Passwort ist falsch.",
         "locked": "Zu viele Fehlversuche. Versuch es in 15 Minuten erneut.",
-        "expired": "Diese Anfrage ist abgelaufen. Starte die Verbindung in Claude neu.",
+        "expired": "Diese Anfrage ist abgelaufen. Starte die Verbindung im KI-Assistenten neu.",
         "disabled": "Der Login ist nicht eingerichtet: COMPASS_BASIC_AUTH_USER und "
         "COMPASS_BASIC_AUTH_HASH fehlen in der .env des Servers.",
     },
@@ -51,7 +51,7 @@ TEXT = {
         "deny": "Deny",
         "wrong": "User or password is wrong.",
         "locked": "Too many failed attempts. Try again in 15 minutes.",
-        "expired": "This request has expired. Start the connection in Claude again.",
+        "expired": "This request has expired. Start the connection in your AI assistant again.",
         "disabled": "Login is not set up: COMPASS_BASIC_AUTH_USER and COMPASS_BASIC_AUTH_HASH "
         "are missing in the server's .env.",
     },

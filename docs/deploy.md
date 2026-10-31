@@ -257,18 +257,18 @@ docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compo
   sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < compass_<stamp>.dump
 ```
 
-## 5. MCP server for Claude
+## 5. MCP server for AI assistants
 
 The MCP server runs as its own container (`mcp`) behind its own hostname. It is the only part of Compass
-that has to be reachable from the internet: Claude calls it from Anthropic's servers, also when you use
-the phone app. Claude rejects MCP hosts that resolve to private addresses, so this hostname needs a public
-address (unlike the dashboard).
+that has to be reachable from the internet: hosted assistants call it from their own servers, also when
+you use their phone app. Claude, for example, rejects MCP hosts that resolve to private addresses, so this
+hostname needs a public address (unlike the dashboard).
 
 Everything else stays behind the VPN. The proxy forwards the MCP hostname only to `127.0.0.1:8081`, where
 Compass's Caddy passes it to the `mcp` container. That container serves `/mcp`, the OAuth endpoints and
 the login page, nothing from the dashboard.
 
-Authentication is OAuth with the built-in authorization server: Claude registers itself, opens the
+Authentication is OAuth with the built-in authorization server: the assistant registers itself, opens the
 Compass login page in your browser, and you sign in with the same user and password as the
 dashboard (`COMPASS_BASIC_AUTH_USER` / `COMPASS_BASIC_AUTH_HASH`). Failed logins are throttled per client
 IP, which only works if the proxy passes the real client address in `X-Forwarded-For`.
@@ -288,7 +288,10 @@ curl https://mcp.example.com/health                                    # {"statu
 curl https://mcp.example.com/.well-known/oauth-authorization-server    # JSON with issuer https://mcp.example.com
 ```
 
-### Connect Claude
+### Connect an assistant
+
+The steps below are for Claude, the only assistant Compass has been tested with so far. Any other client
+with remote MCP, OAuth and dynamic client registration needs the same URL.
 
 claude.ai → Settings → Connectors → Add custom connector → URL `https://mcp.example.com/mcp`.
 Leave the advanced OAuth fields empty. After the login the connector is also available in the

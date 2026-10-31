@@ -7,8 +7,8 @@ Rules (weight loss as the goal, see app.services.body):
   than STRENGTH_DROP % on average against the two weeks before): eat KCAL_STEP kcal more;
 - otherwise keep the calories.
 
-The worker saves it every Sunday evening as a brief of kind "weekly"; Claude reads the same numbers
-through the MCP tool weekly_review.
+The worker saves it every Sunday evening as a brief of kind "weekly"; an assistant reads the same
+numbers through the MCP tool weekly_review.
 """
 
 from collections import defaultdict

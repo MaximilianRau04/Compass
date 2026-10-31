@@ -151,6 +151,6 @@ def list_briefs(
 
 @router.get("/briefs/today", response_model=BriefRead | None)
 def today_brief(session: SessionDep):
-    """Today's daily brief, if a routine (or Claude in a chat) saved one."""
+    """Today's daily brief, if a routine (or an assistant in a chat) saved one."""
     brief = briefs.latest(session, "daily", since=local_today())
     return brief_read(brief) if brief else None

@@ -1,6 +1,6 @@
-# Claude routines for Compass
+# AI routines for Compass
 
-Compass never calls a model itself for its texts. The daily brief and the news report are written by scheduled Claude routines, which read through the Compass connector and write their result back with `save_brief`. The dashboard shows them:
+Compass never calls a model itself for its texts. The daily brief and the news report are written by routines, scheduled tasks of your AI assistant, which read through the Compass connector and write their result back with `save_brief`. The dashboard shows them:
 
 | `kind` | Where it shows up |
 |---|---|
@@ -14,12 +14,12 @@ The prompts below ask for English. Change the language in the prompt if you want
 
 ## Setup
 
-1. Create a new scheduled task in Claude and paste one of the prompts below.
+1. Create a new scheduled task in your AI assistant and paste one of the prompts below. These steps follow Claude; other assistants need scheduled tasks and access to the MCP server.
 2. Select only the **Compass** connector. Leave out Gmail, Notion, Drive and the like: the routine reads external content (mails, feeds, the web), and without other connectors a crafted mail or page cannot trigger anything outside Compass.
 3. Push notification on, email off.
 4. Run it once by hand and check that the text shows up on "Today" or in the News tab.
 
-Requirement: Claude can reach the Compass MCP server (the same connector as in the chat).
+Requirement: your assistant can reach the Compass MCP server (the same connector as in the chat).
 
 ## Daily brief
 
@@ -69,9 +69,9 @@ Adjust the topics in step 2 to your own interests, and the feeds with `NEWS_FEED
 
 ## Weekly review (automatic)
 
-Needs no routine: every Sunday at 20:00 the worker saves the weekly review as a brief with `kind "weekly"`. It shows up on "Today" on Sunday, with nutrition (valid days only), weight trend, waist, steps, sessions, progress and plateaus, sleep, resting heart rate, zone 2 and a calorie recommendation from fixed rules. Claude gets the same numbers through the MCP tool `weekly_review`.
+Needs no routine: every Sunday at 20:00 the worker saves the weekly review as a brief with `kind "weekly"`. It shows up on "Today" on Sunday, with nutrition (valid days only), weight trend, waist, steps, sessions, progress and plateaus, sleep, resting heart rate, zone 2 and a calorie recommendation from fixed rules. Your assistant gets the same numbers through the MCP tool `weekly_review`.
 
-If you want a comment from Claude on it (schedule: Sundays 20:30):
+If you want a comment from your assistant on it (schedule: Sundays 20:30):
 
 ```
 Read weekly_review and get_brief (kind "weekly") in the Compass connector. Write at most 120 words in English: what went well this week, what did not, and what I will concretely do differently next week (training, sleep, nutrition). Take over the calorie recommendation from the rules, do not make up your own. Save the text with save_brief (kind "weekly-comment", title "Comment on the week"). Change nothing else.
@@ -87,7 +87,7 @@ Write my evening brief in Compass. Call get_today (it includes tomorrow_first_ev
 
 ## Notification at the end of a routine
 
-With the tool `send_notification`, a routine can send a short push message to the phone (topic "Claude" under Settings → Notifications). Add it as the last sentence of the prompt, e.g. for the daily brief:
+With the tool `send_notification`, a routine can send a short push message to the phone (topic "AI assistant" under Settings → Notifications). Add it as the last sentence of the prompt, e.g. for the daily brief:
 
 ```text
 Finally, send me a message with send_notification: title "Daily brief", body the most important point of the day in one sentence, path "/".
@@ -107,4 +107,4 @@ Finally, save the result in the Compass connector with save_brief (kind "<short-
 
 ## In the chat instead of a routine
 
-The Compass MCP prompts `daily_brief` and `news_report` do the same on demand (in Claude through the plus menu, under the connector's prompts). If you change the routine prompts, update `DAILY_BRIEF` and `NEWS_REPORT` in `backend/app/mcp/server.py` to match.
+The Compass MCP prompts `daily_brief` and `news_report` do the same on demand (in Claude through the plus menu, under the connector's prompts; other assistants list MCP prompts differently). If you change the routine prompts, update `DAILY_BRIEF` and `NEWS_REPORT` in `backend/app/mcp/server.py` to match.

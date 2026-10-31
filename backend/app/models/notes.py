@@ -29,7 +29,7 @@ SEARCH_VECTOR = (
 class Note(TimestampMixin, Base):
     """A Markdown note: knowledge, ideas, links, context about the user. There is no delete;
     archiving hides a note. Notes tagged "kontext" describe the user (profile, writing style)
-    and are what Claude reads before writing in the user's name."""
+    and are what the assistant reads before writing in the user's name."""
 
     __tablename__ = "notes"
     __table_args__ = (

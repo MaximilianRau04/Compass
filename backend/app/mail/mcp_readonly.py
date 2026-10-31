@@ -1,4 +1,5 @@
-"""Read-only mail MCP server for Claude Code (stdio), for every account in the .env:
+"""Read-only mail MCP server for local clients (stdio), for every account in the .env. With
+Claude Code:
 
     claude mcp add --scope user compass-mail -- \\
       uv --directory <repo>/backend run python -m app.mail.mcp_readonly

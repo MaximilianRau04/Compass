@@ -7,7 +7,7 @@ securities account (entered by hand).
   again from 10 days before the newest booking, so late bookings are not missed; the external id
   keeps it free of duplicates.
 - Categories: the user's rules first, then the built-in ones; a match on counterparty or purpose
-  sets the category. Money in without a match is income. Claude sorts the rest (MCP).
+  sets the category. Money in without a match is income. An assistant sorts the rest (MCP).
 - Months: spending is the money out in spending categories (refunds in the same category count
   against it); "savings" (to the securities account) and "transfer" (own accounts) are not
   spending.

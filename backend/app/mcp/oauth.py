@@ -2,7 +2,7 @@
 
 Compass has exactly one user, so instead of running a separate identity provider this
 implements the SDK's OAuthAuthorizationServerProvider on top of Postgres. The SDK handles
-discovery metadata, dynamic client registration (which Claude uses), PKCE and the token
+discovery metadata, dynamic client registration (which assistants use), PKCE and the token
 endpoint; this class stores clients, codes and tokens, and sends /authorize to the owner
 login page in app.mcp.login.
 """

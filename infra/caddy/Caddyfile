@@ -55,7 +55,7 @@
 	}
 }
 
-# MCP endpoint for Claude, protected by OAuth instead of basic auth.
+# MCP endpoint for AI assistants, protected by OAuth instead of basic auth.
 # Exposes /mcp plus the OAuth endpoints and the owner login page of the MCP service.
 {$COMPASS_MCP_SITE_ADDRESS::8081} {
 	import tls-{$COMPASS_TLS_MODE:off}

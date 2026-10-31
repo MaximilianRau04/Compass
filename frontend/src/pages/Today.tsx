@@ -75,7 +75,7 @@ function Bedtime() {
   )
 }
 
-/** The daily brief a Claude routine saved this morning; folded away once read. */
+/** The daily brief a routine saved this morning; folded away once read. */
 function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   const { t, locale } = useI18n()
   if (!brief) return null
@@ -110,7 +110,7 @@ function OtherBriefs({ briefs, today }: { briefs: Brief[] | undefined; today: st
   )
 }
 
-/** The short part of Claude's news report (from today or yesterday); without one, the three
+/** The short part of the news report (from today or yesterday); without one, the three
  * best personal news items of the last 36 hours. */
 function TopNews({ overview, today }: { overview: NewsOverview | undefined; today: string }) {
   const { t } = useI18n()

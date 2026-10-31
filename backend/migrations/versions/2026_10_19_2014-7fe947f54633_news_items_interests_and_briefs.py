@@ -108,8 +108,6 @@ def upgrade() -> None:
         [
             {"term": term, "manual": True, "weight": weight}
             for term, weight in [
-                ("claude", 3),
-                ("anthropic", 2),
                 ("mcp", 2),
                 ("llm", 2),
                 ("ki", 1.5),

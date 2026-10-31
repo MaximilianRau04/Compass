@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 /*
- * A small Markdown subset for the texts Claude saves (daily brief, news report): headings,
+ * A small Markdown subset for the texts an assistant saves (daily brief, news report): headings,
  * lists, paragraphs, **bold**, `code` and [links](https://...). Everything becomes React
  * elements, never HTML, and only http(s) links are linked, because the texts are partly built
  * from web content.

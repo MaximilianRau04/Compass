@@ -93,7 +93,7 @@ function Feeds({ overview, today }: { overview: NewsOverview; today: string }) {
   )
 }
 
-/** Claude's summary of the most important news: the main content of the page. */
+/** The summary of the most important news: the main content of the page. */
 function Report({ overview, today }: { overview: NewsOverview; today: string }) {
   const { t, locale } = useI18n()
   const report = overview.report
