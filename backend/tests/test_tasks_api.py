@@ -22,6 +22,33 @@ def test_seeded_areas(client):
     assert slugs == ["uni", "work", "sport", "projects", "personal"]
 
 
+def test_create_area(client):
+    data = {"slug": "family", "name": "Family", "color": "teal", "sort_order": 60}
+    response = client.post("/api/areas", json=data)
+    assert response.status_code == 201
+    assert (response.json()["name"], response.json()["archived"]) == ("Family", False)
+    assert "family" in [a["slug"] for a in client.get("/api/areas").json()]
+
+    assert client.post("/api/areas", json=data).status_code == 409
+    bad_slug = client.post("/api/areas", json={"slug": "Not Valid", "name": "X"})
+    assert bad_slug.status_code == 422
+
+
+def test_rename_and_archive_area(client):
+    uni = area_id(client, "uni")
+    response = client.patch(f"/api/areas/{uni}", json={"name": "Study"})
+    assert (response.json()["slug"], response.json()["name"]) == ("uni", "Study")
+
+    assert client.patch(f"/api/areas/{uni}", json={"archived": True}).json()["archived"] is True
+    assert "uni" not in [a["slug"] for a in client.get("/api/areas").json()]
+    everything = client.get("/api/areas?include_archived=true").json()
+    assert "uni" in [a["slug"] for a in everything]
+
+
+def test_update_unknown_area(client):
+    assert client.patch("/api/areas/999999", json={"name": "X"}).status_code == 404
+
+
 def test_quick_add_creates_task_with_parsed_fields(client):
     response = client.post(
         "/api/tasks/quick", json={"text": "morgen 14 Uhr Blatt 3 abgeben #uni !hoch"}

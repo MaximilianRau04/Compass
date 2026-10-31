@@ -1,5 +1,6 @@
 from contextlib import nullcontext
 from datetime import timedelta
+from email.utils import format_datetime
 
 import pytest
 from mcp import Client
@@ -30,6 +31,12 @@ ATOM = b"""<?xml version="1.0" encoding="utf-8"?>
 <id>tag:rust</id><updated>2026-10-19T07:00:00Z</updated>
 <summary>Article URL: https://example.org/rust Comments URL: https://hn/1 Points: 120</summary>
 </entry></feed>"""
+
+
+def recent_rss() -> bytes:
+    """RSS with its item from an hour ago: items older than NEWS_KEEP_DAYS are not stored."""
+    published = format_datetime(utc_now() - timedelta(hours=1))
+    return RSS.replace(b"Mon, 19 Oct 2026 08:00:00 +0000", published.encode())
 
 
 def item(title, feed="hn", hours_ago=1, summary=None, stream="personal", key=None):
@@ -78,7 +85,7 @@ def test_parse_rss_and_atom():
 
 
 def test_store_is_idempotent(session):
-    parsed = news_sync.parse_feed(RSS)
+    parsed = news_sync.parse_feed(recent_rss())
     assert news_sync.store(session, "personal", "t", parsed) == {"items": 1, "new": 1}
     assert news_sync.store(session, "personal", "t", parsed) == {"items": 1, "new": 0}
     row = session.scalar(select(NewsItem))
@@ -95,7 +102,7 @@ def test_sync_all_records_each_feed(session, monkeypatch):
     def fetch(url):
         if "b.test" in url:
             raise OSError("down")
-        return RSS
+        return recent_rss()
 
     results = news_sync.sync_all(lambda: nullcontext(session), fetch)
     assert results["good"] == {"items": 1, "new": 1}

@@ -153,7 +153,9 @@ def test_sync_all_records_failure_without_leaking_the_url(session, monkeypatch):
     assert state.last_error and "SECRET" not in state.last_error
     assert state.last_success_at is None
 
-    results = calendar.sync_all(lambda: nullcontext(session), fetch=lambda url: ics(lecture()))
+    # sync_all works from the real today, unlike the fixed TODAY of the other tests.
+    feed = ics(lecture(local_today()))
+    results = calendar.sync_all(lambda: nullcontext(session), fetch=lambda url: feed)
     assert results["ilias"]["created"] >= 1
     session.refresh(state)
     assert state.last_error is None and state.last_success_at is not None
