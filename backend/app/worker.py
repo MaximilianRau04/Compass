@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.blocking import BlockingScheduler
 from sqlalchemy import text
 
+from app import i18n
 from app.config import get_settings
 from app.db import SessionLocal, engine
 from app.ingestion import calendar
@@ -60,7 +61,7 @@ def weekly_review() -> None:
     with SessionLocal() as session:
         r = review.save_weekly(session)
         session.commit()
-        notify.weekly_review(session, "Wochenreview ist da", review.headline(r), r.until)
+        notify.weekly_review(session, i18n.t("review.ready"), review.headline(r), r.until)
         session.commit()
     log.info("weekly review saved")
 

@@ -24,7 +24,7 @@ import { DataTable, Stat } from '../components/DataBlocks'
 import { SectionLabel } from '../components/Layout'
 import { type Translate, useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { daysBetween, parseDate, pill, relativeDay } from '../lib/format'
+import { daysBetween, parseAmount, parseDate, pill, relativeDay } from '../lib/format'
 
 const INPUT = 'rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none'
 // The bank sends the browser back once per approval; StrictMode would run the effect twice.
@@ -33,10 +33,20 @@ const handledCodes = new Set<string>()
 const categoryLabel = (t: Translate, category: string | null) =>
   category ? t(`fin.cat.${category}` as MessageKey) : t('fin.cat.none')
 
+// Totals assume all accounts share one currency.
+function useCurrency() {
+  return useFinanceOverview(6).data?.accounts[0]?.currency ?? 'EUR'
+}
+
+function useCurrencySymbol() {
+  const { locale } = useI18n()
+  const parts = new Intl.NumberFormat(locale, { style: 'currency', currency: useCurrency() }).formatToParts(0)
+  return parts.find((part) => part.type === 'currency')?.value ?? ''
+}
+
 function useMoney() {
   const { locale } = useI18n()
-  // Totals assume all accounts share one currency.
-  const currency = useFinanceOverview(6).data?.accounts[0]?.currency ?? 'EUR'
+  const currency = useCurrency()
   return (value: number, digits = 0) =>
     new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value)
 }
@@ -175,7 +185,8 @@ function Months({ data }: { data: FinanceOverview }) {
 }
 
 function Categories({ data }: { data: FinanceOverview }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const currencySymbol = useCurrencySymbol()
   const money = useMoney()
   const setBudget = useSetBudget()
   const [editing, setEditing] = useState<string | null>(null)
@@ -212,11 +223,11 @@ function Categories({ data }: { data: FinanceOverview }) {
                     className="mt-1 flex gap-2"
                     onSubmit={(e) => {
                       e.preventDefault()
-                      setBudget.mutate({ category: c, amount: Number(value.replace(',', '.')) || 0 }, { onError: (err) => toast.error(err.message) })
+                      setBudget.mutate({ category: c, amount: parseAmount(value, locale) || 0 }, { onError: (err) => toast.error(err.message) })
                       setEditing(null)
                     }}
                   >
-                    <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder="€" className={`${INPUT} w-24 py-0.5 text-xs`} />
+                    <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder={currencySymbol} className={`${INPUT} w-24 py-0.5 text-xs`} />
                     <button type="submit" className="text-xs text-brass">{t('fin.save')}</button>
                   </form>
                 ) : (
@@ -267,6 +278,7 @@ function Recurring({ data }: { data: FinanceOverview }) {
 
 function Depot({ data }: { data: FinanceOverview }) {
   const { t, locale } = useI18n()
+  const currencySymbol = useCurrencySymbol()
   const money = useMoney()
   const log = useLogDepot()
   const [value, setValue] = useState('')
@@ -279,15 +291,14 @@ function Depot({ data }: { data: FinanceOverview }) {
         className="mt-3 flex flex-wrap items-end gap-2"
         onSubmit={(e) => {
           e.preventDefault()
-          // German input: dots group thousands, the comma is the decimal point.
-          const v = Number(value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value)
+          const v = parseAmount(value, locale)
           if (!value.trim() || !Number.isFinite(v)) return
           log.mutate(v, { onSuccess: () => (setValue(''), toast(t('fin.savedToast'))), onError: (err) => toast.error(err.message) })
         }}
       >
         <label className="text-sm">
           <span className="mb-1 block text-xs text-muted">{t('fin.depotToday')}</span>
-          <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder="€" className={`${INPUT} w-36`} />
+          <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder={currencySymbol} className={`${INPUT} w-36`} />
         </label>
         <button type="submit" disabled={log.isPending || !value.trim()} className="rounded-md bg-brass px-3 py-1.5 text-sm font-medium text-brass-ink disabled:opacity-40">
           {t('fin.save')}

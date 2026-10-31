@@ -29,7 +29,8 @@ The screenshots show made-up data.
 - **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy
   are experimental), volume and progression per exercise.
 - **Nutrition and body:** meals from any app that writes to Health Connect, a MyFitnessPal export for
-  the past, goals, weight and waist trends, and a weekly review with a calorie recommendation by fixed rules.
+  the past, goals, weight and waist trends, and a weekly review; with a weight loss goal it adds a calorie recommendation by
+  fixed rules.
 - **Mail:** read-only IMAP for any number of accounts, triaged by a cloud model (Anthropic API) or a local Ollama model.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
 - **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
@@ -71,7 +72,8 @@ Müll rausbringen jeden Montag #personal
 | `!`, `!!`, `!!!`, `!hoch`/`!high`, `!dringend`/`!urgent`, `!niedrig`/`!low` | priority |
 | `täglich`/`daily`, `werktags`/`weekdays`, `jeden Montag`/`every monday`, `alle 2 wochen`/`every 2 weeks`, `monatlich`/`monthly` | recurrence |
 
-The interface is available in German and English (switch in the navigation). Texts the server writes itself (push notifications, the weekly review, mail summaries, MCP prompts) follow `COMPASS_LANGUAGE` (`en` or `de`). On Android, links and text can be shared into Compass from any app once the PWA is installed.
+Compass uses metric units (kg, cm), the 24-hour clock and weeks that start on Monday. The interface is
+available in German and English (switch in the navigation). Texts the server writes itself (push notifications, the weekly review, mail summaries, MCP prompts) follow `COMPASS_LANGUAGE` (`en` or `de`). On Android, links and text can be shared into Compass from any app once the PWA is installed.
 
 ## Structure
 
@@ -169,7 +171,8 @@ without entries were not logged and stay empty in the charts, never 0 kcal. The 
 fills the weight history; new weights come from Health Connect.
 
 Daily goals for calories and protein apply from the day they are set, so earlier days keep the goal
-they had. The Nutrition tab shows today against the goals, calories and protein per day, average
+they had. The weight trend and the calorie recommendation in the weekly review compare against a weight
+loss goal (`weight_loss_min`, `weight_loss_max`) and stay off without one. The Nutrition tab shows today against the goals, calories and protein per day, average
 macros and the full weight history.
 
 ## Mail

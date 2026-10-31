@@ -94,8 +94,13 @@ def test_quick_note(session):
 def test_context_notes(session):
     new(session, "Schreibstil", "Duzen, keine Emojis", tags=["kontext"])
     new(session, "Über mich", "Student", tags=["kontext"], pinned=True)
+    new(session, "Goals", "Ship it", tags=["context"])
     new(session, "Anderes", "x")
-    assert [n.title for n in note_service.context_notes(session)] == ["Über mich", "Schreibstil"]
+    assert [n.title for n in note_service.context_notes(session)] == [
+        "Über mich",
+        "Goals",
+        "Schreibstil",
+    ]
 
 
 def test_notes_api(client, session):

@@ -98,6 +98,12 @@ def _mean(values: list[float]) -> float | None:
     return round(mean(values), 2) if len(values) >= MIN_DAYS else None
 
 
+def has_loss_goal(session: Session, day: date) -> bool:
+    """Whether the user wants to lose weight at all. Without it, Compass only reports numbers."""
+    goals = nutrition.goals_on(session, day)
+    return "weight_loss_min" in goals or "weight_loss_max" in goals
+
+
 def loss_goal(session: Session, day: date) -> tuple[float, float]:
     goals = nutrition.goals_on(session, day)
     low = goals.get("weight_loss_min", DEFAULT_LOSS[0])
@@ -128,7 +134,7 @@ def trend(session: Session, weeks: int = 8, today: date | None = None) -> Trend:
     low, high = loss_goal(session, today)
     loss = -change if change is not None else None
     status = None
-    if loss is not None:
+    if loss is not None and has_loss_goal(session, today):
         status = (
             "gaining"
             if loss < 0

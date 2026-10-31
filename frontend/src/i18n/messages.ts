@@ -1033,7 +1033,7 @@ export const en: Record<MessageKey, string> = {
   'notes.saved': 'Saved',
   'notes.source.claude': 'by AI',
   'notes.source.share': 'shared',
-  'notes.hint': 'Notes tagged #kontext describe you (profile, writing style, projects). Your AI assistant reads them before writing anything in your name.',
+  'notes.hint': 'Notes tagged #context describe you (profile, writing style, projects). Your AI assistant reads them before writing anything in your name.',
 
   'today.brief': 'Daily brief',
   'today.news': 'Top news',

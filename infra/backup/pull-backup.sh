@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PC side: pull the dumps from the server over Tailscale and snapshot them with restic.
+# PC side: pull the dumps from the server over the VPN and snapshot them with restic.
 # Configure via ~/.config/compass/backup.env (see docs/deploy.md).
 set -euo pipefail
 umask 077

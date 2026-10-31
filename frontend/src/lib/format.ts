@@ -126,6 +126,20 @@ export function compact(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
 
+/** An amount as typed, in the way of the locale or the other one: "1.000,50" and "1,000.50" are
+ * the same, and a lone separator before exactly three digits groups thousands ("1,000"). */
+export function parseAmount(text: string, locale: string): number {
+  const value = text.trim().replace(/[\s'€$£]/g, '')
+  const decimalMark = new Intl.NumberFormat(locale).format(1.5).includes(',') ? ',' : '.'
+  const last = Math.max(value.lastIndexOf(','), value.lastIndexOf('.'))
+  if (last < 0) return Number(value || NaN)
+  const mixed = value.includes(',') && value.includes('.')
+  const repeated = value.indexOf(value[last]) !== last
+  const grouped = !mixed && value[last] !== decimalMark && value.length - last - 1 === 3
+  if (repeated || grouped) return Number(value.replace(/[.,]/g, ''))
+  return Number(`${value.slice(0, last).replace(/[.,]/g, '')}.${value.slice(last + 1)}`)
+}
+
 export function decimal(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)
 }

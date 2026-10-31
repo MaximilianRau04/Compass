@@ -49,7 +49,22 @@ def waist(session, *values):
     session.flush()
 
 
-def test_slow_loss_with_same_waist_lowers_calories(session):
+@pytest.fixture
+def losing_weight(session):
+    nutrition.set_goal(session, "weight_loss_min", 0.2, TODAY - timedelta(days=60))
+    nutrition.set_goal(session, "weight_loss_max", 0.4, TODAY - timedelta(days=60))
+
+
+def test_no_recommendation_without_a_weight_loss_goal(session):
+    weights(session, 80.0, 79.0)
+    r = review.save_weekly(session, TODAY)
+    assert (r.recommendation.action, r.recommendation.kcal_delta) == ("none", 0)
+    brief = briefs.latest(session, "weekly")
+    assert brief.body.startswith("## Nutrition") and "Recommendation" not in brief.body
+    assert review.headline(r) == "Your week in numbers."
+
+
+def test_slow_loss_with_same_waist_lowers_calories(session, losing_weight):
     nutrition.set_goal(session, "kcal", 2400, TODAY - timedelta(days=30))
     weights(session, 80.0, 80.1, 80.2)  # 0.1 kg per week, twice
     waist(session, (8, 85.0), (1, 85.2))
@@ -59,19 +74,19 @@ def test_slow_loss_with_same_waist_lowers_calories(session):
     assert (rec.action, rec.kcal_delta, rec.new_kcal_goal) == ("decrease", -150, 2250)
 
 
-def test_slow_loss_without_waist_keeps_calories(session):
+def test_slow_loss_without_waist_keeps_calories(session, losing_weight):
     weights(session, 80.0, 80.1, 80.2)
     rec = review.weekly_review(session).recommendation
     assert rec.action == "keep" and "waist" in rec.reasons[0]
 
 
-def test_fast_loss_raises_calories(session):
+def test_fast_loss_raises_calories(session, losing_weight):
     weights(session, 79.0, 80.0)
     rec = review.weekly_review(session).recommendation
     assert (rec.action, rec.kcal_delta) == ("increase", 150)
 
 
-def test_falling_strength_raises_calories(session):
+def test_falling_strength_raises_calories(session, losing_weight):
     workout_log.save(session, logged(days_ago=20, exercises=bench((100, 8, 2))))
     workout_log.save(session, logged(days_ago=3, exercises=bench((90, 8, 2))))
     r = review.weekly_review(session)
@@ -80,7 +95,7 @@ def test_falling_strength_raises_calories(session):
     assert r.recommendation.action == "increase"
 
 
-def test_saved_as_weekly_brief(session):
+def test_saved_as_weekly_brief(session, losing_weight):
     weights(session, 80.0, 80.3)
     review.save_weekly(session)
     brief = briefs.latest(session, "weekly")
@@ -95,7 +110,7 @@ def anyio_backend():
 
 
 @pytest.mark.anyio
-async def test_weekly_review_mcp_tool(session):
+async def test_weekly_review_mcp_tool(session, losing_weight):
     from contextlib import nullcontext
 
     from mcp import Client

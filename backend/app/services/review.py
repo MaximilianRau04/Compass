@@ -1,6 +1,7 @@
 """The weekly review: the last 7 days in numbers and a calorie recommendation by fixed rules.
 
-Rules (weight loss as the goal, see app.services.body):
+The recommendation needs a weight loss goal (see app.services.body); without one the review only
+reports the numbers. Rules:
 - loss under SLOW_LOSS kg/week in this and the previous week, waist unchanged (within WAIST_SAME
   cm): eat KCAL_STEP kcal less per day;
 - loss over FAST_LOSS kg/week, or strength falling (best estimated 1RM per exercise down by more
@@ -118,6 +119,8 @@ def recommend(
     strength: float | None,
 ) -> Recommendation:
     goal = nutrition.goals_on(session, today).get("kcal")
+    if not body.has_loss_goal(session, today):
+        return Recommendation("none", 0, goal, goal, ["no weight loss goal set"])
     reasons = []
     delta = 0
     falling = strength is not None and strength < -STRENGTH_DROP
@@ -262,17 +265,19 @@ def _hours(minutes: int | None) -> str:
 def markdown(r: Review) -> str:
     """The review as a brief for the dashboard, in COMPASS_LANGUAGE."""
     rec = r.recommendation
-    lines = [t("review.recommendation", action=_action(rec)), f"- {'; '.join(rec.reasons)}"]
-    if rec.current_kcal_goal and rec.kcal_delta:
-        lines.append(
-            t("review.goal", old=f"{rec.current_kcal_goal:.0f}", new=f"{rec.new_kcal_goal:.0f}")
-        )
+    lines = []
+    if rec.action != "none":
+        lines = [t("review.recommendation", action=_action(rec)), f"- {'; '.join(rec.reasons)}"]
+        if rec.current_kcal_goal and rec.kcal_delta:
+            lines.append(
+                t("review.goal", old=f"{rec.current_kcal_goal:.0f}", new=f"{rec.new_kcal_goal:.0f}")
+            )
+        lines.append("")
     split = f" ({', '.join(f'{k} {v}' for k, v in sorted(r.split.items()))})" if r.split else ""
     waist = ""
     if r.waist_change is not None:
         waist = f", {'+' if r.waist_change >= 0 else ''}{number(r.waist_change, 1)} cm"
     lines += [
-        "",
         t("review.nutrition"),
         t(
             "review.food",
@@ -339,6 +344,8 @@ def save_weekly(session: Session, today: date | None = None) -> Review:
 def headline(r: Review) -> str:
     """The recommendation in one line, for the push notification."""
     rec = r.recommendation
+    if rec.action == "none":
+        return t("review.headline.none")
     text = t("review.headline", action=_action(rec))
     if rec.kcal_delta and rec.new_kcal_goal:
         text += t("review.headline.goal", kcal=f"{rec.new_kcal_goal:.0f}")

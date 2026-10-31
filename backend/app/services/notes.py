@@ -17,7 +17,7 @@ from app.schemas.notes import NoteCreate, NoteUpdate
 from app.services.clock import utc_now
 from app.services.tasks import area_lookup
 
-CONTEXT_TAG = "kontext"
+CONTEXT_TAGS = ("context", "kontext")
 SNIPPET_CHARS = 220
 QUICK_TITLE_CHARS = 120
 # Prefix in the quick-add line that makes a note instead of a task.
@@ -194,11 +194,14 @@ def search(
 
 
 def context_notes(session: Session) -> list[Note]:
-    """Notes about the user (tag "kontext"), pinned first."""
+    """Notes about the user (tag "context" or "kontext"), pinned first."""
     return list(
         session.scalars(
             select(Note)
-            .where(Note.archived_at.is_(None), any_(Note.tags) == CONTEXT_TAG)
+            .where(
+                Note.archived_at.is_(None),
+                or_(*(any_(Note.tags) == tag for tag in CONTEXT_TAGS)),
+            )
             .order_by(Note.pinned.desc(), Note.title)
         ).unique()
     )

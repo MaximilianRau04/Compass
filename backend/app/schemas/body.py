@@ -38,7 +38,9 @@ class BodyTrendRead(BaseModel):
     loss_per_week: float | None
     loss_min: float
     loss_max: float
-    status: str | None = Field(description="on_target, too_slow, too_fast or gaining")
+    status: str | None = Field(
+        description="on_target, too_slow, too_fast or gaining; only with a weight loss goal"
+    )
     waist: list[WaistRead]
     waist_change: float | None
     weeks: list[WeekBodyRead]

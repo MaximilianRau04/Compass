@@ -1,0 +1,23 @@
+# Monthly, grouped per ecosystem, so updates arrive as one pull request each.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups: { actions: { patterns: ["*"] } }
+  - package-ecosystem: uv
+    directory: /backend
+    schedule: { interval: monthly }
+    groups: { backend: { patterns: ["*"] } }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: monthly }
+    groups: { frontend: { patterns: ["*"] } }
+  - package-ecosystem: gradle
+    directory: /android
+    schedule: { interval: monthly }
+    groups: { android: { patterns: ["*"] } }
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule: { interval: monthly }
+    groups: { images: { patterns: ["*"] } }

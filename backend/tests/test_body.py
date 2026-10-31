@@ -31,6 +31,8 @@ def test_one_weight_per_day_manual_first(session):
 
 
 def test_weekly_trend_from_7_day_means(session):
+    nutrition.set_goal(session, "weight_loss_min", 0.2)
+    nutrition.set_goal(session, "weight_loss_max", 0.4)
     # Last week around 81, this week around 80.7: 0.3 kg per week, on target.
     for i in range(7, 14):
         weigh(session, i, 81.0)
@@ -48,6 +50,9 @@ def test_trend_status_and_goal(session):
         weigh(session, i, 81.0)
     for i in range(0, 7):
         weigh(session, i, 80.9)
+    # Without a weight loss goal the trend only reports numbers.
+    assert body.trend(session).status is None
+    nutrition.set_goal(session, "weight_loss_min", 0.2)
     assert body.trend(session).status == "too_slow"
     nutrition.set_goal(session, "weight_loss_min", 0.05)
     assert body.trend(session).status == "on_target"

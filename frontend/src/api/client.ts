@@ -24,7 +24,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
   const body = response.status === 204 ? null : await response.json().catch(() => null)
   if (!response.ok) {
-    throw new ApiError(response.status, detailMessage(body, `Fehler ${response.status}`))
+    throw new ApiError(response.status, detailMessage(body, `HTTP ${response.status}`))
   }
   return body as T
 }
