@@ -143,7 +143,13 @@ def upgrade() -> None:
     op.bulk_insert(
         areas,
         [
-            {"slug": "uni", "name": "Uni", "color": "blue", "sort_order": 10, "archived": False},
+            {
+                "slug": "study",
+                "name": "Study",
+                "color": "blue",
+                "sort_order": 10,
+                "archived": False,
+            },
             {
                 "slug": "work",
                 "name": "Work",

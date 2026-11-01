@@ -73,7 +73,7 @@ class Settings(BaseSettings):
 
     # Calendar feeds (ICS). Entries of a deadline feed become tasks instead of events: the ILIAS
     # feed by its suffixes below, any other feed by a pattern in calendar_deadlines.
-    # Other feeds: space separated name=url pairs, e.g. "google=https://... uni=https://...".
+    # Other feeds: space separated name=url pairs, e.g. "google=https://... work=https://...".
     ilias_ics_url: str = ""
     calendar_ics_feeds: str = ""
     calendar_sync_minutes: int = 30
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
 
     # Mail accounts (IMAP, read-only): their names, space or comma separated. Each name has its own
     # variables, see mail_accounts. An account is active when host and user are set.
-    mail_account_names: str = Field("uni gmail domain", validation_alias="MAIL_ACCOUNTS")
+    mail_account_names: str = Field("", validation_alias="MAIL_ACCOUNTS")
     # Area of tasks made from a mail, per account (space separated account=area slug).
     mail_account_areas: str = ""
     # Space separated folders per account; Exchange also lists calendars etc. as folders.

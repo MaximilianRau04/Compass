@@ -177,17 +177,15 @@ def search(
     query = (query or "").strip()
     order = [Note.pinned.desc()]
     if query:
-        german = func.websearch_to_tsquery("german", query)
-        plain = func.websearch_to_tsquery("simple", query)
+        queries = [func.websearch_to_tsquery(c, query) for c in ("german", "english", "simple")]
         stmt = stmt.where(
             or_(
-                Note.search.op("@@")(german),
-                Note.search.op("@@")(plain),
+                *(Note.search.op("@@")(q) for q in queries),
                 Note.title.ilike(_like(query), escape="\\"),
                 Note.body.ilike(_like(query), escape="\\"),
             )
         )
-        order.append((func.ts_rank(Note.search, german) + func.ts_rank(Note.search, plain)).desc())
+        order.append(sum(func.ts_rank(Note.search, q) for q in queries).desc())
     order.append(Note.updated_at.desc())
     notes = session.scalars(stmt.order_by(*order).limit(limit)).unique()
     return [Found(note=n, snippet=snippet(n.body, query)) for n in notes]

@@ -37,7 +37,7 @@ and let the user confirm it. {UNTRUSTED}
 
 READ = ToolAnnotations(read_only_hint=True, open_world_hint=True)
 
-mcp = MCPServer("uni-mail", title="Mail (read-only)", instructions=INSTRUCTIONS)
+mcp = MCPServer("compass-mail", title="Mail (read-only)", instructions=INSTRUCTIONS)
 
 
 class AccountOut(BaseModel):

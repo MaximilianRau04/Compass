@@ -57,8 +57,8 @@ The screenshots show made-up data.
 Tasks can be captured in one line. German and English keywords both work:
 
 ```
-morgen 14 Uhr Blatt 3 abgeben #uni !hoch
-tomorrow 2pm hand in sheet 3 #uni !high
+morgen 14 Uhr Blatt 3 abgeben #study !hoch
+tomorrow 2pm hand in sheet 3 #study !high
 Bericht schreiben @montag bis 30.10. #work
 Müll rausbringen jeden Montag #personal
 ```
@@ -68,7 +68,7 @@ Müll rausbringen jeden Montag #personal
 | `heute`/`today`, `morgen`/`tomorrow`, `freitag`/`friday`, `nächste woche`/`next week`, `in 3 tagen`/`in 3 days`, `12.11.`, `12. november`, `nov 12` | due date (deadline), optionally after `bis`/`am`/`by`/`on`/`due` |
 | `@morgen`, `@friday`, … | planned day instead of the deadline |
 | `14 Uhr`, `14:30`, `um 9`, `2pm`, `at 9` | due time (today if no date is given) |
-| `#uni` | area if it exists, otherwise a tag |
+| `#study` | area if it exists, otherwise a tag |
 | `!`, `!!`, `!!!`, `!hoch`/`!high`, `!dringend`/`!urgent`, `!niedrig`/`!low` | priority |
 | `täglich`/`daily`, `werktags`/`weekdays`, `jeden Montag`/`every monday`, `alle 2 wochen`/`every 2 weeks`, `monatlich`/`monthly` | recurrence |
 

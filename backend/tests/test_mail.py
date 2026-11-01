@@ -106,7 +106,7 @@ def mailbox(mails: dict[int, tuple[bytes, bool]], uidvalidity=7):
 def accounts(monkeypatch):
     s = get_settings()
     monkeypatch.setattr(s, "mail_account_names", "uni,gmail")
-    monkeypatch.setattr(s, "mail_account_areas", "uni=uni")
+    monkeypatch.setattr(s, "mail_account_areas", "uni=study")
     for name, value in {
         "UNI_IMAP_HOST": "imap.uni.example",
         "UNI_IMAP_USER": "st123",
@@ -328,7 +328,7 @@ def test_overview_task_and_dismiss(client, session, accounts):
     assert task["title"] == "Termin bei Prof. Müller bis Freitag zusagen"
     assert task["source"] == "email"
     assert "Prof. Müller <mueller@uni-stuttgart.de>" in task["notes"]
-    assert task["area"]["slug"] == "uni"  # uni mails go to the uni area
+    assert task["area"]["slug"] == "study"  # uni mails go to their area
     again = client.post(f"/api/mail/{first.id}/task").json()
     assert again["id"] == task["id"]
     assert len(session.scalars(select(Task)).all()) == 1

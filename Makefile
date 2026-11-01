@@ -62,4 +62,4 @@ password-hash: ## Create the bcrypt hash for COMPASS_BASIC_AUTH_HASH (escaped fo
 	docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$$pw" | sed 's/\$$/$$$$/g'
 
 vapid-keys:    ## Create the VAPID key pair for web push (lines for .env)
-	cd backend && uv run python -m app.services.push
+	$(COMPOSE) run --rm --no-deps api python -m app.services.push

@@ -165,7 +165,7 @@ def test_sync_all_records_failure_without_leaking_the_url(session, monkeypatch):
 
 
 def test_ilias_deadlines_become_tasks(session, monkeypatch):
-    monkeypatch.setattr(get_settings(), "ilias_deadline_area", "uni")
+    monkeypatch.setattr(get_settings(), "ilias_deadline_area", "study")
     feed = ics(
         lecture(),
         deadline("ex-1", "Blatt 3", TODAY + timedelta(days=3), extra="DESCRIPTION:Kurs: TI II"),
@@ -180,7 +180,7 @@ def test_ilias_deadlines_become_tasks(session, monkeypatch):
     assert task.title == "Blatt 3"
     assert task.due_date == TODAY + timedelta(days=3)
     assert task.due_time.strftime("%H:%M") == "23:55"
-    assert task.area.slug == "uni"
+    assert task.area.slug == "study"
     assert task.notes == "Kurs: TI II"
     assert task.external_id == "ex-1"
 
@@ -308,7 +308,7 @@ def test_a_new_export_timestamp_is_not_a_change(session):
 
 
 def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
-    monkeypatch.setattr(get_settings(), "calendar_feed_areas", "campus=uni")
+    monkeypatch.setattr(get_settings(), "calendar_feed_areas", "campus=study")
     today = local_today()
     calendar.sync_feed(
         session, "campus", ics(vevent("l", "Vorlesung", stamp(today, "1000"))), today
@@ -317,8 +317,8 @@ def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
     events = client.get(
         "/api/calendar", params={"start": today.isoformat(), "end": today.isoformat()}
     ).json()
-    assert {e["title"]: e["area"] for e in events} == {"Vorlesung": "uni", "Kino": None}
-    assert [e["area"] for e in client.get("/api/today").json()["events"]] == ["uni", None]
+    assert {e["title"]: e["area"] for e in events} == {"Vorlesung": "study", "Kino": None}
+    assert [e["area"] for e in client.get("/api/today").json()["events"]] == ["study", None]
 
 
 # --- Deadlines of other feeds --------------------------------------------------------------------
@@ -327,7 +327,7 @@ def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
 def test_other_feeds_turn_entries_into_deadline_tasks(session, monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "calendar_deadlines", "moodle= is due$;canvas=^Due: ")
-    monkeypatch.setattr(settings, "calendar_feed_areas", "moodle=uni")
+    monkeypatch.setattr(settings, "calendar_feed_areas", "moodle=study")
     soon = TODAY + timedelta(days=3)
     entry = vevent("essay", "Essay is due", stamp(soon, "2359"))
     stats = calendar.sync_feed(session, "moodle", ics(lecture(), entry), TODAY)
@@ -337,7 +337,7 @@ def test_other_feeds_turn_entries_into_deadline_tasks(session, monkeypatch):
 
     task = session.scalar(select(Task).where(Task.source == TaskSource.feed))
     assert (task.title, task.external_id, task.due_date) == ("Essay", "moodle:essay", soon)
-    assert task.area.slug == "uni"
+    assert task.area.slug == "study"
 
     # The same UID in another feed is another task, and neither sync touches the other's.
     other = vevent("essay", "Due: Lab report", stamp(soon, "1200"))
@@ -365,3 +365,15 @@ def test_a_broken_deadline_pattern_is_reported_without_the_feed_url(session, mon
     monkeypatch.setattr(settings, "calendar_ics_feeds", "moodle=https://m.example/SECRET")
     results = calendar.sync_all(lambda: nullcontext(session))
     assert "CALENDAR_DEADLINES" in results["config"] and "SECRET" not in results["config"]
+
+
+def test_an_event_without_a_title_follows_the_server_language(monkeypatch):
+    day = date(2026, 10, 20)
+    data = (
+        b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:1@x\r\n"
+        b"DTSTART;VALUE=DATE:20261020\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+    )
+    monkeypatch.setattr(get_settings(), "compass_language", "en")
+    assert calendar.parse_ics(data, day, day + timedelta(days=1))[0].title == "(no title)"
+    monkeypatch.setattr(get_settings(), "compass_language", "de")
+    assert calendar.parse_ics(data, day, day + timedelta(days=1))[0].title == "(ohne Titel)"

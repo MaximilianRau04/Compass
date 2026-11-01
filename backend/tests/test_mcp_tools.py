@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 from mcp import Client
 
+from app.config import get_settings
 from app.ingestion import calendar, workouts
 from app.mcp import db as mcp_db
 from app.mcp.server import mcp
@@ -112,7 +113,7 @@ async def test_add_task_and_see_it_today(client, session):
 
 @pytest.mark.anyio
 async def test_quick_add_marks_source_claude(client):
-    task = await call(client, "quick_add", text="morgen 14 Uhr Blatt 3 abgeben #uni !hoch")
+    task = await call(client, "quick_add", text="morgen 14 Uhr Blatt 3 abgeben #study !hoch")
     assert task["title"] == "Blatt 3 abgeben"
     assert task["source"] == "claude"
     assert task["priority"] == "high"
@@ -166,7 +167,7 @@ async def test_deadlines(client):
 @pytest.mark.anyio
 async def test_helpful_errors_and_failed_writes_are_audited(client, session):
     error = await call_error(client, "add_task", title="x", area="nope")
-    assert "Valid areas: uni, work" in error
+    assert "Valid areas: study, work" in error
     assert "No task with id 999" in await call_error(client, "complete_task", task_id=999)
     task = await call(client, "add_task", title="exists")
     assert "Nothing to change" in await call_error(client, "update_task", task_id=task["id"])
@@ -283,3 +284,9 @@ async def test_nutrition_summary_and_goal(client, session):
 
     error = await call_error(client, "set_nutrition_goal", metric="kcal", value=-5)
     assert "greater than 0" in error
+
+
+def test_the_instructions_name_the_configured_time_zone():
+    instructions = mcp.instructions
+    assert f"local dates in {get_settings().timezone}." in instructions
+    assert "{" not in instructions

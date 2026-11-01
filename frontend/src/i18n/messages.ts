@@ -20,7 +20,7 @@ export const de = {
   'dial.allDone': 'alles erledigt',
 
   'quick.label': 'Neue Aufgabe',
-  'quick.placeholder': 'morgen 14 Uhr Blatt 3 abgeben #uni !hoch',
+  'quick.placeholder': 'morgen 14 Uhr Blatt 3 abgeben #study !hoch',
   'quick.submit': 'Anlegen',
   'quick.created': 'Angelegt: {title}',
   'quick.noteCreated': 'Notiz angelegt: {title}',
@@ -714,7 +714,7 @@ export const en: Record<MessageKey, string> = {
   'dial.allDone': 'all done',
 
   'quick.label': 'New task',
-  'quick.placeholder': 'tomorrow 2pm hand in sheet 3 #uni !high',
+  'quick.placeholder': 'tomorrow 2pm hand in sheet 3 #study !high',
   'quick.submit': 'Add',
   'quick.created': 'Added: {title}',
   'quick.noteCreated': 'Note added: {title}',

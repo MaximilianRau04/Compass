@@ -17,6 +17,7 @@ import recurring_ical_events
 from sqlalchemy import delete, select, tuple_
 from sqlalchemy.orm import Session
 
+from app import i18n
 from app.ingestion import deadlines
 from app.models.calendar import CalendarEvent
 from app.services import feeds as feed_config
@@ -108,7 +109,7 @@ def parse_ics(data: bytes, start: date, end: date) -> list[ParsedEvent]:
         events.append(
             ParsedEvent(
                 uid=uid[:500],
-                title=(_text(component, "SUMMARY") or "(ohne Titel)")[:500],
+                title=(_text(component, "SUMMARY") or i18n.t("calendar.untitled"))[:500],
                 location=(_text(component, "LOCATION") or None),
                 description=_text(component, "DESCRIPTION"),
                 starts_at=starts_at,

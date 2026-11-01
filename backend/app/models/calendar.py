@@ -37,5 +37,5 @@ class CalendarEvent(TimestampMixin, Base):
 
     @property
     def area_slug(self) -> str | None:
-        """The area of its calendar, e.g. uni for the C@MPUS timetable."""
+        """The area of its calendar, e.g. study for a university timetable."""
         return get_settings().calendar_area_map.get(self.feed) or self.feed_area

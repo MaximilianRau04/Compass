@@ -1,10 +1,10 @@
 """Parser for the quick-add syntax. German and English keywords both work, in any mix.
 
 Examples:
-    "morgen 14 Uhr Blatt 3 abgeben #uni !hoch"
-    "tomorrow 2pm hand in sheet 3 #uni !high"
+    "morgen 14 Uhr Blatt 3 abgeben #study !hoch"
+    "tomorrow 2pm hand in sheet 3 #study !high"
     "Müll rausbringen jeden Montag #privat" / "take out trash every monday #privat"
-    "@freitag Literatur lesen #uni" / "@friday read papers #uni"
+    "@freitag Literatur lesen #study" / "@friday read papers #study"
 
 Rules:
     #name        area if a matching area exists, otherwise a tag
@@ -161,7 +161,7 @@ class _Text:
 def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> ParsedTask:
     """Parse quick-add text.
 
-    area_slugs maps lowercase slugs and names to the area slug, e.g. {"uni": "uni"}.
+    area_slugs maps lowercase slugs and names to the area slug, e.g. {"study": "study"}.
     """
     result = ParsedTask(title="")
     rest = _Text(text)

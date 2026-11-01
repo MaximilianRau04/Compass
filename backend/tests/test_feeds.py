@@ -117,13 +117,13 @@ def test_entries_matching_the_pattern_become_tasks(client, session, fetched):
 
 
 def test_a_calendar_added_in_the_app_has_its_area(client, session, fetched):
-    assert add_calendar(client, area="uni").status_code == 201
+    assert add_calendar(client, area="study").status_code == 201
     today = date.today()
     listed = client.get(
         "/api/calendar",
         params={"start": today.isoformat(), "end": (today + timedelta(days=7)).isoformat()},
     ).json()
-    assert [e["area"] for e in listed] == ["uni"]
+    assert [e["area"] for e in listed] == ["study"]
 
 
 def test_a_name_can_only_be_taken_once(client, fetched, monkeypatch):

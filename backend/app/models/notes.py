@@ -17,11 +17,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 from app.models.tasks import Area
 
-# German stemming for the words ("Abgaben" finds "Abgabe"), plus the plain words so English
-# terms and names match as written. Title words weigh more than body words.
+# German and English stemming ("Abgaben" finds "Abgabe", "running" finds "run"), plus the plain
+# words so names match as written. Title words weigh more than body words.
 SEARCH_VECTOR = (
     "setweight(to_tsvector('german', coalesce(title, '')), 'A') || "
+    "setweight(to_tsvector('english', coalesce(title, '')), 'A') || "
     "setweight(to_tsvector('german', coalesce(body, '')), 'B') || "
+    "setweight(to_tsvector('english', coalesce(body, '')), 'B') || "
     "to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(body, ''))"
 )
 

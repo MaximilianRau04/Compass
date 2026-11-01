@@ -10,6 +10,7 @@ from app.config import get_settings
 TEXT: dict[str, dict[str, str]] = {
     "en": {
         "language": "English",
+        "calendar.untitled": "(no title)",
         "today": "today",
         "tomorrow": "tomorrow",
         "weekdays": "Mon Tue Wed Thu Fri Sat Sun",
@@ -61,6 +62,7 @@ TEXT: dict[str, dict[str, str]] = {
     },
     "de": {
         "language": "German",
+        "calendar.untitled": "(ohne Titel)",
         "today": "heute",
         "tomorrow": "morgen",
         "weekdays": "Mo Di Mi Do Fr Sa So",

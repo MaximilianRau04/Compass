@@ -338,7 +338,7 @@ your feed first. A Moodle calendar in English might need this:
 ```bash
 CALENDAR_ICS_FEEDS="moodle=https://moodle.example/calendar/export.php?token=..."
 CALENDAR_DEADLINES="moodle= is due$"
-CALENDAR_FEED_AREAS="moodle=uni"
+CALENDAR_FEED_AREAS="moodle=study"
 ```
 
 These URLs carry a secret token: anyone with the link can read the calendar. They live in `.env` or, if
@@ -388,7 +388,7 @@ The worker reads the configured mailboxes every `MAIL_SYNC_MINUTES` over IMAP, r
 
 | Variable | Value |
 |---|---|
-| `MAIL_ACCOUNTS` | names of your accounts, separated by spaces, e.g. `gmail work`. Without it, `uni gmail domain` |
+| `MAIL_ACCOUNTS` | names of your accounts, separated by spaces, e.g. `gmail work`. Without it, no mail is read |
 | `<NAME>_IMAP_HOST`, `_PORT`, `_USER`, `_PASSWORD` | the login per account, e.g. `WORK_IMAP_HOST`; an account is active when host and user are set. Gmail needs an app password (Google account → Security → App passwords, requires 2FA) |
 | `MAIL_TRIAGE_<NAME>` | who summarises its mails: `claude`, `local` or `rules` (the default, headers only) |
 | `MAIL_ACCOUNT_AREAS` | area of tasks made from a mail, as `account=area` pairs |

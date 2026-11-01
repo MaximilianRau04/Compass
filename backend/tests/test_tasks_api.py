@@ -19,7 +19,7 @@ def area_id(client, slug: str) -> int:
 
 def test_seeded_areas(client):
     slugs = [a["slug"] for a in client.get("/api/areas").json()]
-    assert slugs == ["uni", "work", "sport", "projects", "personal"]
+    assert slugs == ["study", "work", "sport", "projects", "personal"]
 
 
 def test_create_area(client):
@@ -35,14 +35,14 @@ def test_create_area(client):
 
 
 def test_rename_and_archive_area(client):
-    uni = area_id(client, "uni")
-    response = client.patch(f"/api/areas/{uni}", json={"name": "Study"})
-    assert (response.json()["slug"], response.json()["name"]) == ("uni", "Study")
+    study = area_id(client, "study")
+    response = client.patch(f"/api/areas/{study}", json={"name": "School"})
+    assert (response.json()["slug"], response.json()["name"]) == ("study", "School")
 
-    assert client.patch(f"/api/areas/{uni}", json={"archived": True}).json()["archived"] is True
-    assert "uni" not in [a["slug"] for a in client.get("/api/areas").json()]
+    assert client.patch(f"/api/areas/{study}", json={"archived": True}).json()["archived"] is True
+    assert "study" not in [a["slug"] for a in client.get("/api/areas").json()]
     everything = client.get("/api/areas?include_archived=true").json()
-    assert "uni" in [a["slug"] for a in everything]
+    assert "study" in [a["slug"] for a in everything]
 
 
 def test_update_unknown_area(client):
@@ -51,12 +51,12 @@ def test_update_unknown_area(client):
 
 def test_quick_add_creates_task_with_parsed_fields(client):
     response = client.post(
-        "/api/tasks/quick", json={"text": "morgen 14 Uhr Blatt 3 abgeben #uni !hoch"}
+        "/api/tasks/quick", json={"text": "morgen 14 Uhr Blatt 3 abgeben #study !hoch"}
     )
     assert response.status_code == 201
     task = response.json()
     assert task["title"] == "Blatt 3 abgeben"
-    assert task["area"]["slug"] == "uni"
+    assert task["area"]["slug"] == "study"
     assert task["priority"] == "high"
     assert task["due_date"] == (today() + timedelta(days=1)).isoformat()
     assert task["due_time"] == "14:00:00"
@@ -74,7 +74,7 @@ def test_quick_add_preview_does_not_create(client):
 
 
 def test_quick_add_rejects_empty_title(client):
-    response = client.post("/api/tasks/quick", json={"text": "morgen #uni"})
+    response = client.post("/api/tasks/quick", json={"text": "morgen #study"})
     assert response.status_code == 422
 
 
@@ -168,10 +168,12 @@ def test_validation_errors(client):
 
 
 def test_filters(client):
-    uni = area_id(client, "uni")
-    a = create(client, title="Vorlesung nacharbeiten", area_id=uni)
+    study = area_id(client, "study")
+    a = create(client, title="Vorlesung nacharbeiten", area_id=study)
     create(client, title="Einkaufen")
-    assert [t["id"] for t in client.get("/api/tasks", params={"area_id": uni}).json()] == [a["id"]]
+    assert [t["id"] for t in client.get("/api/tasks", params={"area_id": study}).json()] == [
+        a["id"]
+    ]
     assert [t["id"] for t in client.get("/api/tasks", params={"q": "vorlesung"}).json()] == [
         a["id"]
     ]

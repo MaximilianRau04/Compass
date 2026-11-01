@@ -37,11 +37,11 @@ def test_search_stems_partial_words_and_ranks(session):
 
 def test_filters_pins_and_archive(session, client):
     areas = {a["slug"]: a["id"] for a in client.get("/api/areas").json()}
-    a = new(session, "Uni-Notiz", area_id=areas["uni"], tags=["Idee", "#idee", "lernen"])
+    a = new(session, "Uni-Notiz", area_id=areas["study"], tags=["Idee", "#idee", "lernen"])
     b = new(session, "Gepinnt", pinned=True)
     assert a.tags == ["idee", "lernen"]
     assert titles(note_service.search(session))[0] == "Gepinnt"
-    assert titles(note_service.search(session, area_id=areas["uni"])) == ["Uni-Notiz"]
+    assert titles(note_service.search(session, area_id=areas["study"])) == ["Uni-Notiz"]
     assert titles(note_service.search(session, tag="#IDEE")) == ["Uni-Notiz"]
     assert note_service.tag_counts(session) == [("idee", 1), ("lernen", 1)]
 
@@ -88,7 +88,7 @@ def test_quick_note(session):
     assert long.title.endswith("…") and len(long.title) <= 120
     assert long.body.startswith("wort wort")
     with pytest.raises(NoteError):
-        note_service.quick_note(session, "notiz: #uni")
+        note_service.quick_note(session, "notiz: #study")
 
 
 def test_context_notes(session):
@@ -112,8 +112,8 @@ def test_notes_api(client, session):
     assert note["source"] == "share" and note["archived"] is False
     assert client.post("/api/notes", json={"title": "x", "source": "claude"}).status_code == 422
 
-    quick = client.post("/api/notes/quick", json={"text": "notiz: Paper lesen #uni"}).json()
-    assert quick["area"]["slug"] == "uni"
+    quick = client.post("/api/notes/quick", json={"text": "notiz: Paper lesen #study"}).json()
+    assert quick["area"]["slug"] == "study"
 
     listed = client.get("/api/notes", params={"q": "paper"}).json()
     assert [n["title"] for n in listed] == ["Paper lesen"]
@@ -181,3 +181,12 @@ async def test_mcp_notes(mcp_client, session):
 
     actions = {(e.action, e.ok) for e in session.query(AuditLog)}
     assert {("add_note", True), ("append_note", True), ("append_note", False)} <= actions
+
+
+def test_search_stems_english_words_too(session):
+    new(session, "Marathon plan", "How to run a marathon")
+    new(session, "Training log", "I was running every day")
+    both = {"Marathon plan", "Training log"}
+    assert set(titles(note_service.search(session, query="running"))) == both
+    # Needs the English stem in the stored words, not only in the query.
+    assert set(titles(note_service.search(session, query="runs"))) == both

@@ -23,7 +23,7 @@ export function useToday() {
   return useQuery({ queryKey: keys.today, queryFn: () => api<TodayOverview>('/today') })
 }
 
-/** Today's date from the server (Europe/Berlin), with the device date as fallback while loading. */
+/** Today's date from the server (in its time zone), with the device date as fallback while loading. */
 export function useTodayDate(): string {
   const [fallback] = useState(() => toIsoDate(new Date()))
   return useToday().data?.today ?? fallback
