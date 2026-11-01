@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useImportMfp, useNutritionSummary, useSetGoal, useWeights } from '../api/nutrition'
+import { useImportNutrition, useNutritionSummary, useSetGoal, useWeights } from '../api/nutrition'
 import { useTodayDate } from '../api/tasks'
 import type { GoalMetric, NutritionAverages, NutritionDay, NutritionSummary } from '../api/types'
 import { ColumnChart, LineChart } from '../components/charts'
@@ -11,7 +11,7 @@ import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { decimal, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
-import { grams, kcal, mfpImportMessage } from '../lib/nutrition'
+import { grams, kcal, nutritionImportMessage } from '../lib/nutrition'
 
 const RANGES = [7, 30, 90]
 // kcal per gram, for the share of calories per macro.
@@ -24,7 +24,7 @@ const MACROS = [
 function ImportButton() {
   const { t } = useI18n()
   const input = useRef<HTMLInputElement>(null)
-  const upload = useImportMfp()
+  const upload = useImportNutrition()
   return (
     <>
       <input
@@ -37,7 +37,7 @@ function ImportButton() {
           e.target.value = ''
           if (!file) return
           upload.mutate(file, {
-            onSuccess: (result) => toast(mfpImportMessage(result, t)),
+            onSuccess: (result) => toast(nutritionImportMessage(result, t)),
             onError: (error) => toast.error(error.message),
           })
         }}

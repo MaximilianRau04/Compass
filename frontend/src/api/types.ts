@@ -251,7 +251,7 @@ export type GoalMetric = 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g' | 'steps' | 
 
 export interface NutritionDay {
   date: string
-  source: 'healthconnect' | 'mfp_export'
+  source: 'healthconnect' | 'mfp_export' | 'cronometer_export' | 'loseit_export'
   kcal: number
   protein_g: number | null
   carbs_g: number | null
@@ -288,7 +288,7 @@ export interface NutritionSummary {
   weight_change: number | null
 }
 
-export interface MfpImportResult {
+export interface NutritionImportResult {
   meals_created: number
   meals_updated: number
   meals_unchanged: number

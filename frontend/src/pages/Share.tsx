@@ -3,12 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { useCreateNote } from '../api/notes'
-import { useImportMfp } from '../api/nutrition'
+import { useImportNutrition } from '../api/nutrition'
 import { useTodayDate } from '../api/tasks'
 import { useImportWorkouts } from '../api/training'
 import { QuickAdd } from '../components/QuickAdd'
 import { useI18n } from '../i18n/context'
-import { isMfpExport, mfpImportMessage } from '../lib/nutrition'
+import { isNutritionExport, nutritionImportMessage } from '../lib/nutrition'
 import { importMessage } from '../lib/training'
 
 // Written by public/share-target-sw.js when a file is shared to Compass.
@@ -19,9 +19,9 @@ function SharedFile({ name }: { name: string }) {
   const { t } = useI18n()
   const navigate = useNavigate()
   const workouts = useImportWorkouts()
-  const mfp = useImportMfp()
+  const nutrition = useImportNutrition()
   const [file, setFile] = useState<Blob | null | undefined>(undefined)
-  const [isMfp, setIsMfp] = useState(false)
+  const [isNutrition, setIsNutrition] = useState(false)
 
   useEffect(() => {
     caches
@@ -29,7 +29,7 @@ function SharedFile({ name }: { name: string }) {
       .then((cache) => cache.match(SHARED_FILE))
       .then((response) => (response ? response.blob() : null))
       .then(async (blob) => {
-        if (blob) setIsMfp(await isMfpExport(blob))
+        if (blob) setIsNutrition(await isNutritionExport(blob))
         setFile(blob)
       })
       .catch(() => setFile(null))
@@ -41,11 +41,11 @@ function SharedFile({ name }: { name: string }) {
     navigate(page)
   }
   const onError = (error: Error) => toast.error(error.message)
-  const pending = workouts.isPending || mfp.isPending
+  const pending = workouts.isPending || nutrition.isPending
 
   const run = () => {
     if (!file) return
-    if (isMfp) mfp.mutate(file, { onSuccess: (r) => done(mfpImportMessage(r, t), '/nutrition'), onError })
+    if (isNutrition) nutrition.mutate(file, { onSuccess: (r) => done(nutritionImportMessage(r, t), '/nutrition'), onError })
     else workouts.mutate(file, { onSuccess: (r) => done(importMessage(r, t), '/training'), onError })
   }
 
@@ -60,7 +60,7 @@ function SharedFile({ name }: { name: string }) {
           disabled={pending}
           className="rounded-md bg-brass px-4 py-2 font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
         >
-          {pending ? t('training.importing') : t(isMfp ? 'share.importMfp' : 'share.importWorkouts')}
+          {pending ? t('training.importing') : t(isNutrition ? 'share.importNutrition' : 'share.importWorkouts')}
         </button>
       )}
     </div>
@@ -98,7 +98,7 @@ function SaveAsNote({ title, text }: { title: string; text: string }) {
 }
 
 /** Target of the Android share sheet (Web Share Target): shared text or links become a task,
- * or a note, a shared workout export is imported as training data, a MyFitnessPal export as
+ * or a note, a shared workout export is imported as training data, a nutrition export as
  * nutrition. */
 export function SharePage() {
   const { t } = useI18n()

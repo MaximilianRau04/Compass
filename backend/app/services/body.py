@@ -1,6 +1,6 @@
 """Body weight and waist: entering them, the 7-day mean and the weekly trend.
 
-The weight of a day is one value (manual, else Health Connect, else the MFP export; see
+The weight of a day is one value (manual, else Health Connect, else an export; see
 app.services.nutrition.weights). The trend compares the mean of the last 7 days with the mean of
 the 7 days before; single days swing with water and food, the means do not. The goal is a loss of
 weight_loss_min..weight_loss_max kg per week (goals, default 0.2 to 0.4).

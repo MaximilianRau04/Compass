@@ -13,15 +13,15 @@ MACRO = Numeric(8, 1)
 class NutritionMeal(TimestampMixin, Base):
     """Totals of one meal on one day from one source.
 
-    Two sources: the MyFitnessPal export (backfill of the past) and Health Connect (ongoing,
-    rebuilt from `health_records` whenever a sync touches the day). Both stay stored; for a day
-    that has Health Connect meals, those win and the export rows of that day are ignored."""
+    Two kinds of source: exports of nutrition apps (backfill of the past) and Health Connect
+    (ongoing, rebuilt from `health_records` whenever a sync touches the day). Both stay stored; for
+    a day that has Health Connect meals, those win and the export rows of that day are ignored."""
 
     __tablename__ = "nutrition_meals"
     __table_args__ = (UniqueConstraint("source", "local_date", "meal"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    source: Mapped[str] = mapped_column(String(40))  # mfp_export | healthconnect
+    source: Mapped[str] = mapped_column(String(40))  # healthconnect | <app>_export
     local_date: Mapped[date] = mapped_column(Date, index=True)
     meal: Mapped[str] = mapped_column(String(20))  # breakfast | lunch | dinner | snack | unknown
     kcal: Mapped[Decimal] = mapped_column(MACRO)
@@ -32,7 +32,7 @@ class NutritionMeal(TimestampMixin, Base):
     fiber_g: Mapped[Decimal | None] = mapped_column(MACRO)
     sugar_g: Mapped[Decimal | None] = mapped_column(MACRO)
     sodium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
-    # Only from Health Connect; the MFP export gives calcium and iron as % of the daily value.
+    # Not from MyFitnessPal: its export gives calcium and iron as % of the daily value.
     potassium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
     calcium_mg: Mapped[Decimal | None] = mapped_column(MACRO)
     iron_mg: Mapped[Decimal | None] = mapped_column(MACRO)
@@ -41,7 +41,7 @@ class NutritionMeal(TimestampMixin, Base):
 
 class BodyWeight(TimestampMixin, Base):
     """One weight per day and source: manual (entered in Compass, in the morning), healthconnect
-    (MFP or a scale app, the earliest of the day) or mfp_export. Per day manual wins, then Health
+    (MFP or a scale app, the earliest of the day) or an export. Per day manual wins, then Health
     Connect, then the export, so the same weigh-in from two sources never counts twice."""
 
     __tablename__ = "body_weight"

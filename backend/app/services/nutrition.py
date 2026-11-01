@@ -1,7 +1,7 @@
 """Nutrition, body weight and goals, shared by the REST API, the MCP server and the ingestion.
 
-Meals come from two sources: Health Connect (MyFitnessPal writes every meal there, ongoing) and the
-MFP export (backfill of the past). For each day, Health Connect wins if it has meals that day;
+Meals come from Health Connect (a nutrition app writes every meal there, ongoing) and from exports
+of those apps (backfill of the past). For each day, Health Connect wins if it has meals that day;
 otherwise the export rows are used. Days without any meal were not tracked and stay empty.
 """
 
@@ -20,7 +20,7 @@ from app.services.clock import local_today, utc_now
 
 HEALTHCONNECT = "healthconnect"
 # Preference when a day has both: the ongoing source wins over the backfill.
-SOURCES = (HEALTHCONNECT, "mfp_export")
+SOURCES = (HEALTHCONNECT, "mfp_export", "cronometer_export", "loseit_export")
 MANUAL = "manual"
 # A weight typed in Compass beats a synced one of the same day.
 WEIGHT_SOURCES = (MANUAL, *SOURCES)

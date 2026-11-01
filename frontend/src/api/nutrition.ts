@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, post } from './client'
-import type { BodyTrend, GoalMetric, MfpImportResult, NutritionSummary, WeightPoint } from './types'
+import type { BodyTrend, GoalMetric, NutritionImportResult, NutritionSummary, WeightPoint } from './types'
 
 export function useNutritionSummary(days = 30) {
   return useQuery({
@@ -23,12 +23,12 @@ export function useSetGoal() {
   })
 }
 
-/** Upload a MyFitnessPal export (the zip or one of its CSV files) as the raw request body. */
-export function useImportMfp() {
+/** Upload the export of a nutrition app (a zip or one of its CSV files) as the raw request body. */
+export function useImportNutrition() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (file: Blob) =>
-      api<MfpImportResult>('/nutrition/import', {
+      api<NutritionImportResult>('/nutrition/import', {
         method: 'POST',
         body: file,
         headers: { 'Content-Type': 'application/octet-stream' },

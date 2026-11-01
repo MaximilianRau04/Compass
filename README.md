@@ -28,8 +28,8 @@ The screenshots show made-up data.
   Connect, plus the latest bedtime before the next day's first appointment.
 - **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy
   are experimental), volume and progression per exercise.
-- **Nutrition and body:** meals from any app that writes to Health Connect, a MyFitnessPal export for
-  the past, goals, weight and waist trends, and a weekly review; with a weight loss goal it adds a calorie recommendation by
+- **Nutrition and body:** meals from any app that writes to Health Connect, exports of MyFitnessPal
+  (Cronometer and Lose It! are experimental) for the past, goals, weight and waist trends, and a weekly review; with a weight loss goal it adds a calorie recommendation by
   fixed rules.
 - **Mail:** read-only IMAP for any number of accounts, triaged by a cloud model (Anthropic API) or a local Ollama model.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
@@ -162,11 +162,27 @@ your AI assistant with `set_nutrition_goal`); without it Compass assumes 190.
 
 Nutrition apps such as MyFitnessPal write every meal to Health Connect, so meals arrive with the bridge
 app like sleep does. Compass sums them per day and meal (breakfast, lunch, dinner, snacks). If two apps write nutrition for
-the same day, the one with more calories counts instead of both. The MyFitnessPal data export (the zip
-it mails, or its CSV files) fills in the past: upload it in the Nutrition tab or share it from the phone.
-Importing it again changes nothing, and for days that also have Health Connect data, those win. Days
-without entries were not logged and stay empty in the charts, never 0 kcal. The export's weight file
-fills the weight history; new weights come from Health Connect.
+the same day, the one with more calories counts instead of both.
+
+An export of your nutrition app fills in the past: upload it in the Nutrition tab or share it from the
+phone. The format is recognised by its columns, and importing it again changes nothing. For days that
+also have Health Connect data, those win. Days without entries were not logged and stay empty in the
+charts, never 0 kcal. New weights come from Health Connect. Another app is one small parser in
+`app/ingestion/nutrition_export.py`.
+
+| App | What to upload | Weight history | Tested |
+|---|---|---|---|
+| MyFitnessPal | the zip it mails, or its CSV files | yes | with a real export |
+| Cronometer | `servings.csv`, `biometrics.csv` | yes, in kg or lbs | **no** |
+| Lose It! | the zip, or `food-logs.csv` | no, `weights.csv` names no unit | **no** |
+
+The Cronometer and Lose It! importers are experimental: they have not been tested with real files yet.
+Their columns come from open source tools that read these exports, so a file from the app may still
+differ. Check a few days after the first import. If your export fails or the numbers look wrong, please
+open an issue with its header row and a few lines of made-up data.
+
+FatSecret and Yazio are not supported: FatSecret's CSV layout is not documented, and Yazio's own export
+is a PDF. Both still work through Health Connect if the app writes to it.
 
 Daily goals for calories and protein apply from the day they are set, so earlier days keep the goal
 they had. The weight trend and the calorie recommendation in the weekly review compare against a weight

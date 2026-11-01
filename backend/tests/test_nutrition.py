@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import func, select
 
-from app.ingestion import mfp
+from app.ingestion import nutrition_export
 from app.models.nutrition import BodyWeight, NutritionMeal
 from app.services import nutrition
 from app.services.clock import local_today
@@ -61,7 +61,7 @@ def test_export_import_maps_meals_and_is_idempotent(session):
         meal_row("2022-07-11", "Abendessen", 406.8, protein=16.8),
         meal_row("2022-07-12", "Snacks", 200),
     )
-    stats = mfp.import_export(session, data)
+    stats = nutrition_export.import_export(session, data)
     assert (stats["meals_created"], stats["days"], stats["first"]) == (3, 2, "2022-07-11")
     breakfast = session.scalar(select(NutritionMeal).where(NutritionMeal.meal == "breakfast"))
     assert breakfast.kcal == Decimal("935.1")
@@ -69,9 +69,11 @@ def test_export_import_maps_meals_and_is_idempotent(session):
     assert breakfast.sodium_mg == Decimal("500.0")
     assert breakfast.raw["Mahlzeit"] == "Frühstück"
 
-    again = mfp.import_export(session, data)
+    again = nutrition_export.import_export(session, data)
     assert (again["meals_created"], again["meals_unchanged"]) == (0, 3)
-    changed = mfp.import_export(session, nutrition_csv(meal_row("2022-07-12", "Snacks", 250)))
+    changed = nutrition_export.import_export(
+        session, nutrition_csv(meal_row("2022-07-12", "Snacks", 250))
+    )
     assert changed["meals_updated"] == 1
     assert count(session, NutritionMeal) == 3
 
@@ -90,7 +92,7 @@ def test_zip_with_all_three_files(session):
             ),
         }
     )
-    stats = mfp.import_export(session, data)
+    stats = nutrition_export.import_export(session, data)
     assert stats["meals_created"] == 1
     assert stats["weights_created"] == 2
     assert stats["ignored_files"] == ["Trainingsübersicht-2022-07-11-bis-2026-10-16.csv"]
@@ -107,7 +109,7 @@ def test_import_endpoint_rejects_other_files(client):
     assert "workout export" in response.json()["detail"]
 
     other = client.post("/api/nutrition/import", content=b"a,b\n1,2\n")
-    assert "not a MyFitnessPal" in other.json()["detail"]
+    assert "not a nutrition export" in other.json()["detail"]
 
     ok = client.post("/api/nutrition/import", content=weight_csv(("2026-10-06", "78.7")))
     assert ok.status_code == 200, ok.text
@@ -155,7 +157,7 @@ def test_two_apps_do_not_add_up(session):
 def test_healthconnect_wins_over_the_export_per_day(session):
     today = local_today()
     yesterday = today - timedelta(days=1)
-    mfp.import_export(
+    nutrition_export.import_export(
         session,
         nutrition_csv(
             meal_row(yesterday.isoformat(), "Frühstück", 500),
@@ -173,7 +175,7 @@ def test_healthconnect_wins_over_the_export_per_day(session):
 def test_healthconnect_weight_takes_the_morning_weigh_in(session):
     """The earliest weigh-in of the day: morning weights compare from day to day."""
     today = local_today()
-    mfp.import_export(session, weight_csv((today.isoformat(), "80.0")))
+    nutrition_export.import_export(session, weight_csv((today.isoformat(), "80.0")))
     ingest(
         session,
         [
@@ -206,8 +208,8 @@ def test_summary_excludes_today_and_counts_goal_days(client, session):
         meal_row((today - timedelta(days=n)).isoformat(), "Mittagessen", kcal, protein=protein)
         for n, kcal, protein in [(1, 2400, 180), (2, 2600, 150), (4, 2500, 175)]
     ]
-    mfp.import_export(session, nutrition_csv(*rows))
-    mfp.import_export(
+    nutrition_export.import_export(session, nutrition_csv(*rows))
+    nutrition_export.import_export(
         session,
         weight_csv(((today - timedelta(days=6)).isoformat(), "79.0"), (today.isoformat(), "78.4")),
     )
@@ -238,7 +240,7 @@ def test_real_export_if_present(session):
     if not files:
         pytest.skip("MFP export not present")
     data = zipped({f.name: f.read_bytes() for f in files})
-    stats = mfp.import_export(session, data)
+    stats = nutrition_export.import_export(session, data)
     assert stats["meals_created"] == 3098
     assert stats["days"] == 785
     assert stats["weights_created"] == 433
@@ -293,3 +295,131 @@ def test_quality_flags_and_averages(client, session):
 
     data = client.get("/api/nutrition/summary?days=7").json()
     assert data["quality"]["valid_days"] == 2 and data["averages"]["kcal"] == 2200
+
+
+CRONOMETER = (
+    "Day,Time,Group,Food Name,Amount,Energy (kcal),Carbs (g),Fat (g),Protein (g),Sodium (mg)\n"
+    "2026-10-05,8:00 AM,Breakfast,Oats,50.00 g,190.123,32.5,3.4,6.7,2.0\n"
+    "2026-10-05,8:05 AM,Breakfast,Milk,200.00 ml,92.456,9.6,3.0,6.6,88.0\n"
+    "2026-10-05,,Total,,,282.579,42.1,6.4,13.3,90.0\n"
+    "2026-10-05,1:00 PM,Uncategorized,Apple,1.00 x,52.0,14.0,,0.3,\n"
+)
+LOSE_IT = (
+    "Date,Name,Icon,Meal,Quantity,Units,Calories,Deleted,Fat (g),Protein (g),Carbohydrates (g),"
+    "Saturated Fat (g),Sugars (g),Fiber (g),Cholesterol (mg),Sodium (mg)\n"
+    "10/05/2026,Greek Yogurt,Yogurt,Breakfast,1,cup,120,false,0,20,8,0,6,0,10,60\n"
+    "10/05/2026,Banana,Banana,Breakfast,1,each,105,false,0.4,1.3,27,n/a,14,3.1,0,1\n"
+    "10/05/2026,Cake,Cake,Snacks,1,slice,400,true,20,4,50,10,30,1,50,200\n"
+)
+
+
+def meals_of(session, source):
+    rows = session.scalars(select(NutritionMeal).where(NutritionMeal.source == source)).all()
+    return {r.meal: r for r in rows}
+
+
+def test_cronometer_foods_are_summed_per_meal_without_its_totals(session):
+    stats = nutrition_export.import_export(session, CRONOMETER.encode())
+    assert (stats["meals_created"], stats["days"]) == (2, 1)
+    meals = meals_of(session, "cronometer_export")
+    assert set(meals) == {"breakfast", "unknown"}
+    assert meals["breakfast"].kcal == Decimal("282.6")
+    assert meals["breakfast"].protein_g == Decimal("13.3")
+    assert meals["breakfast"].sodium_mg == Decimal("90.0")
+    # An empty cell stays unknown, it does not become 0.
+    assert meals["unknown"].fat_g is None
+
+
+def test_importing_a_food_app_again_changes_nothing(session):
+    nutrition_export.import_export(session, CRONOMETER.encode())
+    session.expire_all()
+    again = nutrition_export.import_export(session, CRONOMETER.encode())
+    assert (again["meals_created"], again["meals_updated"]) == (0, 0)
+    assert again["meals_unchanged"] == 2
+
+
+def test_cronometer_weight_is_converted_by_its_unit(session):
+    data = (
+        "Day,Group,Metric,Unit,Amount\n"
+        "2026-10-05,Morning,Weight,lbs,176.37\n"
+        "2026-10-06,Morning,Weight,kg,79.5\n"
+        "2026-10-06,Morning,Blood Pressure,mmHg,120/80\n"
+    )
+    stats = nutrition_export.import_export(session, data.encode())
+    assert stats["weights_created"] == 2
+    rows = session.scalars(select(BodyWeight).order_by(BodyWeight.local_date)).all()
+    assert [r.kg for r in rows] == [Decimal("80.00"), Decimal("79.50")]
+    assert {r.source for r in rows} == {"cronometer_export"}
+
+
+def test_an_unknown_weight_unit_is_refused(session):
+    data = "Day,Metric,Unit,Amount\n2026-10-05,Weight,stone,12\n"
+    with pytest.raises(nutrition_export.NutritionImportError, match="unknown unit"):
+        nutrition_export.import_export(session, data.encode())
+
+
+def test_lose_it_is_not_mistaken_for_myfitnesspal(session):
+    assert nutrition_export.parse(LOSE_IT.encode()).source == "loseit_export"
+
+
+def test_lose_it_leaves_out_deleted_entries(session):
+    stats = nutrition_export.import_export(session, LOSE_IT.encode())
+    assert (stats["first"], stats["days"]) == ("2026-10-05", 1)
+    meals = meals_of(session, "loseit_export")
+    assert set(meals) == {"breakfast"}
+    assert meals["breakfast"].kcal == Decimal("225.0")
+    assert meals["breakfast"].fiber_g == Decimal("3.1")
+    # "n/a" in one row and 0 in the other: the sum of what is known.
+    assert meals["breakfast"].saturated_fat_g == Decimal("0.0")
+
+
+def test_lose_it_zip_takes_the_food_log_and_leaves_out_weights_without_a_unit(session):
+    weights = b"Date,Weight,Deleted\n10/05/2026,180,false\n"
+    data = zipped(
+        {
+            "weights.csv": weights,
+            "food-logs.csv": LOSE_IT.encode(),
+            "daily-calorie-summary.csv": b"Date,Food cals,Exercise cals,Budget cals,EER\n",
+        }
+    )
+    stats = nutrition_export.import_export(session, data)
+    assert stats["weights_created"] == 0
+    assert sorted(stats["ignored_files"]) == ["daily-calorie-summary.csv", "weights.csv"]
+    assert session.scalars(select(BodyWeight)).all() == []
+
+
+def test_lose_it_weights_alone_explain_why_they_are_refused(session):
+    weights = b"Date,Weight,Deleted\n10/05/2026,180,false\n"
+    with pytest.raises(nutrition_export.NutritionImportError, match="name no unit"):
+        nutrition_export.import_export(session, weights)
+
+
+def test_a_zip_cannot_mix_two_apps(session):
+    data = zipped({"a.csv": CRONOMETER.encode(), "b.csv": LOSE_IT.encode()})
+    with pytest.raises(nutrition_export.NutritionImportError, match="different apps"):
+        nutrition_export.import_export(session, data)
+
+
+def test_a_workout_file_in_a_zip_is_left_out(session):
+    data = zipped(
+        {
+            "nutrition.csv": nutrition_csv(meal_row("2026-10-05", "Lunch", 700)),
+            "exercise.csv": b"Date,Exercise,Type\n2026-10-05,Running,Cardio\n",
+        }
+    )
+    stats = nutrition_export.import_export(session, data)
+    assert stats["ignored_files"] == ["exercise.csv"]
+    assert stats["meals_created"] == 1
+
+
+def test_health_connect_beats_an_export_of_any_app(session):
+    today = local_today()
+    data = CRONOMETER.replace("2026-10-05", today.isoformat()).encode()
+    nutrition_export.import_export(session, data)
+    ingest(session, [hc_meal("h1", today, "lunch", 700)])
+    found = nutrition.days(session, today, today)
+    assert [(d.source, d.kcal) for d in found] == [("healthconnect", 700.0)]
+
+
+def test_every_format_counts_for_the_days_and_weights():
+    assert {f.source for f in nutrition_export.FORMATS} <= set(nutrition.SOURCES)

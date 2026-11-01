@@ -13,7 +13,9 @@ class MealRead(BaseModel):
 
 class NutritionDayRead(BaseModel):
     date: date
-    source: str = Field(description="healthconnect or mfp_export")
+    source: str = Field(
+        description="healthconnect or an export: mfp_export, cronometer_export, loseit_export"
+    )
     kcal: float
     protein_g: float | None
     carbs_g: float | None
@@ -92,7 +94,7 @@ class GoalRead(BaseModel):
     valid_from: date
 
 
-class MfpImportResult(BaseModel):
+class NutritionImportResult(BaseModel):
     meals_created: int
     meals_updated: int
     meals_unchanged: int

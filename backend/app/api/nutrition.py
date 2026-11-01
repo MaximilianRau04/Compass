@@ -5,14 +5,14 @@ from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
-from app.ingestion import mfp
+from app.ingestion import nutrition_export
 from app.models.nutrition import Goal
 from app.schemas.nutrition import (
     GoalRead,
     GoalUpdate,
-    MfpImportResult,
     NutritionAverages,
     NutritionDayRead,
+    NutritionImportResult,
     NutritionQuality,
     NutritionSummaryRead,
     NutritionWeekRead,
@@ -70,20 +70,20 @@ def set_goal(metric: Metric, data: GoalUpdate, session: SessionDep):
     return GoalRead(metric=goal.metric, value=float(goal.value), valid_from=goal.valid_from)
 
 
-@router.post("/import", response_model=MfpImportResult)
-async def import_mfp(request: Request, session: SessionDep):
-    """Import a MyFitnessPal export: the zip as MFP sends it, or one of its CSV files, as the raw
-    request body."""
-    if int(request.headers.get("content-length") or 0) > mfp.MAX_BYTES:
+@router.post("/import", response_model=NutritionImportResult)
+async def import_nutrition(request: Request, session: SessionDep):
+    """Import the export of a nutrition app: a zip or one of its CSV files, as the raw request
+    body."""
+    if int(request.headers.get("content-length") or 0) > nutrition_export.MAX_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "file is larger than 10 MB")
     data = await request.body()
 
     def run() -> dict:
-        result = mfp.import_export(session, data)
+        result = nutrition_export.import_export(session, data)
         session.commit()
         return result
 
     try:
         return await run_in_threadpool(run)
-    except mfp.MfpImportError as exc:
+    except nutrition_export.NutritionImportError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
