@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.15-slim
 LABEL org.opencontainers.image.source=https://github.com/MaximilianRau04/Compass
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.16 /uv /usr/local/bin/uv
