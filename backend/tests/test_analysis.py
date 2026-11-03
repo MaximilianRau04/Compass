@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+import pytest
+
 from app.config import get_settings
 from app.ingestion import calendar
 from app.models.health import DailyMetrics
@@ -85,6 +87,36 @@ def test_zone2_limits_and_bedtime_come_from_the_settings(session, monkeypatch):
     monkeypatch.setattr(settings, "fall_asleep_minutes", 15)
     b = analysis.bedtime_for(session, tomorrow)
     assert (f"{b.wake_at:%H:%M}", f"{b.latest_bedtime:%H:%M}") == ("08:00", "23:45")
+
+
+def test_latest_bedtime_is_capped_by_the_setting(client, session, monkeypatch):
+    settings = get_settings()
+    tomorrow = TODAY + timedelta(days=1)
+    calendar.sync_feed(session, "uni", ics(vevent("a", "Übung", stamp(tomorrow, "1545"))), TODAY)
+    # 15:45 - 2 h - 7.5 h - 30 min: 05:45 without a cap.
+    assert f"{analysis.bedtime_for(session, tomorrow).latest_bedtime:%H:%M}" == "05:45"
+    monkeypatch.setattr(settings, "latest_bedtime", "01:00")
+    b = analysis.bedtime_for(session, tomorrow)
+    assert (f"{b.latest_bedtime:%H:%M}", b.latest_bedtime.date(), b.capped) == (
+        "01:00",
+        tomorrow,
+        True,
+    )
+    assert f"{b.wake_at:%H:%M}" == "13:45"
+    assert client.get("/api/sleep/bedtime").json()["capped"] is True
+    # A cap in the evening belongs to the day before; a later calculation is not changed.
+    monkeypatch.setattr(settings, "latest_bedtime", "23:30")
+    assert analysis.bedtime_for(session, tomorrow).latest_bedtime.date() == TODAY
+    monkeypatch.setattr(settings, "latest_bedtime", "06:00")
+    assert analysis.bedtime_for(session, tomorrow).capped is False
+
+
+def test_latest_bedtime_setting_is_validated():
+    from app.config import Settings
+
+    with pytest.raises(ValueError, match="LATEST_BEDTIME"):
+        Settings(latest_bedtime="1 Uhr")
+    assert Settings(latest_bedtime=" 0:30 ").latest_bedtime == "0:30"
 
 
 def test_latest_bedtime_before_the_first_event(client, session):

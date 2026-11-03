@@ -55,6 +55,7 @@ async def test_tools_are_listed_with_annotations(client):
         "training_summary",
         "exercise_progress",
         "sleep_summary",
+        "daily_data",
         "nutrition_summary",
         "set_nutrition_goal",
         "list_important_mails",
@@ -180,7 +181,13 @@ async def test_helpful_errors_and_failed_writes_are_audited(client, session):
 @pytest.mark.anyio
 async def test_prompts(client):
     prompts = {p.name for p in (await client.list_prompts()).prompts}
-    assert prompts == {"daily_brief", "weekly_review", "sort_mails", "news_report"}
+    assert prompts == {
+        "daily_brief",
+        "weekly_review",
+        "sort_mails",
+        "news_report",
+        "health_analysis",
+    }
 
 
 @pytest.mark.anyio
@@ -264,6 +271,40 @@ async def test_sleep_summary(client, session):
     assert last["asleep_minutes"] == 450
     assert summary["avg_steps"] == 8000
     assert summary["last_sync"] is not None
+
+
+@pytest.mark.anyio
+async def test_daily_data_joins_the_areas_per_day(client, session):
+    today = local_today()
+    yesterday = today - timedelta(days=1)
+    meal = record("m", "nutrition", at(yesterday, "12:00"), at(yesterday, "12:00"))
+    meal["data"] = {"meal_type": "lunch", "energy_kcal": 2100, "protein_g": 150}
+    ingest(
+        session,
+        [night(), meal, record("st", "steps", at(today, "12:00"), at(today, "12:00"), count=8000)],
+    )
+    csv = "\n".join(
+        [
+            '"Date","Workout name","Exercise","Set","Weight","Reps","Distance","Duration",'
+            '"Measurement unit","Notes"',
+            f'"{yesterday:%Y-%m-%d} 18:00:00","Legs","Kniebeuge","1","100","5","","","kg",',
+            f'"{yesterday:%Y-%m-%d} 18:00:00","Legs","Kniebeuge","2","100","5","","","kg",',
+        ]
+    ).encode()
+    workouts.import_csv(session, csv)
+
+    data = await call(client, "daily_data", days=7)
+    rows = {r["date"]: r for r in data["days"]}
+    assert len(rows) == 7 and data["until"] == today.isoformat()
+    last, before = rows[today.isoformat()], rows[yesterday.isoformat()]
+    assert (last["asleep_minutes"], last["steps"], last["kcal"]) == (450, 8000, None)
+    assert before["training"] == ["Legs (legs)"]
+    assert (before["sets"], before["volume_kg"], before["kcal"], before["protein_g"]) == (
+        2,
+        1000.0,
+        2100,
+        150,
+    )
 
 
 @pytest.mark.anyio

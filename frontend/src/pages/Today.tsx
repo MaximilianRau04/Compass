@@ -62,7 +62,7 @@ function Bedtime() {
       <p>
         <span className="font-medium">{t('bedtime.latest', { time: clockTime(b.latest_bedtime, locale) })}</span>
         <span className="block font-mono text-[11px] text-muted">
-          {t('bedtime.because', {
+          {t(b.capped ? 'bedtime.capped' : 'bedtime.because', {
             time: clockTime(b.event.starts_at, locale),
             title: b.event.title,
             wake: clockTime(b.wake_at, locale),

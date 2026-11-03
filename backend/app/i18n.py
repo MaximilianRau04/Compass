@@ -18,6 +18,7 @@ TEXT: dict[str, dict[str, str]] = {
         # Push notifications
         "push.bedtime.title": "Bed by {time} at the latest",
         "push.bedtime.body": "{when} {event}, get up at {wake}. For {hours} h of sleep.",
+        "push.bedtime.body_capped": "Your fixed limit. {when} {event}, get up by {wake}.",
         "push.deadline.one": "Due {when}",
         "push.deadline.many": "{n} deadlines within 24 h",
         "push.resting.title": "Resting heart rate up",
@@ -68,6 +69,7 @@ TEXT: dict[str, dict[str, str]] = {
         "weekdays": "Mo Di Mi Do Fr Sa So",
         "push.bedtime.title": "Spätestens {time} ins Bett",
         "push.bedtime.body": "{when} {event}, aufstehen {wake}. Für {hours} h Schlaf.",
+        "push.bedtime.body_capped": "Deine feste Grenze. {when} {event}, aufstehen bis {wake}.",
         "push.deadline.one": "Fällig {when}",
         "push.deadline.many": "{n} Abgaben in 24 h",
         "push.resting.title": "Ruhepuls erhöht",

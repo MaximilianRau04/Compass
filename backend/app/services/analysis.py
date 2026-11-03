@@ -283,28 +283,54 @@ class Bedtime:
     first_event_at: datetime
     title: str
     wake_at: datetime  # first event minus wake_buffer_minutes
-    latest_bedtime: datetime  # wake_at minus sleep_need_minutes minus fall_asleep_minutes
+    # wake_at minus sleep_need_minutes minus fall_asleep_minutes, at most latest_bedtime
+    latest_bedtime: datetime
+    capped: bool = False  # the latest_bedtime setting, not the calculation, gave the time
 
 
-def bedtime_for(session: Session, day: date) -> Bedtime | None:
-    """The latest bedtime before a day, from its first appointment and the wake_buffer_minutes,
-    sleep_need_minutes and fall_asleep_minutes settings. None when the day has no appointment."""
+def first_events(session: Session, first: date, last: date) -> dict[date, CalendarEvent]:
+    """The first timed appointment per day from first to last (date markers do not count)."""
     tz = local_tz()
-    start = datetime.combine(day, time.min, tzinfo=tz)
-    events = session.scalars(
+    start = datetime.combine(first, time.min, tzinfo=tz)
+    end = datetime.combine(last + timedelta(days=1), time.min, tzinfo=tz)
+    out: dict[date, CalendarEvent] = {}
+    for e in session.scalars(
         select(CalendarEvent)
         .where(
             CalendarEvent.all_day.is_(False),
             CalendarEvent.starts_at >= start,
-            CalendarEvent.starts_at < start + timedelta(days=1),
+            CalendarEvent.starts_at < end,
         )
         .order_by(CalendarEvent.starts_at)
-    )
-    event = next((e for e in events if not _is_marker(e)), None)
+    ):
+        day = e.starts_at.astimezone(tz).date()
+        if day not in out and not _is_marker(e):
+            out[day] = e
+    return out
+
+
+def bedtime_cap(day: date) -> datetime | None:
+    """The latest_bedtime setting for the night before day; before noon it is after midnight."""
+    value = get_settings().latest_bedtime
+    if not value:
+        return None
+    h, m = map(int, value.split(":"))
+    night = day if h < 12 else day - timedelta(days=1)
+    return datetime.combine(night, time(h, m), tzinfo=local_tz())
+
+
+def bedtime_for(session: Session, day: date) -> Bedtime | None:
+    """The latest bedtime before a day, from its first appointment and the wake_buffer_minutes,
+    sleep_need_minutes and fall_asleep_minutes settings, capped by latest_bedtime. None when the
+    day has no appointment."""
+    event = first_events(session, day, day).get(day)
     if event is None:
         return None
-    first = event.starts_at.astimezone(tz)
+    first = event.starts_at.astimezone(local_tz())
     s = get_settings()
     wake = first - timedelta(minutes=s.wake_buffer_minutes)
     latest = wake - timedelta(minutes=s.sleep_need_minutes + s.fall_asleep_minutes)
+    cap = bedtime_cap(day)
+    if cap is not None and cap < latest:
+        return Bedtime(day, first, event.title, wake, cap, capped=True)
     return Bedtime(day, first, event.title, wake, latest)

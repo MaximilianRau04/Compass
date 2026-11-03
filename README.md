@@ -158,7 +158,8 @@ with name, duration and split but without sets; a later export with its sets tak
 Nutrition and weight from Health Connect feed the Nutrition tab (below).
 
 The latest bedtime and zone 2 use `WAKE_BUFFER_MINUTES`, `SLEEP_NEED_MINUTES`, `FALL_ASLEEP_MINUTES`,
-`ZONE2_MIN_PERCENT` and `ZONE2_MAX_PERCENT`. Set your maximum heart rate as the goal `hr_max` (through
+`ZONE2_MIN_PERCENT` and `ZONE2_MAX_PERCENT`. `LATEST_BEDTIME` (e.g. `01:00`) caps the latest bedtime,
+so a late first appointment does not suggest going to bed at 05:45. Set your maximum heart rate as the goal `hr_max` (through
 your AI assistant with `set_nutrition_goal`); without it Compass assumes 190.
 
 ## Nutrition
@@ -238,13 +239,13 @@ in developer mode, should work the same way.
 | Calendar | `get_calendar` |
 | Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
 | Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
-| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review` |
+| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `daily_data` (one row per day across all areas) |
 | Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage` |
 | News | `get_news_digest`, `feedback_news` |
 | Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `set_budget`, `log_depot_value` |
 | Dashboard | `save_brief`, `get_brief`, `send_notification` |
 
-Prompts: `daily_brief`, `news_report`, `sort_mails`, `weekly_review`.
+Prompts: `daily_brief`, `news_report`, `sort_mails`, `weekly_review`, `health_analysis` (patterns across sleep, training, nutrition and weight).
 
 There is no delete tool, cancelling a task is the undo, and every write is recorded in an audit log.
 

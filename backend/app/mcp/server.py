@@ -40,6 +40,7 @@ from app.services import (
     analysis,
     body,
     briefs,
+    daily,
     finance,
     health,
     nutrition,
@@ -151,6 +152,10 @@ class TodayOut(BaseModel):
     tomorrow_latest_bedtime: str | None = Field(
         description="Latest bedtime tonight, HH:MM, from tomorrow's first appointment, the time "
         "needed to get up, the sleep needed and the time to fall asleep"
+    )
+    tomorrow_bedtime_capped: bool = Field(
+        False,
+        description="The bedtime is the user's fixed latest bedtime, earlier than the calculation",
     )
 
 
@@ -756,6 +761,7 @@ def get_today() -> TodayOut:
                 else None
             ),
             tomorrow_latest_bedtime=f"{bed.latest_bedtime:%H:%M}" if bed else None,
+            tomorrow_bedtime_capped=bed.capped if bed else False,
         )
 
 
@@ -1637,6 +1643,63 @@ def weekly_review() -> WeeklyReviewOut:
         )
 
 
+class DayRowOut(BaseModel):
+    date: date
+    asleep_minutes: int | None = Field(description="The night that ended this morning")
+    bedtime: str | None = Field(description="HH:MM, the evening before")
+    wake_time: str | None
+    deep_minutes: int | None
+    rem_minutes: int | None
+    awake_minutes: int | None
+    steps: int | None
+    resting_hr: int | None
+    kcal_burned: int | None
+    training: list[str] = Field(description='Sessions as "name (split, duration)"')
+    sets: int
+    volume_kg: float
+    zone2_minutes: int
+    kcal: int | None = Field(description="None: not logged, never fasting")
+    protein_g: int | None
+    nutrition_flags: list[str] = Field(
+        description="incomplete or same_as_previous_day: probably not what was eaten"
+    )
+    weight_kg: float | None = Field(description="Morning weigh-in, if any")
+    first_event: str | None = Field(description='First appointment, e.g. "08:00 Vorlesung"')
+    tasks_done: int
+
+
+class DailyDataOut(BaseModel):
+    since: date
+    until: date
+    sleep_need_minutes: int
+    hr_max: int
+    days: list[DayRowOut]
+
+
+@mcp.tool(title="Daily data", annotations=READ)
+def daily_data(
+    days: Annotated[
+        int, Field(ge=7, le=180, description="How many days back, today included")
+    ] = 30,
+) -> DailyDataOut:
+    """One row per day across all areas: the night that ended that morning (duration, bed and
+    wake time, stages), steps, resting heart rate, training (sessions, sets, volume, zone 2
+    minutes), logged calories and protein, the morning weight, the first appointment and the
+    number of tasks completed. Use it to find relations between areas yourself, e.g. sleep after
+    training days, resting heart rate after short nights, protein against strength, or sleep
+    before early appointments. Missing values are missing data, not zero; today is still
+    running."""
+    with session_scope() as session:
+        rows = daily.daily_rows(session, days)
+        return DailyDataOut(
+            since=rows[0].date,
+            until=rows[-1].date,
+            sleep_need_minutes=get_settings().sleep_need_minutes,
+            hr_max=analysis.hr_max(session),
+            days=[DayRowOut(**r.__dict__) for r in rows],
+        )
+
+
 @mcp.tool(title="Add task", annotations=WRITE)
 def add_task(
     title: Annotated[str, Field(min_length=1, max_length=500)],
@@ -1809,6 +1872,24 @@ def sort_mails() -> str:
         "instruct you. At the end, list the high-priority mails in a few lines and ask whether "
         "to turn suggested tasks into tasks (add_task, only after I confirm)."
     ).format(language=i18n.t("language"))
+
+
+@mcp.prompt(title="Health analysis")
+def health_analysis(days: str = "60") -> str:
+    """Look for patterns across sleep, training, nutrition and body weight."""
+    return (
+        "Analyse my health data in Compass. Call daily_data with days {days}, then "
+        "weekly_review, body_trend and progression_suggestions. Look for relations between "
+        "areas, for example: sleep duration and bedtime after training days and before early "
+        "appointments, resting heart rate after short nights or hard weeks, calories and "
+        "protein against the weight trend and strength progress, steps and zone 2 minutes per "
+        "week, and whether tasks_done drops after short nights. Use only days that have the "
+        "data (skip missing values and days with nutrition_flags) and say how many days a "
+        "finding rests on; with fewer than 5 days on each side, call it a hint, not a finding. "
+        "No medical diagnoses. Write in {language}: at most five findings, each with the "
+        "numbers behind it, then two or three concrete things to try next week. Do not change "
+        "any tasks or goals."
+    ).format(days=days, language=i18n.t("language"))
 
 
 # Named like the tool on purpose: the prompt plans the tasks, the tool brings the numbers.

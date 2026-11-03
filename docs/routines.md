@@ -78,7 +78,7 @@ Read weekly_review and get_brief (kind "weekly") in the Compass connector. Write
 Schedule: daily 20:00. Optional, since "Today" shows the latest bedtime in the evening anyway.
 
 ```
-Write my evening brief in Compass. Call get_today (it includes tomorrow_first_event and tomorrow_latest_bedtime) and get_calendar (days 2). Write at most 80 words in English: when I have to go to bed at the latest and why, what is coming up tomorrow, and what I should prepare tonight. Save it with save_brief (kind "evening", title "Evening"). Do not change any tasks.
+Write my evening brief in Compass. Call get_today (it includes tomorrow_first_event, tomorrow_latest_bedtime and tomorrow_bedtime_capped, true when my fixed latest bedtime applies) and get_calendar (days 2). Write at most 80 words in English: when I have to go to bed at the latest and why, what is coming up tomorrow, and what I should prepare tonight. Save it with save_brief (kind "evening", title "Evening"). Do not change any tasks.
 ```
 
 ## Notification at the end of a routine

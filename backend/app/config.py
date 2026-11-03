@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 
 from dotenv import dotenv_values
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -150,6 +150,9 @@ class Settings(BaseSettings):
     wake_buffer_minutes: int = 120
     sleep_need_minutes: int = 450
     fall_asleep_minutes: int = 30
+    # Never later than this (HH:MM, e.g. 01:00), even when the first appointment is late. Times
+    # before noon count as after midnight. Empty: only the calculation above.
+    latest_bedtime: str = ""
     # Zone 2 as a share of the maximum heart rate.
     zone2_min_percent: int = 60
     zone2_max_percent: int = 70
@@ -157,6 +160,14 @@ class Settings(BaseSettings):
     news_sync_minutes: int = 60
     # Items older than this are removed; the learned profile keeps what their thumbs taught.
     news_keep_days: int = 30
+
+    @field_validator("latest_bedtime")
+    @classmethod
+    def _clock_time(cls, value: str) -> str:
+        value = value.strip()
+        if value and not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("LATEST_BEDTIME: use HH:MM, e.g. 01:00, or leave it empty")
+        return value
 
     @property
     def news_feed_list(self) -> list[tuple[str, str, str]]:

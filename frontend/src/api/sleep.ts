@@ -26,6 +26,7 @@ export interface Bedtime {
   event: { title: string; starts_at: string } | null
   wake_at?: string
   latest_bedtime?: string
+  capped?: boolean
   sleep_need_minutes?: number
   fall_asleep_minutes?: number
 }
