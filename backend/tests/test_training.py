@@ -30,9 +30,9 @@ def recent(days_ago: int, hhmm: str = "18:00") -> str:
 
 
 SAMPLE = export(
-    row("2025-09-04 20:01:06", "Push A", "Supine Press", 1, "110", 10),
-    row("2025-09-04 20:01:06", "Push A", "Supine Press", 2, "105", 9),
-    row("2025-09-04 20:01:06", "Push A", "Trizeps Dips", 1, "", 12),
+    row("2025-09-04 20:15:30", "Push A", "Supine Press", 1, "60", 10),
+    row("2025-09-04 20:15:30", "Push A", "Supine Press", 2, "55", 9),
+    row("2025-09-04 20:15:30", "Push A", "Trizeps Dips", 1, "", 12),
     row("2025-09-06 10:30:00", "Pull", "Latzug mit engem Griff", 1, "70", 10),
 )
 
@@ -55,7 +55,7 @@ def test_import_creates_sessions_sets_and_exercises(session):
     }
     push = session.scalar(select(TrainingSession).where(TrainingSession.workout_name == "Push A"))
     # Local time without zone in the file; stored as UTC (CEST is UTC+2).
-    assert push.started_at == datetime(2025, 9, 4, 18, 1, 6, tzinfo=ZoneInfo("UTC"))
+    assert push.started_at == datetime(2025, 9, 4, 18, 15, 30, tzinfo=ZoneInfo("UTC"))
 
     dips = session.scalar(select(Exercise).where(Exercise.name == "Trizeps Dips"))
     assert dips.bodyweight is True
@@ -76,14 +76,14 @@ def test_import_is_idempotent_and_updates_changed_sets(session):
     assert count(session, ExerciseSet) == 4
 
     corrected = export(
-        row("2025-09-04 20:01:06", "Push A", "Supine Press", 2, "107.5", 8),
+        row("2025-09-04 20:15:30", "Push A", "Supine Press", 2, "57.5", 8),
         row("2025-09-08 19:00:00", "Leg", "Beinstrecken", 1, "60", 12),
     )
     stats = workouts.import_csv(session, corrected)
     assert stats["sets_updated"] == 1
     assert stats["sets_created"] == 1
     assert stats["sessions_created"] == 1
-    second = session.scalar(select(ExerciseSet).where(ExerciseSet.weight_kg == Decimal("107.5")))
+    second = session.scalar(select(ExerciseSet).where(ExerciseSet.weight_kg == Decimal("57.5")))
     assert second.reps == 8
 
 

@@ -21,3 +21,9 @@ updates:
     directories: [/backend, /frontend]
     schedule: { interval: monthly }
     groups: { images: { patterns: ["*"] } }
+    # Python and Node move on purpose, together with pyproject.toml, CI and the docs.
+    ignore:
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: node
+        update-types: [version-update:semver-major]

@@ -24,7 +24,7 @@ INTERNALDATE = imaplib.Time2Internaldate(datetime.now(UTC) - timedelta(days=1)).
 
 def raw_mail(
     subject="Termin Besprechung",
-    sender="Prof. Müller <mueller@uni-stuttgart.de>",
+    sender="Prof. Müller <mueller@uni.example>",
     body="Hallo, können Sie bis Freitag zusagen?",
     message_id=None,
     html=False,
@@ -327,7 +327,7 @@ def test_overview_task_and_dismiss(client, session, accounts):
     task = client.post(f"/api/mail/{first.id}/task").json()
     assert task["title"] == "Termin bei Prof. Müller bis Freitag zusagen"
     assert task["source"] == "email"
-    assert "Prof. Müller <mueller@uni-stuttgart.de>" in task["notes"]
+    assert "Prof. Müller <mueller@uni.example>" in task["notes"]
     assert task["area"]["slug"] == "study"  # uni mails go to their area
     again = client.post(f"/api/mail/{first.id}/task").json()
     assert again["id"] == task["id"]
@@ -393,7 +393,7 @@ def test_local_triage_runner(session, accounts, monkeypatch):
                     "folder": "INBOX",
                     "uidvalidity": 7,
                     "uid": 1,
-                    "sender": "Prof. Müller <mueller@uni-stuttgart.de>",
+                    "sender": "Prof. Müller <mueller@uni.example>",
                     "subject": "Termin Besprechung",
                     "received_at": "2026-10-19T07:30:00Z",
                 },

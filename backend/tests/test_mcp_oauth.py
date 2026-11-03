@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app.config import get_settings
 from app.mcp import db as mcp_db
 from app.mcp.app import app
-from app.mcp.login import reset_failures
+from app.mcp.login import MAX_FAILURES_TOTAL, reset_failures
 
 BASE = "http://localhost:8001"
 RESOURCE = f"{BASE}/mcp"
@@ -162,6 +162,17 @@ def test_wrong_password_and_lockout(http):
     for _ in range(5):
         assert login(http, request_id, password="wrong").status_code == 401
     # Locked now, even with the right password.
+    assert login(http, request_id).status_code == 429
+
+
+def test_total_failures_lock_out_every_address(http, monkeypatch):
+    # A new address on every try, so the limit per address never applies.
+    addresses = iter(range(MAX_FAILURES_TOTAL + 1))
+    monkeypatch.setattr("app.mcp.login._client_ip", lambda _: f"203.0.113.{next(addresses)}")
+    client_id = register(http)
+    request_id = start_authorization(http, client_id, pkce()[1])
+    for _ in range(MAX_FAILURES_TOTAL):
+        assert login(http, request_id, password="wrong").status_code == 401
     assert login(http, request_id).status_code == 429
 
 

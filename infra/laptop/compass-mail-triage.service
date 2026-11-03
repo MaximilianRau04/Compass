@@ -1,5 +1,5 @@
-# Local mail triage on the laptop: summarises mails of accounts with MAIL_TRIAGE_<ACCOUNT>=local
-# (the uni mailbox) with Ollama and sends only the result to Compass.
+# Local mail triage on a machine with Ollama: summarises mails of accounts with
+# MAIL_TRIAGE_<ACCOUNT>=local and sends only the result to Compass.
 # Install: see docs/deploy.md, section "Mails". Runs as your user, not as root.
 [Unit]
 Description=Compass local mail triage

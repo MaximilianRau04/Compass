@@ -100,6 +100,9 @@ shows which sources are set up. Both can be changed later under Settings. The ot
 remaining options are in [.env.example](.env.example): copy what you need into `.env`, and `make up` again
 applies it.
 
+`make up` publishes three ports on localhost. If one is already in use, change it in `.env`: 8080 with
+`COMPASS_HTTP_PORT`, 8081 with `COMPASS_MCP_HTTP_PORT` and Postgres on 5432 with `POSTGRES_PORT`.
+
 ## Development
 
 ```bash

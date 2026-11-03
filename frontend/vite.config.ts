@@ -46,7 +46,7 @@ export default defineConfig({
             ],
           },
         },
-        shortcuts: [{ name: 'Neue Aufgabe', url: '/?neu=1' }],
+        shortcuts: [{ name: 'New task', url: '/?new=1' }],
       },
       workbox: {
         // Offline only the app shell; data always comes from the API.

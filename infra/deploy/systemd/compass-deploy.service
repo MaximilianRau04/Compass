@@ -5,8 +5,8 @@ After=docker.service network-online.target
 
 [Service]
 Type=oneshot
-# Adjust user and path to your setup (see docs/deploy.md). The user needs docker access, the
-# GHCR login and read access to the repository.
+# Adjust user and path to your setup (see docs/deploy.md). The user needs docker access and, for
+# a private fork, the GHCR login and read access to the repository.
 User=compass
 WorkingDirectory=/opt/compass
 ExecStart=/opt/compass/infra/deploy/auto-deploy.sh

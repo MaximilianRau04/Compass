@@ -2,7 +2,8 @@
 
 Compass is meant to run on a small server inside a private network (a VPN such as Tailscale, Headscale or
 WireGuard). CI builds the images and pushes them to GHCR. The server only pulls the images, it never
-builds them.
+builds them. To try Compass on your own machine first, the [Setup in the README](../README.md#setup) is
+enough.
 
 ```
 GitHub Actions --push--> ghcr.io/<owner>/compass-{api,web}
@@ -32,7 +33,27 @@ MCP. TLS ends at a reverse proxy in front of it, which you already run or set up
 You need Docker Engine with the compose plugin, `git` and `make`. When idle, the stack uses a few hundred
 MB of RAM.
 
-### Repository (read-only deploy key)
+### Repository and images
+
+The server needs a clone of the repository and the images. Choose where they come from:
+
+- **Published images:** the simplest way. Clone this repository and set
+  `COMPASS_REGISTRY=ghcr.io/maximilianrau04` below. You need no GitHub account or registry login.
+- **Your own fork:** if you change the code. Fork the repository, enable Actions in the fork and push to
+  its `main`. CI then builds the images and pushes them to `ghcr.io/<owner>`, where `<owner>` is your
+  GitHub user or organisation in lowercase.
+
+Automatic updates (see [Updating](#updating)) deploy every commit on `main` of the repository you cloned.
+
+```bash
+sudo mkdir -p /opt/compass && sudo chown "$USER": /opt/compass
+git clone https://github.com/MaximilianRau04/Compass.git /opt/compass    # or your fork
+```
+
+### Private fork only: deploy key and registry login
+
+A public repository and public images need neither of these. For a private fork, clone it with a
+read-only deploy key:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/compass_deploy -N "" -C "compass deploy key"
@@ -54,9 +75,7 @@ sudo mkdir -p /opt/compass && sudo chown "$USER": /opt/compass
 git clone github-compass:<owner>/Compass.git /opt/compass
 ```
 
-### Registry login
-
-Create a classic personal access token with **only** the `read:packages` scope:
+For the registry, create a classic personal access token with **only** the `read:packages` scope:
 <https://github.com/settings/tokens/new?scopes=read:packages&description=compass-server>
 
 ```bash
@@ -85,7 +104,7 @@ Set these values in `.env`. The IMAP entries can stay empty for now.
 | `POSTGRES_PASSWORD` | output of `openssl rand -base64 32 \| tr -d '/+='` |
 | `COMPASS_BASIC_AUTH_USER` | your login name |
 | `COMPASS_BASIC_AUTH_HASH` | output of `make password-hash` |
-| `COMPASS_REGISTRY` | `ghcr.io/<owner>` in lowercase, where CI pushes the images |
+| `COMPASS_REGISTRY` | `ghcr.io/maximilianrau04` for the published images, or `ghcr.io/<owner>` in lowercase for your fork |
 | `COMPASS_LANGUAGE` | `en` (default) or `de`: language of push notifications, the weekly review, mail summaries and the MCP prompts |
 | `TIMEZONE` | your time zone, default `Europe/Berlin` |
 
