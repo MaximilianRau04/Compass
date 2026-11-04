@@ -107,6 +107,7 @@ function Progression({ exercises }: { exercises: Exercise[] }) {
       </div>
       {progress.isSuccess && points.length === 0 && <p className="text-muted">{t('training.noProgress')}</p>}
       <LineChart
+        color="var(--m-training)"
         data={points}
         format={format}
         ariaLabel={`${exercise.name}: ${t(`metric.${active}` as MessageKey)}`}
@@ -395,6 +396,7 @@ export function TrainingPage() {
           <SectionLabel>{t('training.weeklyVolume')}</SectionLabel>
           <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('training.weeklyVolumeHint')}</p>
           <ColumnChart
+            color="var(--m-training)"
             data={weeks}
             format={(v) => compact(v, locale)}
             ariaLabel={t('training.weeklyVolume')}
@@ -425,7 +427,7 @@ export function TrainingPage() {
                 <li key={split} className="grid grid-cols-[5.5rem_1fr_2rem] items-center gap-3 text-sm">
                   <span>{t(`split.${split}`)}</span>
                   <span className="h-3">
-                    {n > 0 && <span className="block h-3 rounded-r-[4px] bg-chart" style={{ width: `${(n / splitMax) * 100}%` }} />}
+                    {n > 0 && <span className="block h-3 rounded-r-[4px] bg-m-training" style={{ width: `${(n / splitMax) * 100}%` }} />}
                   </span>
                   <span className="text-right font-mono text-[12px] tabular-nums">{n}</span>
                 </li>

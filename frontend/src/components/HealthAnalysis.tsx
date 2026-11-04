@@ -51,6 +51,7 @@ export function HealthAnalysis({ days }: { days: number }) {
           )}
           <div className="mt-3">
             <LineChart
+              color="var(--m-heart)"
               data={resting}
               dayLabel={short}
               format={(v) => `${decimal(v, locale)} bpm`}
@@ -77,6 +78,7 @@ export function HealthAnalysis({ days }: { days: number }) {
           <SectionLabel>{t('zone2.title')}</SectionLabel>
           <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('zone2.hint', { low: a.zone2_low, high: a.zone2_high, max: a.hr_max })}</p>
           <ColumnChart
+            color="var(--m-heart)"
             data={zone}
             format={(v) => `${v} min`}
             ariaLabel={t('zone2.title')}

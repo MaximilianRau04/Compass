@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useToggleDone } from '../api/tasks'
@@ -19,10 +20,15 @@ export function TaskItem({
   const toggle = useToggleDone()
   const { t, locale } = useI18n()
   const sourceLabel = { ilias: 'ILIAS', feed: t('source.feed'), email: t('source.email'), claude: t('source.ai'), manual: null }[task.source]
-  const done = task.status === 'done'
+  // Shown at once on click, so the tick and the strike-through play before the list refetches.
+  // It only counts while the task still has the status it was clicked in.
+  const [click, setClick] = useState<{ from: Task['status']; done: boolean } | null>(null)
+  const ticked = click && click.from === task.status ? click.done : null
+  const done = ticked ?? task.status === 'done'
   const overdue = isOverdue(task, today)
 
-  const onToggle = () =>
+  const onToggle = () => {
+    setClick({ from: task.status, done: !done })
     toggle.mutate(task, {
       onSuccess: (updated) => {
         if (updated.status === 'done') {
@@ -31,8 +37,12 @@ export function TaskItem({
           })
         }
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => {
+        setClick(null)
+        toast.error(error.message)
+      },
     })
+  }
 
   return (
     <li className="group flex items-start gap-3 py-2.5">
@@ -43,6 +53,7 @@ export function TaskItem({
         aria-label={t(done ? 'task.reopen' : 'task.complete', { title: task.title })}
         className={[
           'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors',
+          ticked ? 'pop' : '',
           done
             ? 'border-sea bg-sea text-paper'
             : task.priority === 'urgent'
@@ -54,15 +65,17 @@ export function TaskItem({
       >
         {done && (
           <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden>
-            <path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M2.5 6.2l2.3 2.3 4.7-5" pathLength={1} className={ticked ? 'draw' : ''} style={{ animationDuration: '320ms', animationDelay: '80ms' }} fill="none" stroke="currentColor" strokeWidth="1.8" />
           </svg>
         )}
       </button>
 
       <div className="min-w-0 flex-1">
       <button type="button" onClick={() => onOpen(task)} className="w-full text-left">
-        <span className={['block leading-snug', done ? 'text-muted line-through decoration-muted/50' : ''].join(' ')}>
-          {task.title}
+        <span className={['block leading-snug transition-colors duration-300', done ? 'text-muted' : ''].join(' ')}>
+          <span className="strike" data-done={done}>
+            {task.title}
+          </span>
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] text-muted">
           {task.area && (

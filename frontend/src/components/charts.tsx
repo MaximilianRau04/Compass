@@ -1,7 +1,7 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
 
-/* Small single-series SVG charts. Marks use the validated --chart color, text stays in ink and
- * muted tokens, gridlines are hairlines in --rule. Every value is also reachable through the
+/* Small single-series SVG charts. Marks use the validated --chart color or the accent of the
+ * measure (--m-*), text stays in ink and muted tokens, gridlines are hairlines in --rule. Every value is also reachable through the
  * tooltip and the table view the page renders next to the chart. */
 
 const HEIGHT = 190
@@ -85,6 +85,7 @@ export function ColumnChart({
   format,
   ariaLabel,
   target,
+  color = 'var(--chart)',
 }: {
   data: BarDatum[]
   tooltip: (d: BarDatum) => ReactNode
@@ -92,6 +93,7 @@ export function ColumnChart({
   ariaLabel: string
   /** Reference line, e.g. a daily goal. */
   target?: { value: number; label: string }
+  color?: string
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
@@ -119,7 +121,9 @@ export function ColumnChart({
                 {h > 0 && (
                   <path
                     d={column(cx - barW / 2, y(d.value), barW, h)}
-                    fill="var(--chart)"
+                    fill={color}
+                    className="grow"
+                    style={{ animationDelay: `${Math.min(i, 30) * 25}ms` }}
                     opacity={hover === null || hover === i ? 1 : 0.55}
                   />
                 )}
@@ -202,6 +206,7 @@ export function LineChart({
   ariaLabel,
   dayLabel,
   gapDays,
+  color = 'var(--chart)',
 }: {
   data: LinePoint[]
   tooltip: (p: LinePoint) => ReactNode
@@ -211,6 +216,7 @@ export function LineChart({
   dayLabel?: (date: string) => string
   /** Break the line where two points are further apart than this (no data in between). */
   gapDays?: number
+  color?: string
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
@@ -280,13 +286,13 @@ export function LineChart({
                 </text>
               )
             })}
-          <path d={area} fill="var(--chart)" opacity={0.1} />
-          <path d={line} fill="none" stroke="var(--chart)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={area} fill={color} opacity={0.1} />
+          <path d={line} pathLength={1} className="draw" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           {hover !== null && (
             <line x1={points[hover][0]} x2={points[hover][0]} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--muted)" strokeWidth={1} />
           )}
           {[hover ?? points.length - 1].map((i) => (
-            <circle key={i} cx={points[i][0]} cy={points[i][1]} r={4.5} fill="var(--chart)" stroke="var(--paper)" strokeWidth={2} />
+            <circle key={i} cx={points[i][0]} cy={points[i][1]} r={4.5} fill={color} stroke="var(--paper)" strokeWidth={2} />
           ))}
           <text x={end[0] + 8} y={end[1]} dy="0.32em" className="fill-ink font-mono text-[11px] font-medium">
             {format(values[values.length - 1])}
@@ -332,6 +338,7 @@ export function Hypnogram({
   tooltip,
   hourLabel,
   ariaLabel,
+  color = 'var(--chart)',
 }: {
   segments: HypnogramSegment[]
   start: string
@@ -341,6 +348,7 @@ export function Hypnogram({
   tooltip: (s: HypnogramSegment) => ReactNode
   hourLabel: (time: Date) => string
   ariaLabel: string
+  color?: string
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
@@ -409,7 +417,7 @@ export function Hypnogram({
               width={s.w}
               height={barH}
               rx={Math.min(3, s.w / 2)}
-              fill={s.lane === awakeLane ? 'var(--muted)' : 'var(--chart)'}
+              fill={s.lane === awakeLane ? 'var(--muted)' : color}
               opacity={hover === null || hover === i ? 1 : 0.55}
             />
           ))}
@@ -440,7 +448,7 @@ export function Hypnogram({
 
 /** Tiny trend for a stat tile: no axes, the tile names the measure and its page has the full
  * chart and table. Gaps (null) break the line. */
-export function Sparkline({ values, ariaLabel, height = 36 }: { values: (number | null)[]; ariaLabel: string; height?: number }) {
+export function Sparkline({ values, ariaLabel, height = 36, color = 'var(--chart)' }: { values: (number | null)[]; ariaLabel: string; height?: number; color?: string }) {
   const [ref, width] = useWidth()
   const known = values.filter((v): v is number => v !== null)
   if (known.length < 2) return <div ref={ref} style={{ height }} />
@@ -459,8 +467,8 @@ export function Sparkline({ values, ariaLabel, height = 36 }: { values: (number 
     <div ref={ref} style={{ height }}>
       {width > 0 && (
         <svg viewBox={`0 0 ${width} ${height}`} className="block h-full w-full" role="img" aria-label={ariaLabel}>
-          <path d={d} fill="none" stroke="var(--chart)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          <circle cx={x(last)} cy={y(values[last]!)} r={4} fill="var(--chart)" stroke="var(--paper-raised)" strokeWidth={2} />
+          <path d={d} pathLength={1} className="draw" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx={x(last)} cy={y(values[last]!)} r={4} fill={color} stroke="var(--paper-raised)" strokeWidth={2} />
         </svg>
       )}
     </div>
@@ -468,7 +476,19 @@ export function Sparkline({ values, ariaLabel, height = 36 }: { values: (number 
 }
 
 /** Tiny columns for a stat tile, e.g. the last 7 days; the newest one is emphasised. */
-export function MiniBars({ values, ariaLabel, titles, height = 36 }: { values: (number | null)[]; ariaLabel: string; titles?: string[]; height?: number }) {
+export function MiniBars({
+  values,
+  ariaLabel,
+  titles,
+  height = 36,
+  color = 'var(--chart)',
+}: {
+  values: (number | null)[]
+  ariaLabel: string
+  titles?: string[]
+  height?: number
+  color?: string
+}) {
   const [ref, width] = useWidth()
   const max = Math.max(...values.map((v) => v ?? 0), 1)
   const gap = 2
@@ -481,7 +501,14 @@ export function MiniBars({ values, ariaLabel, titles, height = 36 }: { values: (
             const h = v ? Math.max(2, (v / max) * height) : 2
             const last = i === values.length - 1
             return (
-              <path key={i} d={column(i * (w + gap), height - h, w, h)} fill={v ? 'var(--chart)' : 'var(--rule)'} opacity={v && !last ? 0.45 : 1}>
+              <path
+                key={i}
+                d={column(i * (w + gap), height - h, w, h)}
+                fill={v ? color : 'var(--rule)'}
+                opacity={v && !last ? 0.45 : 1}
+                className="grow"
+                style={{ animationDelay: `${150 + i * 45}ms` }}
+              >
                 {titles?.[i] && <title>{titles[i]}</title>}
               </path>
             )
@@ -513,6 +540,7 @@ export function DayCurve({
   ariaLabel,
   tooltip,
   hourLabel,
+  color = 'var(--chart)',
 }: {
   points: TimePoint[]
   start: string
@@ -522,6 +550,7 @@ export function DayCurve({
   ariaLabel: string
   tooltip: (p: TimePoint) => ReactNode
   hourLabel: (d: Date) => string
+  color?: string
 }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState<number | null>(null)
@@ -589,11 +618,11 @@ export function DayCurve({
               </text>
             </g>
           )}
-          <path d={line} fill="none" stroke="var(--chart)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={line} pathLength={1} className="draw" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           {hover !== null && (
             <>
               <line x1={xy[hover][0]} x2={xy[hover][0]} y1={DAY_PAD.top} y2={DAY_PAD.top + innerH} stroke="var(--muted)" strokeWidth={1} />
-              <circle cx={xy[hover][0]} cy={xy[hover][1]} r={4.5} fill="var(--chart)" stroke="var(--paper)" strokeWidth={2} />
+              <circle cx={xy[hover][0]} cy={xy[hover][1]} r={4.5} fill={color} stroke="var(--paper)" strokeWidth={2} />
             </>
           )}
           <rect

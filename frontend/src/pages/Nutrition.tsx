@@ -68,7 +68,7 @@ function GoalBar({ label, value, goal, format }: { label: string; value: number 
       </p>
       {goal !== undefined && (
         <div className="mt-1 h-2 rounded-full bg-rule/70" role="presentation">
-          <div className="h-2 rounded-full bg-chart" style={{ width: `${Math.min(100, ((value ?? 0) / goal) * 100)}%` }} />
+          <div className="h-2 rounded-full bg-m-food" style={{ width: `${Math.min(100, ((value ?? 0) / goal) * 100)}%` }} />
         </div>
       )}
     </div>
@@ -169,7 +169,7 @@ function MacroAverages({ averages }: { averages: NutritionSummary['averages'] })
             <span>{t(v.label)}</span>
             <span className="h-3">
               {v.g !== null && v.g > 0 && (
-                <span className="block h-3 rounded-r-[4px] bg-chart" style={{ width: `${((v.g * v.kcal) / max) * 100}%` }} />
+                <span className="block h-3 rounded-r-[4px] bg-m-food" style={{ width: `${((v.g * v.kcal) / max) * 100}%` }} />
               )}
             </span>
             <span className="text-right font-mono text-[12px] tabular-nums">
@@ -365,6 +365,7 @@ export function NutritionPage() {
           <SectionLabel>{t('nutrition.kcalPerDay')}</SectionLabel>
           <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('nutrition.perDayHint')}</p>
           <ColumnChart
+            color="var(--m-food)"
             data={kcalBars}
             format={(v) => Math.round(v).toLocaleString(locale)}
             ariaLabel={t('nutrition.kcalPerDay')}
@@ -382,6 +383,7 @@ export function NutritionPage() {
             <SectionLabel>{t('nutrition.proteinPerDay')}</SectionLabel>
             <div className="mt-3">
               <ColumnChart
+                color="var(--m-food)"
                 data={proteinBars}
                 format={(v) => grams(v)}
                 ariaLabel={t('nutrition.proteinPerDay')}

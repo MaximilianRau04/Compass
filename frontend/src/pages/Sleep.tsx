@@ -39,6 +39,7 @@ function LastNight({ night, today }: { night: SleepNightDetail; today: string })
       {segments.length > 0 && (
         <div className="mt-3">
           <Hypnogram
+            color="var(--m-sleep)"
             segments={segments}
             start={night.start_at}
             end={night.end_at}
@@ -80,7 +81,7 @@ function StageAverages({ averages }: { averages: HealthSummary['averages'] }) {
             <span className="h-3">
               {v !== null && v > 0 && (
                 <span
-                  className={`block h-3 rounded-r-[4px] ${stage === 'awake' ? 'bg-muted' : 'bg-chart'}`}
+                  className={`block h-3 rounded-r-[4px] ${stage === 'awake' ? 'bg-muted' : 'bg-m-sleep'}`}
                   style={{ width: `${(v / max) * 100}%` }}
                 />
               )}
@@ -135,6 +136,7 @@ function HeartRateDay({ today }: { today: string }) {
       <div className="mt-3">
         {h && h.points.length > 0 ? (
           <DayCurve
+            color="var(--m-heart)"
             points={h.points.map((p) => ({ time: p.time, value: p.bpm }))}
             start={start.toISOString()}
             end={end.toISOString()}
@@ -308,6 +310,7 @@ export function SleepPage() {
           <SectionLabel>{t('sleep.perNight')}</SectionLabel>
           <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('sleep.perNightHint')}</p>
           <ColumnChart
+            color="var(--m-sleep)"
             data={sleepBars}
             format={(v) => hours(v * 60)}
             ariaLabel={t('sleep.perNight')}
@@ -341,6 +344,7 @@ export function SleepPage() {
             <SectionLabel>{t('sleep.restingTrend')}</SectionLabel>
             <div className="mt-3">
               <LineChart
+                color="var(--m-heart)"
                 data={resting}
                 format={(v) => `${v} bpm`}
                 ariaLabel={t('sleep.restingTrend')}
@@ -362,6 +366,7 @@ export function SleepPage() {
             <SectionLabel>{t('sleep.stepsPerDay')}</SectionLabel>
             <div className="mt-3">
               <ColumnChart
+                color="var(--m-steps)"
                 data={stepBars}
                 format={(v) => compact(v, locale)}
                 ariaLabel={t('sleep.stepsPerDay')}

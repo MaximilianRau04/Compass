@@ -109,6 +109,7 @@ export function useToggleDone() {
   return useMutation({
     mutationFn: (task: Task) =>
       post<Task>(`/tasks/${task.id}/${task.status === 'done' ? 'reopen' : 'complete'}`),
-    onSuccess: invalidate,
+    // A completed task leaves its list only after the tick has played.
+    onSuccess: (updated) => (updated.status === 'done' ? setTimeout(invalidate, 550) : invalidate()),
   })
 }

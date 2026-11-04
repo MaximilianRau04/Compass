@@ -1,19 +1,49 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { DayHeartRate, HealthSummary, NutritionSummary, TrainingSummary } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { addDays, clockTime, localDay, parseDate, rangeDays, relativeDay } from '../lib/format'
 import { MiniBars, Sparkline } from './charts'
+import { CountUp } from './CountUp'
 
 /* The body at a glance on the today page: one tile per measure, each with its trend and a link
  * to the page with the full charts. */
 
-function Tile({ to, label, value, unit, note, warn, children }: { to: string; label: string; value: string; unit?: string; note?: string; warn?: string; children?: ReactNode }) {
+function Tile({
+  to,
+  label,
+  value,
+  unit,
+  note,
+  warn,
+  accent,
+  order,
+  children,
+}: {
+  to: string
+  label: string
+  value: ReactNode
+  unit?: string
+  note?: string
+  warn?: string
+  /** The measure's colour token, e.g. var(--m-sleep): the dot, the hover edge and the marks. */
+  accent: string
+  /** Position in the grid, staggers the entrance. */
+  order: number
+  children?: ReactNode
+}) {
   return (
-    <Link to={to} className="group flex min-h-[8.75rem] flex-col rounded-lg border border-rule bg-paper-raised px-3.5 py-3 transition-colors hover:border-ink">
+    <Link
+      to={to}
+      style={{ '--accent': accent, '--i': order } as CSSProperties}
+      className="rise group flex min-h-[8.75rem] flex-col rounded-lg border border-rule bg-paper-raised px-3.5 py-3 shadow-[0_1px_0_rgb(255_255_255/0.6)_inset,0_1px_2px_rgb(20_32_43/0.05)] transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-(--accent) hover:shadow-[0_6px_16px_-8px_rgb(20_32_43/0.25)] dark:shadow-none"
+    >
       <span className="flex items-center justify-between text-xs text-muted">
-        {label}
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-(--accent)" />
+          {label}
+        </span>
         <span aria-hidden className="text-brass opacity-0 transition-opacity group-hover:opacity-100">
           →
         </span>
@@ -52,13 +82,14 @@ export function BodyTiles({
   const night = health?.last_night
   if (night && night.local_date >= addDays(today, -1)) {
     const synced = health.sync?.last_success_at
-    const [h, m] = [Math.floor(night.asleep_minutes / 60), night.asleep_minutes % 60]
     tiles.push(
       <Tile
         key="sleep"
         to="/sleep"
         label={t('tile.sleep')}
-        value={`${h}:${String(m).padStart(2, '0')}`}
+        accent="var(--m-sleep)"
+        order={tiles.length}
+        value={<CountUp value={night.asleep_minutes} format={(n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`} />}
         unit="h"
         note={`${clockTime(night.start_at, locale)}–${clockTime(night.end_at, locale)}`}
         warn={night.local_date < today ? t('tile.sleepOld', { when: synced ? clockTime(synced, locale) : '–' }) : undefined}
@@ -67,6 +98,7 @@ export function BodyTiles({
           values={week.map((d) => metrics.get(d)?.sleep_minutes ?? null)}
           titles={week.map((d) => `${weekday(d, locale)}: ${metrics.get(d)?.sleep_minutes ? `${Math.round((metrics.get(d)!.sleep_minutes! / 60) * 10) / 10} h` : '–'}`)}
           ariaLabel={t('tile.sleepTrend')}
+          color="var(--m-sleep)"
         />
       </Tile>,
     )
@@ -78,8 +110,17 @@ export function BodyTiles({
       heart.last ? t('tile.hrLast', { bpm: heart.last.bpm, time: clockTime(heart.last.time, locale) }) : null,
     ].filter(Boolean)
     tiles.push(
-      <Tile key="hr" to="/sleep#heart-rate" label={t('tile.hr')} value={heart.resting !== null ? String(heart.resting) : '–'} unit={t('tile.hrUnit')} note={parts.join(' · ')}>
-        <Sparkline values={heart.points.map((p) => p.bpm)} ariaLabel={t('tile.hrTrend')} />
+      <Tile
+        key="hr"
+        to="/sleep#heart-rate"
+        label={t('tile.hr')}
+        accent="var(--m-heart)"
+        order={tiles.length}
+        value={heart.resting !== null ? <CountUp value={heart.resting} format={String} /> : '–'}
+        unit={t('tile.hrUnit')}
+        note={parts.join(' · ')}
+      >
+        <Sparkline values={heart.points.map((p) => p.bpm)} ariaLabel={t('tile.hrTrend')} color="var(--m-heart)" />
       </Tile>,
     )
   }
@@ -89,11 +130,19 @@ export function BodyTiles({
     const known = week.map((d) => metrics.get(d)?.steps).filter((v): v is number => typeof v === 'number')
     const avg = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null
     tiles.push(
-      <Tile key="steps" to="/sleep" label={t('tile.steps')} value={steps != null ? steps.toLocaleString(locale) : '–'} note={avg !== null ? t('tile.avg7', { value: avg.toLocaleString(locale) }) : undefined}>
+      <Tile
+        key="steps"
+        to="/sleep"
+        label={t('tile.steps')}
+        accent="var(--m-steps)"
+        order={tiles.length}
+        value={steps != null ? <CountUp value={steps} format={(n) => n.toLocaleString(locale)} /> : '–'}
+        note={avg !== null ? t('tile.avg7', { value: avg.toLocaleString(locale) }) : undefined}>
         <MiniBars
           values={week.map((d) => metrics.get(d)?.steps ?? null)}
           titles={week.map((d) => `${weekday(d, locale)}: ${metrics.get(d)?.steps?.toLocaleString(locale) ?? '–'}`)}
           ariaLabel={t('tile.stepsTrend')}
+          color="var(--m-steps)"
         />
       </Tile>,
     )
@@ -108,7 +157,9 @@ export function BodyTiles({
         key="food"
         to="/nutrition"
         label={t('tile.food')}
-        value={day ? Math.round(day.kcal).toLocaleString(locale) : '–'}
+        accent="var(--m-food)"
+        order={tiles.length}
+        value={day ? <CountUp value={Math.round(day.kcal)} format={(n) => n.toLocaleString(locale)} /> : '–'}
         unit={day ? 'kcal' : undefined}
         note={
           day
@@ -118,7 +169,7 @@ export function BodyTiles({
       >
         {goal ? (
           <span className="block h-2 overflow-hidden rounded-full bg-rule" role="img" aria-label={t('tile.foodShare', { n: Math.round(share * 100) })}>
-            <span className="block h-full rounded-full bg-chart" style={{ width: `${share * 100}%` }} />
+            <span className="fill-in block h-full rounded-full bg-m-food" style={{ width: `${share * 100}%` }} />
           </span>
         ) : null}
       </Tile>,
@@ -133,11 +184,13 @@ export function BodyTiles({
         key="training"
         to="/training"
         label={t('tile.training')}
-        value={String(training.this_week_sessions)}
+        accent="var(--m-training)"
+        order={tiles.length}
+        value={<CountUp value={training.this_week_sessions} format={String} />}
         unit={t('tile.thisWeek')}
         note={last ? `${last.workout_name} · ${relativeDay(localDay(last.started_at), today, t, locale)}` : undefined}
       >
-        <MiniBars values={weeks.map((w) => w.sessions)} titles={weeks.map((w) => t('tile.weekSessions', { week: w.week_start, n: w.sessions }))} ariaLabel={t('tile.trainingTrend')} />
+        <MiniBars values={weeks.map((w) => w.sessions)} titles={weeks.map((w) => t('tile.weekSessions', { week: w.week_start, n: w.sessions }))} ariaLabel={t('tile.trainingTrend')} color="var(--m-training)" />
       </Tile>,
     )
   }

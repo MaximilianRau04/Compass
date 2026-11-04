@@ -19,6 +19,10 @@ export const de = {
   'dial.done': 'erledigt',
   'dial.allDone': 'alles erledigt',
 
+  'course.label': 'Kurs des Tages von {from} bis {to}, jetzt {now}',
+  'course.next': 'nächster Termin {time} {title}',
+  'course.current': 'gerade {time} {title}',
+
   'quick.label': 'Neue Aufgabe',
   'quick.placeholder': 'morgen 14 Uhr Blatt 3 abgeben #study !hoch',
   'quick.submit': 'Anlegen',
@@ -715,6 +719,10 @@ export const en: Record<MessageKey, string> = {
   'dial.label': '{done} of {total} done',
   'dial.done': 'done',
   'dial.allDone': 'all done',
+
+  'course.label': 'Course of the day from {from} to {to}, now {now}',
+  'course.next': 'next event {time} {title}',
+  'course.current': 'under way {time} {title}',
 
   'quick.label': 'New task',
   'quick.placeholder': 'tomorrow 2pm hand in sheet 3 #study !high',

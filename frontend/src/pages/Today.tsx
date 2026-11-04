@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type CSSProperties, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 
 import { useMailOverview } from '../api/mail'
@@ -11,6 +11,7 @@ import { useTrainingSummary } from '../api/training'
 import type { Brief, MailOverview, NewsOverview, Task } from '../api/types'
 import { BodyTiles } from '../components/BodyTiles'
 import { CompassDial } from '../components/CompassDial'
+import { CourseLine } from '../components/CourseLine'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
 import { Markdown } from '../components/Markdown'
@@ -27,7 +28,7 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
   const { t } = useI18n()
   if (!overview || overview.important === 0) return null
   return (
-    <section>
+    <section className="rise" style={{ '--i': 6 } as CSSProperties}>
       <Link to="/mail" className="block hover:text-ink">
         <SectionLabel count={overview.important}>{t('today.mail')}</SectionLabel>
       </Link>
@@ -57,7 +58,7 @@ function Bedtime() {
   const b = bedtime.data
   if (!evening || !b?.event || !b.latest_bedtime || !b.wake_at) return null
   return (
-    <section className="flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3">
+    <section className="rise flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 2 } as CSSProperties}>
       <span aria-hidden className="text-brass">☾</span>
       <p>
         <span className="font-medium">{t('bedtime.latest', { time: clockTime(b.latest_bedtime, locale) })}</span>
@@ -80,7 +81,7 @@ function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   const { t, locale } = useI18n()
   if (!brief) return null
   return (
-    <details open className="rounded-md border border-rule bg-paper-raised px-4 py-3">
+    <details open className="rise rounded-md border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 3 } as CSSProperties}>
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
         <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
         <span className="font-mono text-[11px] text-muted">{clockTime(brief.updated_at, locale)}</span>
@@ -119,7 +120,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
     const short = shortPart(report.body)
     if (short) {
       return (
-        <section>
+        <section className="rise" style={{ '--i': 7 } as CSSProperties}>
           <Link to="/news" className="block hover:text-ink">
             <SectionLabel>{t('today.news')}</SectionLabel>
           </Link>
@@ -133,7 +134,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
   }
   if (!overview || overview.top.length === 0) return null
   return (
-    <section>
+    <section className="rise" style={{ '--i': 7 } as CSSProperties}>
       <Link to="/news" className="block hover:text-ink">
         <SectionLabel>{t('today.news')}</SectionLabel>
       </Link>
@@ -185,7 +186,7 @@ export function TodayPage() {
 
   return (
     <>
-      <header className="mb-6 flex items-end justify-between gap-4">
+      <header className="rise mb-2 flex items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs text-muted">{date}</p>
           <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">
@@ -194,6 +195,15 @@ export function TodayPage() {
         </div>
         <CompassDial done={data.done_today.length} total={active + data.done_today.length} />
       </header>
+
+      <div className="rise mb-8" style={{ '--i': 1 } as CSSProperties}>
+        <CourseLine
+          today={today}
+          events={data.events}
+          tasks={[...data.overdue, ...data.due_today, ...data.done_today]}
+          wakeAt={health.data?.last_night?.local_date === today ? health.data.last_night.end_at : null}
+        />
+      </div>
 
       {/* Phone: tiles, the day, then mail and news. Desktop: the day on the left, the body and
           the inbox on the right. */}
@@ -220,7 +230,7 @@ export function TodayPage() {
           )}
 
           {data.events.length > 0 && (
-            <section>
+            <section className="rise" style={{ '--i': 4 } as CSSProperties}>
               <SectionLabel count={data.events.length}>{t('today.events')}</SectionLabel>
               <ul className="divide-y divide-rule/60">
                 {data.events.map((event) => (
@@ -230,8 +240,8 @@ export function TodayPage() {
             </section>
           )}
 
-          {visible.map((section) => (
-            <section key={section.key}>
+          {visible.map((section, i) => (
+            <section key={section.key} className="rise" style={{ '--i': 5 + i } as CSSProperties}>
               <SectionLabel count={section.tasks.length} tone={section.tone}>
                 {t(section.label)}
               </SectionLabel>

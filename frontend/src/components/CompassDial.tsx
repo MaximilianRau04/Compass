@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 import { useI18n } from '../i18n/context'
 
 /**
@@ -10,11 +12,19 @@ export function CompassDial({ done, total }: { done: number; total: number }) {
   const angle = Math.round(ratio * 360)
   const complete = total > 0 && done >= total
   const ticks = Array.from({ length: 36 }, (_, i) => i * 10)
+  // The needle starts at north and swings to the day's bearing once the page is up.
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSettled(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
+  const shown = settled ? angle : 0
 
   return (
     <figure className="flex items-center gap-3" aria-label={t('dial.label', { done, total })}>
       <svg viewBox="-60 -60 120 120" className="h-20 w-20 shrink-0 sm:h-24 sm:w-24" role="img" aria-hidden>
         <circle r="52" className="fill-paper-raised stroke-rule" strokeWidth="1.5" />
+        {complete && <circle key={done} r="52" className="ping fill-none stroke-sea" strokeWidth="2" />}
         {ticks.map((deg) => (
           <line
             key={deg}
@@ -23,7 +33,8 @@ export function CompassDial({ done, total }: { done: number; total: number }) {
             x2="0"
             y2={deg % 90 === 0 ? -42 : -47}
             transform={`rotate(${deg})`}
-            className={deg <= angle && total > 0 ? 'stroke-brass' : 'stroke-rule'}
+            className={deg <= shown && total > 0 ? 'stroke-brass' : 'stroke-rule'}
+            style={{ transition: 'stroke 300ms', transitionDelay: `${(deg / 360) * 700}ms` }}
             strokeWidth={deg % 90 === 0 ? 2 : 1}
           />
         ))}
@@ -31,7 +42,7 @@ export function CompassDial({ done, total }: { done: number; total: number }) {
           N
         </text>
         <g
-          style={{ transform: `rotate(${angle}deg)`, transition: 'transform 900ms cubic-bezier(.2,1.4,.4,1)' }}
+          style={{ transform: `rotate(${shown}deg)`, transition: 'transform 1100ms cubic-bezier(.2,1.4,.4,1)' }}
         >
           <polygon points="0,-38 6,0 0,-4 -6,0" className={complete ? 'fill-sea' : 'fill-signal'} />
           <polygon points="0,38 6,0 0,4 -6,0" className="fill-muted/60" />

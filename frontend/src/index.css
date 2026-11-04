@@ -23,6 +23,11 @@
   --color-signal: var(--signal);
   --color-sea: var(--sea);
   --color-chart: var(--chart);
+  --color-m-sleep: var(--m-sleep);
+  --color-m-heart: var(--m-heart);
+  --color-m-steps: var(--m-steps);
+  --color-m-food: var(--m-food);
+  --color-m-training: var(--m-training);
 
   --color-area-blue: var(--area-blue);
   --color-area-violet: var(--area-violet);
@@ -44,6 +49,13 @@
   --sea: #2f7d72;
   /* Data marks: more chroma than --sea so bars and lines do not read gray (validated). */
   --chart: #0e8a7a;
+  /* One accent per body measure, so tiles and charts are told apart at a glance. Validated as a
+     set in tile order (sleep, heart, steps, food, training) against paper and paper-raised. */
+  --m-sleep: #3f5bbf;
+  --m-heart: #ad3c48;
+  --m-steps: #169a85;
+  --m-food: #a8751a;
+  --m-training: #8c4bb5;
 
   --area-blue: #2f5f8a;
   --area-violet: #5d4e8c;
@@ -66,6 +78,11 @@
     --signal: #f06a6f;
     --sea: #5fb8a9;
     --chart: #22a892;
+    --m-sleep: #6c82e0;
+    --m-heart: #c94a5a;
+    --m-steps: #22a892;
+    --m-food: #b8822c;
+    --m-training: #a06fd6;
 
     --area-blue: #7aa7d4;
     --area-violet: #a497d6;
@@ -97,11 +114,91 @@ body {
   }
 }
 
+/* Motion: content rises in once per page load, charts grow from their baseline, lines draw. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rise {
+  animation: rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+.grow {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: grow 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.draw {
+  stroke-dasharray: 1;
+  animation: draw 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes fill-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+.fill-in {
+  transform-origin: left;
+  animation: fill-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Ticking a task off: the box pops, the tick draws itself, the title is struck through left to right. */
+@keyframes pop {
+  40% {
+    transform: scale(1.25);
+  }
+}
+.pop {
+  animation: pop 320ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.strike {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-size 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.strike[data-done='true'] {
+  background-size: 100% 1px;
+}
+
+/* All done: one sonar ping around the dial. */
+@keyframes ping {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+.ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ping 1100ms ease-out 700ms both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
   }
 }
