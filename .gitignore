@@ -31,3 +31,4 @@ dist/
 
 # Commit the server last deployed (infra/deploy/auto-deploy.sh)
 .deployed
+compass-intro/
