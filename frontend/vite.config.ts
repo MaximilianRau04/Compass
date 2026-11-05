@@ -10,6 +10,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered in src/lib/pwa.ts, which also reloads the page once a new version took over.
+      injectRegister: false,
       // The app sits behind basic auth; without credentials Chrome cannot load the manifest.
       useCredentials: true,
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg'],

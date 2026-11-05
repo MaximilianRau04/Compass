@@ -10,6 +10,7 @@ import { Layout } from './components/Layout'
 import { LegacyRedirect } from './components/LegacyRedirect'
 import { I18nProvider } from './i18n/I18nProvider'
 import { LEGACY_PATHS } from './lib/legacy'
+import { registerServiceWorker } from './lib/pwa'
 import { CalendarPage } from './pages/Calendar'
 import { FinancePage } from './pages/Finance'
 import { MailPage } from './pages/Mail'
@@ -28,6 +29,8 @@ import { WorkoutLogPage } from './pages/WorkoutLog'
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 } },
 })
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

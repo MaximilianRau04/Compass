@@ -53,6 +53,12 @@
 	handle {
 		# Not for /api/*: the API docs load their assets from a CDN. Bank logos come from outside.
 		header Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		# Built assets carry a hash in their name and never change. Everything else (index.html,
+		# sw.js, the manifest) is revalidated on every load, so a deploy is picked up at once.
+		@hashed path /assets/*
+		header @hashed Cache-Control "private, max-age=31536000, immutable"
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
 		root * /srv
 		try_files {path} /index.html
 		file_server
