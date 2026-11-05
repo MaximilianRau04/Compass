@@ -470,6 +470,8 @@ sudo systemctl enable --now compass-deploy.timer
 ```
 
 Follow it with `journalctl -u compass-deploy -f`. The deployed commit is in `/opt/compass/.deployed`.
+Open dashboards pick up a new version by themselves: the service worker installs it and the page reloads
+once. The installed PWA also checks every hour and whenever it comes back to the foreground.
 To pause automatic updates, run `sudo systemctl stop compass-deploy.timer`.
 
 To roll back, stop the timer and start the images of an older commit (CI tags every image with its

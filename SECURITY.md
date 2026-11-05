@@ -10,3 +10,5 @@ Compass holds personal data, so when you run it:
 - Keep the dashboard behind a VPN or another access control, see `docs/deploy.md`.
 - Keep `.env` and database backups private. Calendar links carry secret tokens, and so do the values of `.env`.
 - Treat the MCP login like the dashboard login: it gives an AI assistant access to your data.
+- The dashboard keeps its last answers from the API in the browser (localStorage) for up to a day, so
+  it opens without waiting. Use it on your own devices, or clear the site data after using a shared one.

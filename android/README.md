@@ -10,6 +10,10 @@ data itself.
   After that, an hourly WorkManager job only sends what changed since the last run, including
   deletions. The token only moves on after Compass accepted a batch; the import is idempotent, so a
   broken-off run just resends a few records.
+- The change feed misses some rewrites (Zepp rewrites a night, MyFitnessPal a day, under new ids). So
+  every sync also sends everything Health Connect has of sleep and exercise for the last 3 days and of
+  nutrition and weight for the last 14 days; what Compass has in that range and is not listed counts
+  as deleted.
 - If the changes token expires (30 days without a sync) or other permissions are granted, the app
   reads the window again. "Read again" in the app does the same by hand.
 
@@ -45,7 +49,7 @@ update over an existing install when the key is the same, so always build on the
 
 The app follows the phone's language (English, German).
 
-The Sleep tab in Compass shows the last sync and its device; the app shows its own last result or error.
+The Health tab in Compass shows the last sync and its device; the app shows its own last result or error.
 
 ## Data contract
 

@@ -21,7 +21,8 @@ The screenshots show made-up data.
   recurrence), list and board view, areas and tags.
 - **Calendar:** read-only ICS feeds (Google, Outlook, university calendars) in a week, month and agenda
   view. Deadlines from a learning platform's calendar become tasks.
-- **Today:** events, due and planned tasks, important mails, the daily brief and live health tiles.
+- **Today:** the day as a course line from waking up to the evening, events, due and planned tasks,
+  important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
@@ -150,7 +151,7 @@ dashboard login. Every record is stored as it arrived; derived from it are sleep
 (a night counts for the day of waking up), heart rate samples and daily metrics. When two apps write the
 same steps or sleep, a day takes the source with the larger total instead of adding them up.
 
-The Sleep tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
+The Health tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
 outside the training log. Gym Day writes its sessions (without sets) to Health Connect as well;
 Compass matches them with the sessions from the CSV export to fill in the duration in the Training tab.
 A session that is only in Health Connect (no export, e.g. without Gym Day Premium) still shows up there,
@@ -166,7 +167,8 @@ your AI assistant with `set_nutrition_goal`); without it Compass assumes 190.
 
 Nutrition apps such as MyFitnessPal write every meal to Health Connect, so meals arrive with the bridge
 app like sleep does. Compass sums them per day and meal (breakfast, lunch, dinner, snacks). If two apps write nutrition for
-the same day, the one with more calories counts instead of both.
+the same day, the one with more calories counts instead of both. Records with the same content (app,
+time, meal and values) count once: MyFitnessPal sometimes writes a whole day again under new ids.
 
 An export of your nutrition app fills in the past: upload it in the Nutrition tab or share it from the
 phone. The format is recognised by its columns, and importing it again changes nothing. For days that
