@@ -141,6 +141,29 @@ def test_healthconnect_meals_are_summed_per_meal(session):
     assert [m.meal for m in day.meals] == ["breakfast"]
 
 
+def test_a_day_rewritten_under_new_ids_counts_once(session):
+    """MFP wrote the day again with new ids and the deletion of the old ones never arrived."""
+    today = local_today()
+    first = [
+        hc_meal("old-1", today, "breakfast", 300, protein=20),
+        hc_meal("old-2", today, "snack", 1600),
+    ]
+    again = [
+        hc_meal("new-1", today, "breakfast", 300, protein=20),
+        hc_meal("new-2", today, "snack", 1600),
+    ]
+    ingest(session, first)
+    ingest(session, again)
+    [day] = nutrition.days(session, today, today)
+    assert [(m.meal, m.kcal) for m in day.meals] == [("breakfast", 300.0), ("snack", 1600.0)]
+    assert day.protein_g == 20.0
+
+    # Two different foods in the same meal at the same time still add up.
+    ingest(session, [hc_meal("other", today, "snack", 100)])
+    [day] = nutrition.days(session, today, today)
+    assert [(m.meal, m.kcal) for m in day.meals] == [("breakfast", 300.0), ("snack", 1700.0)]
+
+
 def test_two_apps_do_not_add_up(session):
     today = local_today()
     ingest(

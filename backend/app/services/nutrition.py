@@ -5,6 +5,7 @@ of those apps (backfill of the past). For each day, Health Connect wins if it ha
 otherwise the export rows are used. Days without any meal were not tracked and stay empty.
 """
 
+import json
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -69,7 +70,11 @@ def rebuild_from_healthconnect(session: Session, days: set[date]) -> None:
 
     MFP may write one record per meal or per food; either way the meal is the sum. If several apps
     write nutrition for the same day, the app with the most calories that day is used (summing two
-    apps would count the same food twice)."""
+    apps would count the same food twice).
+
+    Records with the same content count once. MFP rewrites a whole day under new ids now and then
+    (25.10.2026: written on 26.10, again on 28.10), and when the deletion of the old ids gets lost,
+    both versions stay. Same app, time, meal and values (name included) is the same entry."""
     if not days:
         return
     records = list(
@@ -88,8 +93,14 @@ def rebuild_from_healthconnect(session: Session, days: set[date]) -> None:
     )
     present: dict[tuple[date, str, str], set[str]] = defaultdict(set)
     latest_weight: dict[date, HealthRecord] = {}
+    seen: set[tuple] = set()
     for r in records:
         data = r.raw.get("data") or {}
+        if r.type == "nutrition":
+            content = (r.source_app, r.start_at, r.end_at, json.dumps(data, sort_keys=True))
+            if content in seen:
+                continue
+            seen.add(content)
         if r.type == "weight":
             # The earliest weigh-in of the day: the morning weight, comparable day to day.
             current = latest_weight.get(r.local_date)

@@ -89,13 +89,14 @@ class Syncer(private val context: Context, private val settings: Settings) {
     }
 
     /**
-     * Everything Health Connect has of the small types for the last [SNAPSHOT_DAYS], one request
-     * per type. The server stores what is listed and drops what is missing, so a rewrite that the
-     * change feed did not deliver (Zepp rewrites a night several times) still arrives.
+     * Everything Health Connect has of the small types for the last days ([SNAPSHOT_DAYS]), one
+     * request per type. The server stores what is listed and drops what is missing, so a rewrite
+     * that the change feed did not deliver (Zepp rewrites a night several times) still arrives.
      */
     private suspend fun snapshot(client: HealthConnectClient, types: List<HealthType>, batch: Batch) {
-        val since = Instant.now().minus(Duration.ofDays(SNAPSHOT_DAYS))
-        for (type in types.filter { it.name in SNAPSHOT_TYPES }) {
+        for (type in types) {
+            val days = SNAPSHOT_DAYS[type.name] ?: continue
+            val since = Instant.now().minus(Duration.ofDays(days))
             val records = mutableListOf<JSONObject>()
             readAll(client, type.recordClass, since) { record ->
                 HealthTypes.toJson(record)?.let { records += it }
@@ -183,8 +184,18 @@ class Syncer(private val context: Context, private val settings: Settings) {
 
     companion object {
         private const val MAX_RECORDS = 500
-        private const val SNAPSHOT_DAYS = 3L
-        private val SNAPSHOT_TYPES = setOf("sleep", "exercise", "nutrition", "weight")
+        /**
+         * How far back each small type is compared. Nutrition and weight reach further: MFP
+         * rewrites older days under new ids (25.10.2026 again on 28.10), and with three days the
+         * old ids were out of range and stayed, so the day counted twice. MFP writes about four
+         * records a day, far below [MAX_RECORDS].
+         */
+        private val SNAPSHOT_DAYS = mapOf(
+            "sleep" to 3L,
+            "exercise" to 3L,
+            "nutrition" to 14L,
+            "weight" to 14L,
+        )
         private const val MAX_BYTES = 4_000_000
 
         /** The periodic job and "sync now" must not read and move the token at the same time. */
