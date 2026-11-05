@@ -21,7 +21,7 @@ import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { shortPart } from '../lib/brief'
-import { addDays, clockTime, longDate } from '../lib/format'
+import { addDays, clockTime, longDate, toIsoDate } from '../lib/format'
 
 /** Important mails of the last two weeks: count and the newest three. */
 function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
@@ -154,7 +154,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
 
 export function TodayPage() {
   const { t, locale } = useI18n()
-  const { data, isPending, error } = useToday()
+  const { data, isPending, isFetching, error } = useToday()
   const health = useHealthSummary(7)
   const heart = useDayHeartRate()
   const food = useNutritionSummary(7)
@@ -166,10 +166,13 @@ export function TodayPage() {
   const setup = useSetup()
   const [open, setOpen] = useState<Task | null>(null)
   const [params] = useSearchParams()
+  const [deviceDay] = useState(() => toIsoDate(new Date()))
 
   if (setup.data?.first_run) return <Navigate to="/welcome" replace />
   if (error) return <p className="text-signal">{t('common.apiUnreachable', { message: error.message })}</p>
-  if (isPending) return <p className="font-mono text-sm text-muted">{t('common.loading')}</p>
+  // A stored answer from an earlier day would show yesterday's tasks for a moment; wait for today's.
+  const yesterday = data !== undefined && data.today !== deviceDay && isFetching
+  if (isPending || yesterday) return <p className="font-mono text-sm text-muted">{t('common.loading')}</p>
 
   const today = data.today
   const { weekday, date } = longDate(today, locale)

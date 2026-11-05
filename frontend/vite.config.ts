@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Changes with every build; the stored API answers of an older build are dropped (lib/queryCache).
+  define: { __APP_BUILD__: JSON.stringify(Date.now().toString(36)) },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,6 +1,6 @@
 import './index.css'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
@@ -11,6 +11,7 @@ import { LegacyRedirect } from './components/LegacyRedirect'
 import { I18nProvider } from './i18n/I18nProvider'
 import { LEGACY_PATHS } from './lib/legacy'
 import { registerServiceWorker } from './lib/pwa'
+import { persistOptions, queryClient } from './lib/queryCache'
 import { CalendarPage } from './pages/Calendar'
 import { FinancePage } from './pages/Finance'
 import { MailPage } from './pages/Mail'
@@ -26,16 +27,12 @@ import { TrainingPage } from './pages/Training'
 import { WelcomePage } from './pages/Welcome'
 import { WorkoutLogPage } from './pages/WorkoutLog'
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 } },
-})
-
 registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
@@ -65,7 +62,7 @@ createRoot(document.getElementById('root')!).render(
           className: '!bg-paper-raised !text-ink !border-rule !font-sans',
         }}
       />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
     </I18nProvider>
   </StrictMode>,
 )
