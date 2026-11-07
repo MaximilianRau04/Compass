@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { useTodayDate } from '../api/tasks'
 import {
+  useDeleteSession,
   useExercises,
   useImportWorkouts,
   useMergeExercise,
@@ -16,12 +17,14 @@ import {
 } from '../api/training'
 import type { Exercise, ProgressPoint, SessionBrief, Split, Suggestion } from '../api/types'
 import { ColumnChart, LineChart } from '../components/charts'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DataTable, Stat } from '../components/DataBlocks'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { compact, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
 import { importMessage } from '../lib/training'
+import { button } from '../lib/ui'
 import { loadDraft } from '../lib/workout'
 
 const WEEKS = 12
@@ -53,7 +56,7 @@ function ImportButton() {
         type="button"
         onClick={() => input.current?.click()}
         disabled={upload.isPending}
-        className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+        className={button('secondary')}
       >
         {upload.isPending ? t('training.importing') : t('training.import')}
       </button>
@@ -215,6 +218,8 @@ function NextTargets() {
 function SessionRow({ session, today }: { session: SessionBrief; today: string }) {
   const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const remove = useDeleteSession()
   const detail = useSessionDetail(open ? session.id : null)
   const when = relativeDay(localDay(session.started_at), today, t, locale)
   const duration = session.duration_minutes !== null ? `${t('training.duration', { n: session.duration_minutes })} · ` : ''
@@ -270,7 +275,27 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
             ))}
           </ul>
         )}
+        {open && session.source === 'compass' && (
+          <div className="mt-2 flex justify-end">
+            <button type="button" onClick={() => setConfirm(true)} className={button('danger', 'sm')}>
+              {t('training.delete')}
+            </button>
+          </div>
+        )}
       </details>
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={t('training.deleteTitle')}
+        description={t('training.deleteText', { name: session.workout_name, date: when })}
+        confirm={t('training.delete')}
+        onConfirm={() =>
+          remove.mutate(session.id, {
+            onSuccess: () => toast(t('training.deleted')),
+            onError: (error) => toast.error(error.message),
+          })
+        }
+      />
     </li>
   )
 }
@@ -352,7 +377,7 @@ export function TrainingPage() {
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('training.title')}</h1>
       <div className="flex flex-wrap gap-2">
-        <Link to="/training/log" className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90">
+        <Link to="/training/log" className={button('primary')}>
           {loadDraft() ? t('log.continue') : t('log.startTraining')}
         </Link>
         <ImportButton />

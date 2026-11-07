@@ -8,6 +8,7 @@ import { useAreas, useTaskEvents, useUpdateTask } from '../api/tasks'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { recurrenceLabel } from '../lib/format'
+import { button } from '../lib/ui'
 
 const RECURRENCE_PRESETS = [
   '',
@@ -98,12 +99,14 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const pending = changes(task, draft)
   const dirty = Object.keys(pending).length > 0
 
-  const save = (data: TaskUpdate, message: string) =>
+  const save = (data: TaskUpdate, message: string, undo?: TaskUpdate) =>
     update.mutate(
       { id: task.id, data },
       {
         onSuccess: () => {
-          toast.success(message)
+          // Discarding is one tap; the toast can take it back.
+          if (undo) toast(message, { action: { label: t('sheet.undo'), onClick: () => update.mutate({ id: task.id, data: undo }) } })
+          else toast.success(message)
           onClose()
         },
         onError: (error) => toast.error(error.message),
@@ -244,28 +247,20 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
 
       <div className="flex items-center gap-2 pt-1">
         {task.status === 'cancelled' ? (
-          <button
-            type="button"
-            onClick={() => save({ status: 'open' }, t('sheet.restored'))}
-            className="rounded-md px-3 py-2 text-sm text-muted hover:text-ink"
-          >
+          <button type="button" onClick={() => save({ status: 'open' }, t('sheet.restored'))} className={button('secondary')}>
             {t('sheet.restore')}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={() => save({ status: 'cancelled' }, t('sheet.discarded'))}
-            className="rounded-md px-3 py-2 text-sm text-muted hover:text-signal"
-          >
+          <button type="button" onClick={() => save({ status: 'cancelled' }, t('sheet.discarded'), { status: task.status })} className={button('danger')}>
             {t('sheet.discard')}
           </button>
         )}
         <span className="flex-1" />
-        <Dialog.Close className="rounded-md px-3 py-2 text-sm text-muted hover:text-ink">{t('sheet.close')}</Dialog.Close>
+        <Dialog.Close className={button('quiet')}>{t('sheet.close')}</Dialog.Close>
         <button
           type="submit"
           disabled={!dirty || update.isPending || !draft.title.trim()}
-          className="rounded-md bg-brass px-4 py-2 font-display text-sm font-semibold tracking-wide text-brass-ink uppercase disabled:opacity-30"
+          className={`${button('primary')} font-display font-semibold tracking-wide uppercase`}
         >
           {t('sheet.save')}
         </button>

@@ -108,3 +108,15 @@ class ExerciseSet(Base):
 
     session: Mapped[TrainingSession] = relationship(back_populates="sets")
     exercise: Mapped[Exercise] = relationship(lazy="joined")
+
+
+class WorkoutTemplate(TimestampMixin, Base):
+    """A workout built in Compass: its exercises in order, each with planned sets and the rest
+    between them. Starting a workout with this name uses it instead of the last session."""
+
+    __tablename__ = "workout_templates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True)
+    # [{"exercise_id": int | None, "name": str, "sets": int, "rest_seconds": int}]
+    exercises: Mapped[list] = mapped_column(JSONB, server_default="[]")

@@ -1,6 +1,7 @@
 import type { SleepStage } from '../api/types'
 
 const APPS: Record<string, string> = {
+  compass: 'Compass',
   'com.huami.watch.hmwatchmanager': 'Zepp',
   'com.anthonyng.workoutapp': 'Gym Day',
   'com.myfitnesspal.android': 'MyFitnessPal',

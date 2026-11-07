@@ -9,6 +9,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { clockTime, localDay, pill, relativeDay } from '../lib/format'
 import { accountName, isImportant } from '../lib/mail'
+import { button } from '../lib/ui'
 
 const DAYS = 14
 
@@ -46,18 +47,19 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
         {mail.task_title && !mail.task_id && <span className="text-[13px]">→ {mail.task_title}</span>}
         <span className="ml-auto flex gap-1.5">
           {mail.task_id ? (
-            <span className="font-mono text-[11px] text-muted">{t('mail.hasTask')}</span>
+            <span className="self-center font-mono text-[11px] text-muted">✓ {t('mail.hasTask')}</span>
           ) : (
             <button
               type="button"
               disabled={toTask.isPending}
               onClick={() =>
                 toTask.mutate(mail.id, {
+                  // The mail is handled now and leaves the list; the task carries it.
                   onSuccess: (task) => toast(t('mail.toTaskDone', { title: task.title })),
                   onError: (error) => toast.error(error.message),
                 })
               }
-              className="rounded-md border border-brass px-2 py-0.5 text-sm text-brass hover:bg-brass/10 disabled:opacity-50"
+              className={`${button('secondary', 'sm')} border-brass/60 text-brass hover:border-brass`}
             >
               {t('mail.toTask')}
             </button>
@@ -65,8 +67,19 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
           <button
             type="button"
             disabled={dismiss.isPending}
-            onClick={() => dismiss.mutate({ id: mail.id, dismissed: !mail.dismissed }, { onError: (error) => toast.error(error.message) })}
-            className="rounded-md border border-rule px-2 py-0.5 text-sm text-muted hover:border-ink hover:text-ink disabled:opacity-50"
+            onClick={() =>
+              dismiss.mutate(
+                { id: mail.id, dismissed: !mail.dismissed },
+                {
+                  onSuccess: () =>
+                    mail.dismissed
+                      ? undefined
+                      : toast(t('mail.dismissed'), { action: { label: t('sheet.undo'), onClick: () => dismiss.mutate({ id: mail.id, dismissed: false }) } }),
+                  onError: (error) => toast.error(error.message),
+                },
+              )
+            }
+            className={button('quiet', 'sm')}
           >
             {mail.dismissed ? t('mail.restore') : t('mail.dismiss')}
           </button>
@@ -151,7 +164,7 @@ export function MailPage() {
             onError: (error) => toast.error(error.message),
           })
         }
-        className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+        className={button('primary')}
       >
         {sync.isPending ? t('mail.fetching') : t('mail.fetch')}
       </button>

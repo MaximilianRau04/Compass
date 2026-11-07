@@ -1,6 +1,8 @@
 """Mail triage list, mail to task, dismissing, and results from the local triage runner.
 
-Compass never writes to a mailbox. Dismissing only hides a mail in Compass."""
+Compass never writes to a mailbox. Dismissing only hides a mail in Compass. Mails that are no
+longer in their folder (deleted or archived in the mail app) are hidden too, and a mail that
+became a task leaves the list: the task carries it from there."""
 
 from dataclasses import dataclass
 from datetime import timedelta
@@ -13,8 +15,8 @@ from app.i18n import t
 from app.mail.triage import TriageResult
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
-from app.models.tasks import Area, Task, TaskSource
-from app.schemas.tasks import TaskCreate
+from app.models.tasks import Area, Task, TaskSource, TaskStatus
+from app.schemas.tasks import TaskCreate, TaskUpdate
 from app.services import tasks as task_service
 from app.services.clock import utc_now
 
@@ -65,7 +67,9 @@ def list_mails(
     dismissed: bool = False,
     limit: int = 200,
 ) -> list[Email]:
-    stmt = select(Email).where(Email.received_at >= utc_now() - timedelta(days=days))
+    stmt = select(Email).where(
+        Email.received_at >= utc_now() - timedelta(days=days), Email.removed_at.is_(None)
+    )
     stmt = stmt.where(
         Email.dismissed_at.is_not(None) if dismissed else Email.dismissed_at.is_(None)
     )
@@ -112,9 +116,14 @@ def get_mail(session: Session, mail_id: int) -> Email:
 
 def create_task(session: Session, e: Email, actor: str = "web") -> Task:
     """A task from a mail: its task title (or the subject), the summary and sender as notes.
-    Creating it twice returns the same task."""
-    if e.task_id is not None and (task := session.get(Task, e.task_id)) is not None:
-        return task
+    Creating it twice returns the same task, unless that one was discarded. The mail is then
+    handled and leaves the triage list."""
+    e.dismissed_at = e.dismissed_at or utc_now()
+    existing = session.get(Task, e.task_id) if e.task_id is not None else None
+    if existing is not None:
+        if existing.status == TaskStatus.cancelled:
+            task_service.update_task(session, existing, TaskUpdate(status=TaskStatus.open), actor)
+        return existing
     slug = get_settings().mail_area_map.get(e.account, "")
     area = session.scalar(select(Area).where(Area.slug == slug))
     notes = "\n".join(
@@ -136,7 +145,7 @@ def create_task(session: Session, e: Email, actor: str = "web") -> Task:
         ),
         actor=actor,
     )
-    e.task_id = task.id
+    e.task = task
     session.flush()
     return task
 
@@ -155,6 +164,7 @@ def untriaged(session: Session, days: int, limit: int) -> list[Email]:
                 Email.triage.in_(("pending", "rules")),
                 Email.bulk.is_(False),
                 Email.dismissed_at.is_(None),
+                Email.removed_at.is_(None),
             )
             .order_by(Email.received_at.desc())
             .limit(limit)
@@ -171,7 +181,11 @@ def pending_local(session: Session, accounts_local: list[str], limit: int) -> li
     return list(
         session.scalars(
             select(Email)
-            .where(Email.account.in_(accounts_local), Email.triage == "pending")
+            .where(
+                Email.account.in_(accounts_local),
+                Email.triage == "pending",
+                Email.removed_at.is_(None),
+            )
             .order_by(Email.received_at.desc())
             .limit(limit)
         )

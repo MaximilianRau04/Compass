@@ -139,6 +139,13 @@ The Strong and Hevy importers are experimental: they follow the known column lay
 have not been tested with real files yet. If your export fails, please open an issue with its header row
 and a few lines of made-up data.
 
+The logger starts from a template you build yourself (exercises in order, sets and rest per exercise),
+from the last session with the same name, or empty. While it runs, a clock shows the duration, the screen
+stays on, and every set marked done starts the rest timer, which vibrates and beeps when the rest is over.
+The running workout lives on the phone and is sent after every change, so a dead spot in the gym loses nothing.
+A session you forgot to log can be entered afterwards with its date, start time and duration; it then
+runs without clock and rest timer.
+
 The tab shows volume per week, the push/pull/legs split and the progression per exercise (estimated 1RM,
 top weight, reps). Exercises renamed in the app can be merged so their progression continues in one line.
 
@@ -150,6 +157,10 @@ hour to `/api/ingest/healthconnect`, protected by its own token (`HEALTHCONNECT_
 dashboard login. Every record is stored as it arrived; derived from it are sleep sessions with stages
 (a night counts for the day of waking up), heart rate samples and daily metrics. When two apps write the
 same steps or sleep, a day takes the source with the larger total instead of adding them up.
+
+A night without the watch can be entered by hand in the Health tab (bedtime, wake-up time, minutes lying
+awake). It counts like a night from Health Connect, with the longer one winning if the watch has the same
+night too, and the bridge app's syncs never remove it.
 
 The Health tab shows last night with its stages, sleep per night, resting heart rate, steps and workouts
 outside the training log. Gym Day writes its sessions (without sets) to Health Connect as well;
@@ -203,7 +214,9 @@ in the subject important). A model then adds priority, whether something is to d
 suggested task. You choose per account who does that: a cloud model through the Anthropic API, a local
 Ollama model on a machine of yours for mails with data of third parties (`app/mail/local_triage.py`; that machine
 reads the text itself and sends only the result), or nobody, the default. The Mail tab sorts by importance, turns a mail into a
-task with one click and hides mails from the list; the Today page shows the important ones.
+task with one click and hides mails from the list; the Today page shows the important ones. A mail that became a task
+leaves the list (if the task is discarded, the mail can become a task again), and a mail you delete or archive in the
+mailbox leaves it with the next sync, since every sync checks which recent mails are still in their folder.
 
 Mail content is untrusted: the model only returns fixed fields, links are stripped, and mails that try to
 instruct an AI are flagged by a pattern check and never ranked below normal. The MCP tool marks every

@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.tasks import Task
 
 
 class Email(TimestampMixin, Base):
@@ -45,5 +49,10 @@ class Email(TimestampMixin, Base):
     triage_error: Mapped[str | None] = mapped_column(String(500))
 
     task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"))
-    # Hidden from the triage list by the user; the mailbox itself is never touched.
+    task: Mapped["Task | None"] = relationship(lazy="selectin")
+    # Hidden from the triage list by the user (or because a task was made of it); the mailbox
+    # itself is never touched.
     dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # No longer in its folder (deleted, archived or moved away in the mail app): hidden as well.
+    # Cleared when the mail shows up again in a synced folder.
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

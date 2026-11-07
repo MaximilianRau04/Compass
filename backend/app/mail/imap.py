@@ -312,17 +312,23 @@ class Mailbox:
         return out
 
     def seen_flags(self, uids: list[int]) -> dict[int, bool]:
+        """Seen flag per UID that is still in the open folder. Deleted mails (gone, or flagged
+        \\Deleted and not yet expunged) are left out, so the caller can tell they are gone."""
         out = {}
         for i in range(0, len(uids), FETCH_CHUNK):
             chunk = ",".join(map(str, uids[i : i + FETCH_CHUNK]))
-            _, data = self.conn.uid("FETCH", chunk, "(UID FLAGS)")
+            typ, data = self.conn.uid("FETCH", chunk, "(UID FLAGS)")
+            if typ != "OK":
+                # Never read a failed fetch as "all of them were deleted".
+                raise imaplib.IMAP4.error(f"cannot fetch flags in {self.folder!r}")
             for item in data:
                 meta = item[0] if isinstance(item, tuple) else item
                 if not isinstance(meta, bytes):
                     continue
                 uid, flags = _UID.search(meta), _FLAGS.search(meta)
-                if uid:
-                    out[int(uid.group(1))] = bool(flags and b"\\Seen" in flags.group(1))
+                if not uid or (flags and b"\\Deleted" in flags.group(1)):
+                    continue
+                out[int(uid.group(1))] = bool(flags and b"\\Seen" in flags.group(1))
         return out
 
     def folders(self) -> list[str]:

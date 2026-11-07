@@ -18,7 +18,13 @@ from app.models.nutrition import BodyMeasurement, BodyWeight, Goal, NutritionMea
 from app.models.oauth import AuditLog, OAuthClient, OAuthCode, OAuthRequest, OAuthToken
 from app.models.push import PushSent, PushSubscription
 from app.models.tasks import Area, Task, TaskEvent
-from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSession
+from app.models.training import (
+    Exercise,
+    ExerciseAlias,
+    ExerciseSet,
+    TrainingSession,
+    WorkoutTemplate,
+)
 
 __all__ = [
     "Area",
@@ -58,4 +64,5 @@ __all__ = [
     "Task",
     "TaskEvent",
     "TrainingSession",
+    "WorkoutTemplate",
 ]

@@ -26,8 +26,9 @@ from app.schemas.health import (
     WorkoutRead,
     Zone2WeekRead,
 )
-from app.services import analysis, health
+from app.services import analysis, health, sleep_log
 from app.services.clock import local_today
+from app.services.sleep_log import ManualNight, SleepLogError
 
 router = APIRouter(prefix="/sleep", tags=["sleep"])
 
@@ -178,3 +179,30 @@ def bedtime(session: SessionDep, day: date | None = None) -> dict:
         "sleep_need_minutes": get_settings().sleep_need_minutes,
         "fall_asleep_minutes": get_settings().fall_asleep_minutes,
     }
+
+
+# --- Nights entered by hand ------------------------------------------------------------------
+
+
+@router.get("/manual", response_model=list[SleepNightRead])
+def manual_nights(session: SessionDep, days: Annotated[int, Query(ge=1, le=366)] = 60):
+    """Nights entered by hand, newest first."""
+    return [night(n) for n in sleep_log.recent(session, days)]
+
+
+@router.post("/manual", response_model=SleepNightRead, status_code=status.HTTP_201_CREATED)
+def add_manual_night(data: ManualNight, session: SessionDep):
+    """Enter a night by hand, e.g. when the watch was not worn."""
+    try:
+        n = sleep_log.add(session, data)
+    except SleepLogError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    session.commit()
+    return night(n)
+
+
+@router.delete("/manual/{night_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_manual_night(night_id: int, session: SessionDep):
+    if not sleep_log.remove(session, night_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no night entered by hand with this id")
+    session.commit()

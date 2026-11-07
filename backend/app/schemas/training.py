@@ -124,15 +124,32 @@ class WorkoutNameRead(BaseModel):
 
 
 class TemplateExercise(BaseModel):
-    exercise_id: int
+    exercise_id: int | None = Field(description="None for an exercise never trained yet")
     name: str
     bodyweight: bool
     suggestion: SuggestionRead | None
+    sets: int | None = Field(None, description="Planned sets of a saved template")
+    rest_seconds: int | None = Field(None, description="Rest after each set (saved template)")
 
 
 class TemplateRead(BaseModel):
     workout_name: str
+    template_id: int | None = Field(None, description="Set when a saved template was used")
     exercises: list[TemplateExercise]
+
+
+class WorkoutTemplateItem(BaseModel):
+    exercise_id: int | None
+    name: str
+    sets: int
+    rest_seconds: int
+
+
+class WorkoutTemplateRead(BaseModel):
+    id: int
+    name: str
+    exercises: list[WorkoutTemplateItem]
+    last_at: datetime | None = Field(description="Last session with this name")
 
 
 class MergeRequest(BaseModel):

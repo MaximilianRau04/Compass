@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
 from app.ingestion import workouts
-from app.models.training import Exercise, TrainingSession
+from app.models.training import Exercise, TrainingSession, WorkoutTemplate
 from app.schemas.training import (
     DoneSetRead,
     ExerciseRead,
@@ -26,11 +26,13 @@ from app.schemas.training import (
     TrainingSummaryRead,
     WeekRead,
     WorkoutNameRead,
+    WorkoutTemplateItem,
+    WorkoutTemplateRead,
 )
 from app.services import analysis, progression, training, workout_log
 from app.services.clock import local_today
 from app.services.training import TrainingError
-from app.services.workout_log import LogError, LoggedSession
+from app.services.workout_log import LogError, LoggedSession, TemplateData
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -132,6 +134,17 @@ def session_detail(session_id: int, session: SessionDep):
     for group in groups.values():
         group.sets.sort(key=lambda r: r.set_index)
     return SessionDetail(**brief(s).model_dump(), exercise_sets=list(groups.values()))
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(session_id: int, session: SessionDep):
+    """Delete a session logged in Compass. Imported ones would come back with the next import."""
+    s = training.get_session(session, session_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "session not found")
+    if not s.client_id or not workout_log.discard(session, s.client_id):
+        raise HTTPException(status.HTTP_409_CONFLICT, "only sessions logged in Compass")
+    session.commit()
 
 
 @router.get("/exercises", response_model=list[ExerciseRead])
@@ -238,7 +251,27 @@ def logger_workouts(session: SessionDep):
 
 @router.get("/log/template", response_model=TemplateRead)
 def logger_template(session: SessionDep, workout: str = Query(min_length=1, max_length=120)):
-    """The exercises of the last session with this name, each with its progression target."""
+    """The exercises of the saved template with this name, or else of the last session with this
+    name, each with its progression target."""
+    saved = workout_log.saved_template(session, workout)
+    if saved is not None:
+        pairs = workout_log.template_items(session, saved)
+        targets = progression.for_exercises(session, [e for e, _ in pairs if e])
+        return TemplateRead(
+            workout_name=saved.name,
+            template_id=saved.id,
+            exercises=[
+                TemplateExercise(
+                    exercise_id=e.id if e else None,
+                    name=e.name if e else item["name"],
+                    bodyweight=e.bodyweight if e else False,
+                    suggestion=suggestion_read(targets[e.id]) if e and e.id in targets else None,
+                    sets=item["sets"],
+                    rest_seconds=item["rest_seconds"],
+                )
+                for e, item in pairs
+            ],
+        )
     exercises = workout_log.template(session, workout)
     targets = progression.for_exercises(session, exercises)
     return TemplateRead(
@@ -284,4 +317,56 @@ def logger_discard(client_id: str, session: SessionDep):
     """Throw away a session started by mistake (only logger sessions)."""
     if not workout_log.discard(session, client_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no logged session with this id")
+    session.commit()
+
+
+# --- Templates -------------------------------------------------------------------------------
+
+
+def template_read(t: WorkoutTemplate, last_at=None) -> WorkoutTemplateRead:
+    return WorkoutTemplateRead(
+        id=t.id,
+        name=t.name,
+        exercises=[WorkoutTemplateItem(**item) for item in t.exercises],
+        last_at=last_at,
+    )
+
+
+def _template(session, template_id: int) -> WorkoutTemplate:
+    t = session.get(WorkoutTemplate, template_id)
+    if t is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "template not found")
+    return t
+
+
+@router.get("/templates", response_model=list[WorkoutTemplateRead])
+def list_templates(session: SessionDep):
+    """Workouts built in Compass, most recently trained first."""
+    return [template_read(t, last) for t, last in workout_log.list_templates(session)]
+
+
+@router.post("/templates", response_model=WorkoutTemplateRead, status_code=201)
+def create_template(data: TemplateData, session: SessionDep):
+    try:
+        t = workout_log.save_template(session, data)
+    except LogError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    session.commit()
+    return template_read(t)
+
+
+@router.put("/templates/{template_id}", response_model=WorkoutTemplateRead)
+def update_template(template_id: int, data: TemplateData, session: SessionDep):
+    try:
+        t = workout_log.save_template(session, data, _template(session, template_id))
+    except LogError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    session.commit()
+    return template_read(t)
+
+
+@router.delete("/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_template(template_id: int, session: SessionDep):
+    """Removes only the plan; sessions trained with it stay."""
+    session.delete(_template(session, template_id))
     session.commit()

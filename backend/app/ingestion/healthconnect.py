@@ -191,6 +191,8 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
                 HealthRecord.start_at >= snapshot.since,
                 HealthRecord.deleted_at.is_(None),
                 HealthRecord.id.not_in(keep),
+                # Nights entered in Compass were never in Health Connect (app.services.sleep_log).
+                HealthRecord.source_app != "compass",
             )
         )
         for row in gone:

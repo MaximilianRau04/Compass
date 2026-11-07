@@ -464,10 +464,28 @@ export interface Progression {
 }
 
 export interface TemplateExercise {
-  exercise_id: number
+  /** null for an exercise in a saved template that was never trained */
+  exercise_id: number | null
   name: string
   bodyweight: boolean
   suggestion: Suggestion | null
+  /** Planned sets and rest, only from a saved template */
+  sets?: number | null
+  rest_seconds?: number | null
+}
+
+export interface WorkoutTemplateItem {
+  exercise_id: number | null
+  name: string
+  sets: number
+  rest_seconds: number
+}
+
+export interface WorkoutTemplate {
+  id: number
+  name: string
+  exercises: WorkoutTemplateItem[]
+  last_at: string | null
 }
 
 export interface BodyTrend {

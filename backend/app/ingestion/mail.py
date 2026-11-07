@@ -55,6 +55,7 @@ def _store(session: Session, account: MailAccount, headers: list[imap.Header]) -
         if row is not None:
             # Moved or re-numbered in the mailbox: follow it, keep the triage.
             row.folder, row.uidvalidity, row.uid, row.seen = h.folder, h.uidvalidity, h.uid, h.seen
+            row.removed_at = None
             continue
         priority, category = triage.rules(h)
         # Mailing lists and newsletters are not worth a model call.
@@ -83,6 +84,8 @@ def _store(session: Session, account: MailAccount, headers: list[imap.Header]) -
 
 
 def _refresh_seen(session: Session, box: imap.Mailbox, account: str, folder: str, validity: int):
+    """Seen flags of recent mails, and which of them are gone: a mail deleted, archived or moved
+    to a folder that is not synced no longer answers in its folder and leaves the list."""
     since = utc_now() - timedelta(days=FLAG_DAYS)
     recent = list(
         session.scalars(
@@ -97,9 +100,13 @@ def _refresh_seen(session: Session, box: imap.Mailbox, account: str, folder: str
     if not recent:
         return
     flags = box.seen_flags([e.uid for e in recent])
+    now = utc_now()
     for e in recent:
         if e.uid in flags:
             e.seen = flags[e.uid]
+            e.removed_at = None
+        elif e.removed_at is None:
+            e.removed_at = now
 
 
 def _summarise_with_claude(session: Session, box: imap.Mailbox, account: MailAccount) -> dict:
@@ -107,7 +114,11 @@ def _summarise_with_claude(session: Session, box: imap.Mailbox, account: MailAcc
     pending = list(
         session.scalars(
             select(Email)
-            .where(Email.account == account.name, Email.triage == "pending")
+            .where(
+                Email.account == account.name,
+                Email.triage == "pending",
+                Email.removed_at.is_(None),
+            )
             .order_by(Email.received_at.desc())
             .limit(CLAUDE_PER_RUN)
         )

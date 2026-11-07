@@ -7,6 +7,7 @@ import { ColumnChart, DayCurve, Hypnogram, LineChart } from '../components/chart
 import { DataTable, Stat } from '../components/DataBlocks'
 import { HealthAnalysis } from '../components/HealthAnalysis'
 import { SectionLabel } from '../components/Layout'
+import { ManualNights, SleepEntryButton } from '../components/SleepEntry'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { addDays, clockTime, compact, decimal, localDay, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
@@ -25,7 +26,7 @@ function LastNight({ night, today }: { night: SleepNightDetail; today: string })
         <p className="text-xs text-muted">
           {t('sleep.lastNight')} · {relativeDay(night.local_date, today, t, locale)}
         </p>
-        <p className="font-mono text-[11px] text-muted">{appName(night.source_app)}</p>
+        <p className="font-mono text-[11px] text-muted">{night.source_app === 'compass' ? t('sleepLog.source') : appName(night.source_app)}</p>
       </div>
       <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
         <span className="text-4xl font-semibold">{hours(night.asleep_minutes)}</span>
@@ -241,12 +242,15 @@ export function SleepPage() {
   const header = (
     <header className="mb-2 flex flex-wrap items-end justify-between gap-3">
       <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('sleep.title')}</h1>
-      <div role="group" aria-label={t('sleep.range')} className="flex gap-1.5">
-        {RANGES.map((n) => (
-          <button key={n} type="button" className={pill(range === n)} aria-pressed={range === n} onClick={() => setRange(n)}>
-            {t('sleep.daysN', { n })}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div role="group" aria-label={t('sleep.range')} className="flex gap-1.5">
+          {RANGES.map((n) => (
+            <button key={n} type="button" className={pill(range === n)} aria-pressed={range === n} onClick={() => setRange(n)}>
+              {t('sleep.daysN', { n })}
+            </button>
+          ))}
+        </div>
+        <SleepEntryButton />
       </div>
     </header>
   )
@@ -334,6 +338,8 @@ export function SleepPage() {
             rows={[...data.nights].reverse().map((n) => [longLabel(n.local_date), hours(n.asleep_minutes)])}
           />
         </section>
+
+        <ManualNights />
 
         <StageAverages averages={avg} />
 

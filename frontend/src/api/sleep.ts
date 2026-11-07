@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api } from './client'
-import type { DayHeartRate, HealthAnalysis, HealthSummary } from './types'
+import { api, del, post } from './client'
+import type { DayHeartRate, HealthAnalysis, HealthSummary, SleepNight } from './types'
 
 export function useHealthSummary(days = 30) {
   return useQuery({
@@ -33,4 +33,29 @@ export interface Bedtime {
 
 export function useBedtime(enabled: boolean) {
   return useQuery({ queryKey: ['sleep', 'bedtime'], queryFn: () => api<Bedtime>('/sleep/bedtime'), enabled })
+}
+
+export function useManualNights() {
+  return useQuery({ queryKey: ['sleep', 'manual'], queryFn: () => api<SleepNight[]>('/sleep/manual') })
+}
+
+function useInvalidateSleep() {
+  const client = useQueryClient()
+  return () => {
+    void client.invalidateQueries({ queryKey: ['sleep'] })
+    void client.invalidateQueries({ queryKey: ['today'] })
+  }
+}
+
+export function useAddNight() {
+  const invalidate = useInvalidateSleep()
+  return useMutation({
+    mutationFn: (data: { start_at: string; end_at: string; awake_minutes: number }) => post<SleepNight>('/sleep/manual', data),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteNight() {
+  const invalidate = useInvalidateSleep()
+  return useMutation({ mutationFn: (id: number) => del(`/sleep/manual/${id}`), onSuccess: invalidate })
 }

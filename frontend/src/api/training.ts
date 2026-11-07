@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api, patch, post } from './client'
-import type { Exercise, ImportResult, Progression, ProgressPoint, SessionBrief, SessionDetail, TemplateExercise, TrainingSummary } from './types'
+import { api, del, patch, post, put } from './client'
+import type { Exercise, ImportResult, Progression, ProgressPoint, SessionBrief, SessionDetail, TemplateExercise, TrainingSummary, WorkoutTemplate, WorkoutTemplateItem } from './types'
 
 const keys = {
   summary: (weeks: number) => ['training', 'summary', weeks] as const,
@@ -80,6 +80,30 @@ export function useWorkoutNames() {
 }
 
 export const fetchTemplate = (workout: string) =>
-  api<{ workout_name: string; exercises: TemplateExercise[] }>(`/training/log/template?workout=${encodeURIComponent(workout)}`)
+  api<{ workout_name: string; template_id: number | null; exercises: TemplateExercise[] }>(`/training/log/template?workout=${encodeURIComponent(workout)}`)
 
 export const fetchExerciseTarget = (id: number) => api<TemplateExercise>(`/training/log/exercises/${id}`)
+
+export function useTemplates() {
+  return useQuery({ queryKey: ['training', 'templates'], queryFn: () => api<WorkoutTemplate[]>('/training/templates') })
+}
+
+/** Create (no id) or replace a template. */
+export function useSaveTemplate() {
+  const invalidate = useInvalidateTraining()
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: number; data: { name: string; exercises: Partial<WorkoutTemplateItem>[] } }) =>
+      id ? put<WorkoutTemplate>(`/training/templates/${id}`, data) : post<WorkoutTemplate>('/training/templates', data),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteTemplate() {
+  const invalidate = useInvalidateTraining()
+  return useMutation({ mutationFn: (id: number) => del(`/training/templates/${id}`), onSuccess: invalidate })
+}
+
+export function useDeleteSession() {
+  const invalidate = useInvalidateTraining()
+  return useMutation({ mutationFn: (id: number) => del(`/training/sessions/${id}`), onSuccess: invalidate })
+}

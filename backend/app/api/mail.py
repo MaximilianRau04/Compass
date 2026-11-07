@@ -30,7 +30,8 @@ def read(e: Email) -> MailRead:
         summary=e.summary,
         task_title=e.task_title,
         triage=e.triage,
-        task_id=e.task_id,
+        # A discarded task no longer counts: the mail can become a task again.
+        task_id=e.task_id if e.task is not None and e.task.status != "cancelled" else None,
         dismissed=e.dismissed_at is not None,
     )
 

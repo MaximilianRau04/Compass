@@ -173,3 +173,68 @@ async def test_progression_mcp_tool(session):
         assert [x["exercise"] for x in data["stagnant"]] == ["Bankdrücken"]
     finally:
         mcp_db.set_session_factory(mcp_db.SessionLocal)
+
+
+def test_templates_plan_the_workout(client, session):
+    workout_log.save(session, logged("Push A", days_ago=2, exercises=bench((60, 12, 2))))
+    session.commit()
+    body = {
+        "name": " Push  A ",
+        "exercises": [
+            {"name": "bankdrücken", "sets": 4, "rest_seconds": 120},
+            {"name": "Seitheben", "sets": 3, "rest_seconds": 60},
+        ],
+    }
+    created = client.post("/api/training/templates", json=body)
+    assert created.status_code == 201
+    t = created.json()
+    assert t["name"] == "Push A"
+    # A known exercise is linked by its canonical name, a new one stays a plain name.
+    assert [(e["name"], e["exercise_id"] is not None) for e in t["exercises"]] == [
+        ("Bankdrücken", True),
+        ("Seitheben", False),
+    ]
+    assert (
+        client.post("/api/training/templates", json={**body, "name": "push a"}).status_code == 409
+    )
+
+    [listed] = client.get("/api/training/templates").json()
+    assert listed["id"] == t["id"] and listed["last_at"] is not None
+
+    # Starting "Push A" now uses the plan: its sets, rest and order, plus the targets.
+    template = client.get("/api/training/log/template", params={"workout": "PUSH A"}).json()
+    assert template["template_id"] == t["id"]
+    first, second = template["exercises"]
+    assert (first["sets"], first["rest_seconds"]) == (4, 120)
+    assert first["suggestion"]["weight_kg"] == 62.5
+    assert second["exercise_id"] is None and second["suggestion"] is None
+
+    renamed = client.put(
+        f"/api/training/templates/{t['id']}",
+        json={"name": "Push B", "exercises": body["exercises"][:1]},
+    ).json()
+    assert renamed["name"] == "Push B" and len(renamed["exercises"]) == 1
+    assert client.delete(f"/api/training/templates/{t['id']}").status_code == 204
+    assert client.get("/api/training/templates").json() == []
+    assert client.delete(f"/api/training/templates/{t['id']}").status_code == 404
+    # The session trained with it stays.
+    assert len(session.scalars(select(TrainingSession)).all()) == 1
+
+
+def test_only_logged_sessions_can_be_deleted(client, session):
+    mine = workout_log.save(session, logged())
+    imported = TrainingSession(started_at=at(5), workout_name="Gym Day", source="gymday")
+    session.add(imported)
+    session.commit()
+    assert client.delete(f"/api/training/sessions/{imported.id}").status_code == 409
+    assert client.delete(f"/api/training/sessions/{mine.id}").status_code == 204
+    assert client.delete(f"/api/training/sessions/{mine.id}").status_code == 404
+
+
+def test_a_session_entered_afterwards_keeps_its_date(client, session):
+    body = logged("Pull", days_ago=4).model_dump(mode="json")
+    saved = client.post("/api/training/log", json=body).json()
+    assert saved["started_at"][:10] == at(4).date().isoformat()
+    assert saved["duration_minutes"] == 70
+    future = logged("Pull", days_ago=-2).model_dump(mode="json")
+    assert client.post("/api/training/log", json=future).status_code == 409

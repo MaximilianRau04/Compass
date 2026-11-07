@@ -334,8 +334,8 @@ def test_overview_task_and_dismiss(client, session, accounts):
     assert len(session.scalars(select(Task)).all()) == 1
 
     assert client.post(f"/api/mail/{second.id}/dismiss", json={}).json()["dismissed"] is True
-    listed = client.get("/api/mail?important=true").json()
-    assert [m["id"] for m in listed] == [first.id]
+    # Both are handled now: one became a task, the other was dismissed.
+    assert client.get("/api/mail?important=true").json() == []
     assert (
         client.post(f"/api/mail/{second.id}/dismiss", json={"dismissed": False}).status_code == 200
     )
@@ -656,3 +656,40 @@ def test_sort_mails_with_claude(session, accounts):
     assert saved["summary"] == "Zusage bis Freitag, siehe"
     assert (first.triage, first.priority, first.task_title) == ("claude", "high", "Termin zusagen")
     assert newsletter.triage == "rules"
+
+
+def test_mails_gone_from_the_mailbox_leave_the_list(client, session, accounts):
+    mails = {1: (raw_mail(), False), 2: (raw_mail(subject="Frist: Abgabe morgen"), False)}
+    stored(session, accounts, mails)
+    assert len(client.get("/api/mail").json()) == 2
+
+    # Deleted in the mail app: the next sync finds it no longer in the folder.
+    del mails[2]
+    mail_sync.sync_account(session, accounts["uni"], mailbox(mails))
+    assert [m["subject"] for m in client.get("/api/mail").json()] == ["Termin Besprechung"]
+    gone = session.scalar(select(Email).where(Email.uid == 2))
+    assert gone.removed_at is not None
+    assert client.get("/api/mail?important=true").json() == []
+
+    # Restored: it shows up again under a new UID and is back in the list.
+    mails[3] = (raw_mail(subject="Frist: Abgabe morgen"), False)
+    mail_sync.sync_account(session, accounts["uni"], mailbox(mails))
+    session.refresh(gone)
+    assert gone.removed_at is None and gone.uid == 3
+    assert len(client.get("/api/mail").json()) == 2
+
+
+def test_a_mail_made_a_task_leaves_the_list_and_a_discarded_task_frees_it(
+    client, session, accounts
+):
+    [mail] = stored(session, accounts, {1: (raw_mail(), False)})
+    task = client.post(f"/api/mail/{mail.id}/task").json()
+    assert client.get("/api/mail").json() == []
+    [hidden] = client.get("/api/mail?dismissed=true").json()
+    assert hidden["task_id"] == task["id"]
+
+    client.patch(f"/api/tasks/{task['id']}", json={"status": "cancelled"})
+    [hidden] = client.get("/api/mail?dismissed=true").json()
+    assert hidden["task_id"] is None
+    again = client.post(f"/api/mail/{mail.id}/task").json()
+    assert again["id"] == task["id"] and again["status"] == "open"

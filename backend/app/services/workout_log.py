@@ -2,8 +2,9 @@
 
 The phone keeps the running session and sends all of it after every change, so a lost connection
 in the gym costs nothing: the same client id updates the same session, and its sets are replaced
-by what the phone sends. A session started from a template (the last session with that workout
-name) gets each exercise's last working sets and its progression target.
+by what the phone sends. A session started from a template gets each exercise's last working sets
+and its progression target. The template is the workout built in Compass with that name, or else
+the last session with that name.
 """
 
 from datetime import datetime, timedelta
@@ -12,9 +13,15 @@ from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.models.training import Exercise, ExerciseAlias, ExerciseSet, TrainingSession
+from app.models.training import (
+    Exercise,
+    ExerciseAlias,
+    ExerciseSet,
+    TrainingSession,
+    WorkoutTemplate,
+)
 from app.services import health
-from app.services.clock import local_tz
+from app.services.clock import local_tz, utc_now
 from app.services.health import LOGGER_SESSION
 
 
@@ -42,21 +49,31 @@ class LoggedSession(BaseModel):
     exercises: list[LoggedExercise] = Field(default_factory=list, max_length=40)
 
 
-def resolve_exercise(session: Session, item: LoggedExercise) -> Exercise:
-    """By id, else by name or alias (any case), else a new exercise."""
-    if item.exercise_id is not None and (found := session.get(Exercise, item.exercise_id)):
+def _clean(name: str) -> str:
+    return " ".join(name.split())
+
+
+def find_exercise(session: Session, exercise_id: int | None, name: str) -> Exercise | None:
+    """By id, else by name or alias (any case)."""
+    if exercise_id is not None and (found := session.get(Exercise, exercise_id)):
         return found
-    name = " ".join(item.name.split())
-    found = session.scalar(
+    name = _clean(name)
+    return session.scalar(
         select(Exercise)
         .outerjoin(ExerciseAlias)
         .where(
             (func.lower(Exercise.name) == name.lower())
             | (func.lower(ExerciseAlias.alias) == name.lower())
         )
+        .limit(1)
     )
-    if found:
+
+
+def resolve_exercise(session: Session, item: LoggedExercise) -> Exercise:
+    """By id, else by name or alias (any case), else a new exercise."""
+    if found := find_exercise(session, item.exercise_id, item.name):
         return found
+    name = _clean(item.name)
     exercise = Exercise(name=name, bodyweight=all(s.weight_kg is None for s in item.sets))
     session.add(exercise)
     session.flush()
@@ -66,6 +83,9 @@ def resolve_exercise(session: Session, item: LoggedExercise) -> Exercise:
 def save(session: Session, data: LoggedSession) -> TrainingSession:
     if data.ended_at and data.ended_at < data.started_at:
         raise LogError("ended_at is before started_at")
+    # A session entered afterwards can lie in the past, never in the future (some clock slack).
+    if data.started_at > utc_now() + timedelta(minutes=10):
+        raise LogError("the session starts in the future")
     t = session.scalar(select(TrainingSession).where(TrainingSession.client_id == data.client_id))
     if t is None:
         t = TrainingSession(client_id=data.client_id, source=LOGGER_SESSION)
@@ -155,3 +175,80 @@ def template(session: Session, workout_name: str) -> list[Exercise]:
     for s in sorted(last.sets, key=lambda x: x.id):
         ordered.setdefault(s.exercise_id, s.exercise)
     return list(ordered.values())
+
+
+# --- Templates built in Compass --------------------------------------------------------------
+
+REST_DEFAULT = 90
+
+
+class TemplateItem(BaseModel):
+    exercise_id: int | None = None
+    name: str = Field(min_length=1, max_length=200)
+    sets: int = Field(3, ge=1, le=20, description="Planned sets")
+    rest_seconds: int = Field(REST_DEFAULT, ge=0, le=900, description="Rest after each set")
+
+
+class TemplateData(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    exercises: list[TemplateItem] = Field(default_factory=list, max_length=40)
+
+
+def saved_template(session: Session, name: str) -> WorkoutTemplate | None:
+    return session.scalar(
+        select(WorkoutTemplate).where(func.lower(WorkoutTemplate.name) == _clean(name).lower())
+    )
+
+
+def list_templates(session: Session) -> list[tuple[WorkoutTemplate, datetime | None]]:
+    """Every template with the last session of the same name, most recently trained first."""
+    last = dict(
+        session.execute(
+            select(
+                func.lower(TrainingSession.workout_name), func.max(TrainingSession.started_at)
+            ).group_by(func.lower(TrainingSession.workout_name))
+        ).all()
+    )
+    rows = [(t, last.get(t.name.lower())) for t in session.scalars(select(WorkoutTemplate))]
+    # Never trained ones first (just built), then by the last session.
+    return sorted(
+        rows, key=lambda r: (r[1] is not None, -(r[1].timestamp() if r[1] else 0), r[0].name)
+    )
+
+
+def save_template(
+    session: Session, data: TemplateData, template: WorkoutTemplate | None = None
+) -> WorkoutTemplate:
+    name = _clean(data.name)
+    other = saved_template(session, name)
+    if other is not None and other is not template:
+        raise LogError("a workout with this name exists")
+    items = []
+    for item in data.exercises:
+        known = find_exercise(session, item.exercise_id, item.name)
+        items.append(
+            {
+                "exercise_id": known.id if known else None,
+                "name": known.name if known else _clean(item.name),
+                "sets": item.sets,
+                "rest_seconds": item.rest_seconds,
+            }
+        )
+    if template is None:
+        template = WorkoutTemplate(name=name)
+        session.add(template)
+    template.name = name
+    template.exercises = items
+    session.flush()
+    return template
+
+
+def template_items(
+    session: Session, template: WorkoutTemplate
+) -> list[tuple[Exercise | None, dict]]:
+    """Each planned exercise with its row (None for one never trained yet). Looked up again on
+    every read, so a renamed or merged exercise is still found."""
+    return [
+        (find_exercise(session, item.get("exercise_id"), item["name"]), item)
+        for item in template.exercises
+    ]
