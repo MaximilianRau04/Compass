@@ -103,4 +103,4 @@ Finally, save the result in the Compass connector with save_brief (kind "<short-
 
 ## In the chat instead of a routine
 
-The Compass MCP prompts `daily_brief` and `news_report` do the same on demand (in Claude through the plus menu, under the connector's prompts; other assistants list MCP prompts differently). If you change the routine prompts, update `DAILY_BRIEF` and `NEWS_REPORT` in `backend/app/mcp/server.py` to match.
+The Compass MCP prompts `daily_brief` and `news_report` do the same on demand (in Claude through the plus menu, under the connector's prompts; other assistants list MCP prompts differently). If you change the routine prompts, update `DAILY_BRIEF` and `NEWS_REPORT` in `backend/app/mcp/prompts.py` to match.
