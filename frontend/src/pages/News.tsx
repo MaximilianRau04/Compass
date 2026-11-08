@@ -169,7 +169,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
       >
         <input value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t('news.topicPlaceholder')} aria-label={t('news.topic')} className="min-w-0 flex-1 rounded-md border border-rule bg-paper-raised px-2 py-1.5" />
         <input value={weight} onChange={(e) => setWeight(e.target.value)} inputMode="decimal" aria-label={t('news.weight')} className="w-16 rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono" />
-        <button type="submit" className="rounded-md border border-rule px-3 py-1.5 hover:border-ink">
+        <button type="submit" className={button('secondary')}>
           {t('news.addTopic')}
         </button>
         <button
@@ -191,7 +191,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
           <span className="text-ink">{t('news.dislikes')}:</span> {learned(interests.dislikes) || '–'}
         </p>
         {(interests.likes.length > 0 || interests.dislikes.length > 0) && (
-          <button type="button" disabled={reset.isPending} onClick={() => reset.mutate(undefined, { onSuccess: () => toast(t('news.resetDone')) })} className="mt-1 rounded-md border border-rule px-2 py-0.5 hover:border-ink hover:text-ink">
+          <button type="button" disabled={reset.isPending} onClick={() => reset.mutate(undefined, { onSuccess: () => toast(t('news.resetDone')) })} className={`mt-1 ${button('secondary', 'sm')}`}>
             {t('news.reset')}
           </button>
         )}
@@ -341,7 +341,7 @@ export function NewsPage() {
                 ))}
               </ul>
               {filtered.length > shown && (
-                <button type="button" onClick={() => setShown(shown + PAGE)} className="mt-3 w-full rounded-md border border-rule py-2 text-sm text-muted hover:border-ink hover:text-ink">
+                <button type="button" onClick={() => setShown(shown + PAGE)} className={`mt-3 w-full ${button('secondary')}`}>
                   {t('news.more', { n: Math.min(PAGE, filtered.length - shown) })}
                 </button>
               )}

@@ -24,7 +24,7 @@ const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
   { topic: 'claude', label: 'push.topic.claude', hint: 'push.topic.claudeHint' },
 ]
 
-const BUTTON = 'rounded-md border border-brass px-3 py-1.5 text-sm text-brass hover:bg-brass/10 disabled:opacity-50'
+const BUTTON = button('secondary')
 
 function Notifications() {
   const { t } = useI18n()

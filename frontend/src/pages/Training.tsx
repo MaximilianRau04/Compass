@@ -160,7 +160,7 @@ function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
       <span className="text-muted">{t('progress.reps')}</span>
       <input value={step} onChange={(e) => setStep(e.target.value)} inputMode="decimal" aria-label={t('progress.step')} className={input} />
       <span className="text-muted">{t('progress.stepUnit')}</span>
-      <button type="submit" disabled={update.isPending} className="rounded-md border border-rule px-2 py-1 hover:border-ink disabled:opacity-50">
+      <button type="submit" disabled={update.isPending} className={button('secondary', 'sm')}>
         {t('progress.save')}
       </button>
     </form>

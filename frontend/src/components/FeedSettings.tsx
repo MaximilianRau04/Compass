@@ -4,11 +4,12 @@ import { toast } from 'sonner'
 import { type Feed, type FeedKind, type NewsStream, useAddCalendarFeed, useAddNewsFeed, useFeeds, useRemoveFeed, useRestoreFeed } from '../api/feeds'
 import { useAreas } from '../api/tasks'
 import { useI18n } from '../i18n/context'
+import { button } from '../lib/ui'
 import { SectionLabel } from './Layout'
 
 const INPUT = 'w-full min-w-0 rounded-md border border-rule bg-paper-raised px-3 py-1.5 focus:border-brass focus:outline-none'
-const SUBMIT = 'rounded-md border border-brass px-3 py-1.5 text-sm text-brass hover:bg-brass/10 disabled:opacity-50'
-const ROW_BUTTON = 'shrink-0 rounded-md border border-rule px-2.5 py-1 text-sm text-muted hover:border-ink hover:text-ink disabled:opacity-50'
+const SUBMIT = button('secondary')
+const ROW_BUTTON = `shrink-0 ${button('secondary', 'sm')}`
 
 /** The same rule as the names of .env: they key the events and items of a feed. */
 const feedName = (label: string) =>

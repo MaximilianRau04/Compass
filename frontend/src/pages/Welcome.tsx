@@ -46,7 +46,7 @@ function AreaRow({ area }: { area: Area }) {
       <input aria-label={t('welcome.areaName')} className={INPUT} value={name} onChange={(e) => setName(e.target.value)} onBlur={rename} />
       <button
         type="button"
-        className="rounded-md border border-rule px-2.5 py-1.5 text-sm text-muted hover:border-ink hover:text-ink"
+        className={button('secondary', 'sm')}
         onClick={() => update.mutate({ id: area.id, archived: true }, { onError })}
       >
         {t('welcome.areaRemove')}
