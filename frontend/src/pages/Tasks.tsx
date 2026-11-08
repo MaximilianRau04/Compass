@@ -121,6 +121,7 @@ export function TasksPage() {
         )}
       </div>
 
+      {tasks.isPending && <p className="font-mono text-sm text-muted">{t('common.loading')}</p>}
       {tasks.error && <p className="text-signal">{t('tasks.loadError', { message: tasks.error.message })}</p>}
       {tasks.isSuccess && list.length === 0 && (
         <p className="text-muted">

@@ -163,6 +163,7 @@ export function CalendarPage() {
         ))}
       </div>
 
+      {(events.isPending || tasks.isPending) && <p className="mb-4 font-mono text-sm text-muted">{t('common.loading')}</p>}
       {events.error && <p className="mb-4 text-signal">{t('cal.loadError', { message: events.error.message })}</p>}
       {tasks.error && <p className="mb-4 text-signal">{t('tasks.loadError', { message: tasks.error.message })}</p>}
 
