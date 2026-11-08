@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.mcp import db as mcp_db
 from app.mcp.app import app
 from app.mcp.login import MAX_FAILURES_TOTAL, reset_failures
+from app.mcp.oauth import revoke_all_tokens
 
 BASE = "http://localhost:8001"
 RESOURCE = f"{BASE}/mcp"
@@ -154,6 +155,12 @@ def test_full_flow_gives_working_token(http):
     response = call_mcp(http, tokens["access_token"])
     assert response.status_code == 200, response.text
     assert response.json()["result"]["serverInfo"]["name"] == "Compass"
+
+
+def test_revoke_all_tokens_logs_out_every_client(http):
+    tokens = get_tokens(http)
+    assert revoke_all_tokens() == 2  # the access and the refresh token
+    assert call_mcp(http, tokens["access_token"]).status_code == 401
 
 
 def test_wrong_password_and_lockout(http):

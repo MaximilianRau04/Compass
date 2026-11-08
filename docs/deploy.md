@@ -330,7 +330,7 @@ Every write through MCP is recorded in the `audit_log` table. To log out all cli
 
 ```bash
 docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.prod.yml exec mcp \
-  python -c "from app.mcp.oauth import revoke_all_tokens; print(revoke_all_tokens())"
+  python -m app.cli revoke-mcp-tokens
 ```
 
 ## 6. Calendars and deadlines

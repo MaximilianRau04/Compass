@@ -1,11 +1,15 @@
 """Maintenance commands, run inside the api container:
 
     python -m app.cli rebuild-health
+    python -m app.cli revoke-mcp-tokens
 
 rebuild-health recomputes everything derived from the stored Health Connect records (daily
 metrics, meals, weights, Gym Day sessions and their durations). A sync only derives the days it
 changes, and unchanged records are skipped, so after a release that derives something new the
 existing records need this once.
+
+revoke-mcp-tokens logs out every AI assistant (e.g. after a leaked token); each has to connect
+again through the login page.
 """
 
 import argparse
@@ -16,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.mcp.oauth import revoke_all_tokens
 from app.models.health import HealthRecord
 from app.services import health, nutrition
 
@@ -39,6 +44,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("rebuild-health", help="recompute data derived from Health Connect")
+    commands.add_parser("revoke-mcp-tokens", help="log out every MCP client")
     args = parser.parse_args()
 
     if args.command == "rebuild-health":
@@ -46,6 +52,8 @@ def main() -> None:
             result = rebuild_health(session)
             session.commit()
         print(json.dumps(result))
+    elif args.command == "revoke-mcp-tokens":
+        print(json.dumps({"revoked": revoke_all_tokens()}))
 
 
 if __name__ == "__main__":
