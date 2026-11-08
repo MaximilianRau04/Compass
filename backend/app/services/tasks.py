@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
+from pydantic import ValidationError
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 
@@ -302,15 +303,19 @@ def quick_add(
     preview = preview_quick_add(session, text, today)
     if not preview.title:
         raise TaskError("title is empty after parsing")
-    data = TaskCreate(
-        title=preview.title,
-        area_id=preview.area.id if preview.area else None,
-        tags=preview.tags,
-        priority=preview.priority or TaskPriority.normal,
-        due_date=preview.due_date,
-        due_time=preview.due_time,
-        scheduled_date=preview.scheduled_date,
-        recurrence=preview.recurrence,
-        source=source,
-    )
+    try:
+        data = TaskCreate(
+            title=preview.title,
+            area_id=preview.area.id if preview.area else None,
+            tags=preview.tags,
+            priority=preview.priority or TaskPriority.normal,
+            due_date=preview.due_date,
+            due_time=preview.due_time,
+            scheduled_date=preview.scheduled_date,
+            recurrence=preview.recurrence,
+            source=source,
+        )
+    except ValidationError as exc:
+        # The text is the user's own input (e.g. a #tag that is too long): a 422, not a crash.
+        raise TaskError(exc.errors(include_url=False)[0]["msg"]) from exc
     return create_task(session, data, actor, extra={"quick_add": text})

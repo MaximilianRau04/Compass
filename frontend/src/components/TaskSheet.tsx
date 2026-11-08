@@ -227,7 +227,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
         <label className={label} htmlFor="notes">
           {t('sheet.notes')}
         </label>
-        <textarea id="notes" value={draft.notes} onChange={(e) => set('notes', e.target.value)} rows={3} className={field} />
+        <textarea id="notes" value={draft.notes} onChange={(e) => set('notes', e.target.value)} rows={3} maxLength={20_000} className={field} />
       </div>
 
       {notes.data && notes.data.length > 0 && (

@@ -6,6 +6,10 @@ from app.models.tasks import TaskPriority, TaskSource, TaskStatus
 from app.schemas.calendar import CalendarEventRead
 from app.services.recurrence import validate_rrule
 
+# Limits of the free text fields; a tag matches the column (ARRAY(String(60))).
+MAX_TAG = 60
+MAX_NOTES = 20_000
+
 
 class AreaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -45,12 +49,15 @@ class _TaskFields(BaseModel):
     def _tags(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return None
-        return list(dict.fromkeys(t.strip().lower().lstrip("#") for t in value if t.strip()))
+        tags = list(dict.fromkeys(t.strip().lower().lstrip("#") for t in value if t.strip()))
+        if too_long := [t for t in tags if len(t) > MAX_TAG]:
+            raise ValueError(f"tag {too_long[0][:20]!r}... is longer than {MAX_TAG} characters")
+        return tags
 
 
 class TaskCreate(_TaskFields):
     title: str = Field(min_length=1, max_length=500)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_NOTES)
     area_id: int | None = None
     tags: list[str] = []
     priority: TaskPriority = TaskPriority.normal
@@ -67,7 +74,7 @@ class TaskUpdate(_TaskFields):
     """All fields optional; only fields that are sent are changed (null clears a field)."""
 
     title: str | None = Field(default=None, min_length=1, max_length=500)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_NOTES)
     area_id: int | None = None
     tags: list[str] | None = None
     priority: TaskPriority | None = None

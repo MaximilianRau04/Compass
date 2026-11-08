@@ -173,6 +173,7 @@ async def test_helpful_errors_and_failed_writes_are_audited(client, session):
     task = await call(client, "add_task", title="exists")
     assert "Nothing to change" in await call_error(client, "update_task", task_id=task["id"])
     assert "needs a due_date" in await call_error(client, "add_task", title="x", due_time="10:00")
+    assert "at most 20000" in await call_error(client, "add_task", title="x", notes="n" * 20_001)
 
     failed = session.query(AuditLog).filter(AuditLog.ok.is_(False)).all()
     assert {e.action for e in failed} == {"add_task", "complete_task", "update_task"}

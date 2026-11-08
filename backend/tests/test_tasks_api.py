@@ -182,3 +182,22 @@ def test_filters(client):
 def test_no_delete_endpoint(client):
     task = create(client)
     assert client.delete(f"/api/tasks/{task['id']}").status_code == 405
+
+
+def test_tags_and_notes_have_length_limits(client):
+    assert create(client, tags=["a" * 60], notes="n" * 20_000)["tags"] == ["a" * 60]
+
+    too_long_tag = client.post("/api/tasks", json={"title": "Task", "tags": ["a" * 61]})
+    assert too_long_tag.status_code == 422
+    too_long_notes = client.post("/api/tasks", json={"title": "Task", "notes": "n" * 20_001})
+    assert too_long_notes.status_code == 422
+
+    task = create(client)
+    patch = client.patch(f"/api/tasks/{task['id']}", json={"tags": ["b" * 61]})
+    assert patch.status_code == 422
+
+
+def test_quick_add_with_a_too_long_tag_is_a_clear_error(client):
+    response = client.post("/api/tasks/quick", json={"text": "Paper lesen #" + "x" * 61})
+    assert response.status_code == 422
+    assert "longer than 60" in response.json()["detail"]
