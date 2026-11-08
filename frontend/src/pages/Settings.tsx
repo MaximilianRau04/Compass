@@ -10,7 +10,7 @@ import {
   useSetPushTopics,
 } from '../api/push'
 import { FeedSettings } from '../components/FeedSettings'
-import { SectionLabel } from '../components/Layout'
+import { LanguageSwitch, SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { button, pageTitle } from '../lib/ui'
@@ -128,6 +128,10 @@ export function SettingsPage() {
       <header className="mb-6">
         <h1 className={pageTitle}>{t('settings.title')}</h1>
       </header>
+      <section className="mb-10">
+        <SectionLabel>{t('lang.label')}</SectionLabel>
+        <LanguageSwitch className="mt-3" />
+      </section>
       <section>
         <SectionLabel>{t('push.title')}</SectionLabel>
         <div className="mt-3">

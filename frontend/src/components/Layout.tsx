@@ -28,14 +28,10 @@ function Icon({ d }: { d: string }) {
   )
 }
 
-function LanguageSwitch() {
+export function LanguageSwitch({ className = '' }: { className?: string }) {
   const { lang, setLang, t } = useI18n()
   return (
-    <div
-      role="group"
-      aria-label={t('lang.label')}
-      className="absolute top-3 right-3 z-30 flex rounded-full border border-rule bg-paper-raised p-0.5 font-mono text-sm sm:top-5 sm:right-6"
-    >
+    <div role="group" aria-label={t('lang.label')} className={`flex w-fit rounded-full border border-rule bg-paper-raised p-0.5 font-mono text-sm ${className}`}>
       {(['de', 'en'] as Lang[]).map((code) => (
         <button
           key={code}
@@ -104,7 +100,8 @@ export function Layout() {
   const wide = pathname === '/' || pathname.startsWith('/calendar')
   return (
     <div className="relative min-h-dvh sm:flex">
-      <LanguageSwitch />
+      {/* On the phone the switch lives in the settings, so the page starts at the top. */}
+      <LanguageSwitch className="absolute top-5 right-6 z-30 hidden sm:flex" />
       <nav
         aria-label={t('nav.main')}
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-rule bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:sticky sm:top-0 sm:h-dvh sm:w-52 sm:flex-col sm:border-t-0 sm:border-r sm:bg-transparent sm:px-4 sm:py-6 sm:pb-6"
@@ -137,7 +134,7 @@ export function Layout() {
         ))}
         <MoreMenu />
       </nav>
-      <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-16 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
+      <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-6 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
         <Outlet />
       </main>
     </div>
