@@ -52,7 +52,7 @@ export function MonthView({
           key={week[0]}
           className="grid grid-cols-[1.75rem_repeat(7,minmax(0,1fr))] border-b border-rule last:border-b-0 sm:grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
         >
-          <span className="pt-2 text-center font-mono text-[10px] text-muted/70 tabular-nums">{isoWeek(week[0])}</span>
+          <span className="pt-2 text-center font-mono text-3xs text-muted/70 tabular-nums">{isoWeek(week[0])}</span>
           {week.map((day) => {
             const dayEvents = eventsOn(events, day)
             const dayTasks = tasksOn(tasks, day)
@@ -108,7 +108,7 @@ export function MonthView({
                     <EventChip key={event.id} event={event} onOpen={onOpenEvent} />
                   ))}
                   {hidden > 0 && (
-                    <button type="button" onClick={() => onSelect(day)} className="px-1 font-mono text-[11px] text-brass hover:underline">
+                    <button type="button" onClick={() => onSelect(day)} className="px-1 font-mono text-2xs text-brass hover:underline">
                       {t('cal.more', { n: hidden })}
                     </button>
                   )}

@@ -7,7 +7,7 @@ export function Stat({ label, value, note }: { label: string; value: string; not
     <div className="rounded-md border border-rule bg-paper-raised px-3 py-2.5">
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 text-2xl font-semibold">{value}</p>
-      {note && <p className="truncate font-mono text-[11px] text-muted">{note}</p>}
+      {note && <p className="truncate font-mono text-2xs text-muted">{note}</p>}
     </div>
   )
 }
@@ -16,7 +16,7 @@ export function DataTable({ rows, head }: { rows: [string, string][]; head: [str
   const { t } = useI18n()
   return (
     <details className="mt-1 text-sm">
-      <summary className="-my-2 cursor-pointer py-2 font-mono text-[11px] text-muted hover:text-ink">{t('training.table')}</summary>
+      <summary className="-my-2 cursor-pointer py-2 font-mono text-2xs text-muted hover:text-ink">{t('training.table')}</summary>
       <table className="mt-2 w-full font-mono text-[12px] tabular-nums">
         <thead className="text-left text-muted">
           <tr>

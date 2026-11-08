@@ -31,7 +31,7 @@ function FeedRow({ kind, feed }: { kind: FeedKind; feed: Feed }) {
     <li className="flex items-center justify-between gap-3 py-2 text-sm">
       <span className={`min-w-0 ${feed.hidden ? 'text-muted' : ''}`}>
         <span className="font-medium">{feed.name}</span>
-        <span className="block truncate font-mono text-[11px] text-muted">
+        <span className="block truncate font-mono text-2xs text-muted">
           {[feed.host, feed.stream && t(feed.stream === 'general' ? 'feeds.general' : 'feeds.personal'), feed.area, feed.origin === 'env' && '.env']
             .filter(Boolean)
             .join(' · ')}

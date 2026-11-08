@@ -24,7 +24,7 @@ export function SyncStatus() {
     })
 
   return (
-    <div className="mt-10 space-y-1 border-t border-rule pt-3 font-mono text-[11px] text-muted">
+    <div className="mt-10 space-y-1 border-t border-rule pt-3 font-mono text-2xs text-muted">
       {states.length === 0 && <p>{t('cal.noFeeds')}</p>}
       {states.map((state) => {
         const name = state.name.replace('calendar:', '')

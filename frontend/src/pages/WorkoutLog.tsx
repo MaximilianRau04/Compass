@@ -236,7 +236,7 @@ function RestBar({ rest, now, onChange }: { rest: RestTimer; now: number; onChan
       </div>
       <div className="flex items-center gap-3 px-3 py-2.5">
         <div className="min-w-0 flex-1">
-          <p className={`font-mono text-[11px] tracking-wider uppercase ${over ? 'text-brass' : 'text-muted'}`}>{over ? t('log.restOver') : t('log.rest')}</p>
+          <p className={`font-mono text-2xs tracking-wider uppercase ${over ? 'text-brass' : 'text-muted'}`}>{over ? t('log.restOver') : t('log.rest')}</p>
           <p className="truncate text-sm text-muted">{t('log.restNext', { name: rest.next })}</p>
         </div>
         <span className={`font-mono text-3xl font-medium tabular-nums ${over ? 'text-brass' : ''}`}>{over ? '0:00' : clock(left)}</span>
@@ -265,7 +265,7 @@ function TemplateCard({ template, onStart, onEdit, disabled }: { template: Worko
     <li className="flex rounded-lg border border-rule bg-paper-raised hover:border-ink">
       <button type="button" disabled={disabled} onClick={onStart} className="min-w-0 flex-1 px-3 py-3 text-left disabled:opacity-50">
         <span className="block truncate font-medium">{template.name}</span>
-        <span className="block font-mono text-[11px] text-muted">
+        <span className="block font-mono text-2xs text-muted">
           {t('log.exercisesN', { n: template.exercises.length })} · {template.last_at ? relativeDay(localDay(template.last_at), today, t, locale) : t('log.neverTrained')}
         </span>
       </button>
@@ -283,15 +283,15 @@ function PastFields({ day, time, minutes, onChange, max }: { day: string; time: 
   const { t } = useI18n()
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <label className="flex flex-col gap-1 font-mono text-[11px] text-muted">
+      <label className="flex flex-col gap-1 font-mono text-2xs text-muted">
         {t('log.pastDay')}
         <input type="date" value={day} max={max} onChange={(e) => onChange({ day: e.target.value })} className={input} />
       </label>
-      <label className="flex flex-col gap-1 font-mono text-[11px] text-muted">
+      <label className="flex flex-col gap-1 font-mono text-2xs text-muted">
         {t('log.pastTime')}
         <input type="time" value={time} onChange={(e) => onChange({ time: e.target.value })} className={input} />
       </label>
-      <label className="flex flex-col gap-1 font-mono text-[11px] text-muted">
+      <label className="flex flex-col gap-1 font-mono text-2xs text-muted">
         {t('log.pastMinutes')}
         <input value={minutes} inputMode="numeric" onChange={(e) => onChange({ minutes: e.target.value.replace(/\D/g, '').slice(0, 3) })} className={`${input} w-24`} />
       </label>
@@ -359,14 +359,14 @@ function Start({ onStart }: { onStart: (d: Draft) => void }) {
         {past && (
           <div className="rounded-lg border border-rule bg-paper-raised p-3">
             <PastFields day={when.day} time={when.time} minutes={when.minutes} max={today} onChange={(v) => setWhen({ ...when, ...v })} />
-            <p className={`mt-2 font-mono text-[11px] ${pastValid ? 'text-muted' : 'text-signal'}`}>{pastValid ? t('log.pastHint') : t('log.pastInvalid')}</p>
+            <p className={`mt-2 font-mono text-2xs ${pastValid ? 'text-muted' : 'text-signal'}`}>{pastValid ? t('log.pastHint') : t('log.pastInvalid')}</p>
           </div>
         )}
       </div>
 
       <section>
         <SectionLabel count={templates.data?.length || undefined}>{t('log.templates')}</SectionLabel>
-        <p className="mt-1 font-mono text-[11px] text-muted">{t('log.templatesHint')}</p>
+        <p className="mt-1 font-mono text-2xs text-muted">{t('log.templatesHint')}</p>
         <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
           {templates.data?.map((x) => (
             <TemplateCard key={x.id} template={x} disabled={blocked} onStart={() => void begin(x.name)} onEdit={() => setEditing(x)} />
@@ -387,7 +387,7 @@ function Start({ onStart }: { onStart: (d: Draft) => void }) {
               <li key={w.name}>
                 <button type="button" disabled={blocked} onClick={() => void begin(w.name)} className="w-full rounded-lg border border-rule bg-paper-raised px-3 py-3 text-left hover:border-ink disabled:opacity-50">
                   <span className="block truncate font-medium">{w.name}</span>
-                  <span className="font-mono text-[11px] text-muted">{relativeDay(localDay(w.last_at), today, t, locale)}</span>
+                  <span className="font-mono text-2xs text-muted">{relativeDay(localDay(w.last_at), today, t, locale)}</span>
                 </button>
               </li>
             ))}
@@ -421,11 +421,11 @@ function Target({ exercise }: { exercise: DraftExercise }) {
   const { t, locale } = useI18n()
   const today = useTodayDate()
   const s = exercise.target
-  if (!s) return <p className="font-mono text-[11px] text-muted">{t('log.firstTime')}</p>
+  if (!s) return <p className="font-mono text-2xs text-muted">{t('log.firstTime')}</p>
   const last = s.last_sets.map((x) => `${x.weight_kg != null ? decimal(x.weight_kg, locale) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
   const goal = `${s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${exercise.bodyweight ? ' +' : ''} × ` : '× '}${s.reps}`
   return (
-    <div className="space-y-0.5 font-mono text-[11px] text-muted">
+    <div className="space-y-0.5 font-mono text-2xs text-muted">
       <p>{t('log.last', { sets: last, when: relativeDay(s.last_date, today, t, locale) })}</p>
       <p className={s.action === 'increase' ? 'text-brass' : ''}>
         {t(s.action === 'increase' ? 'log.goalUp' : 'log.goalReps', { goal, min: s.rep_min, max: s.rep_max })}
@@ -502,7 +502,7 @@ function ExerciseCard({
       <div className="mb-1 flex items-start gap-1">
         <h2 className="min-w-0 flex-1 pt-1 font-medium">
           {exercise.name}
-          <span className="ml-2 font-mono text-[11px] font-normal text-muted">
+          <span className="ml-2 font-mono text-2xs font-normal text-muted">
             {done}/{exercise.sets.length}
           </span>
         </h2>
@@ -526,7 +526,7 @@ function ExerciseCard({
         <button type="button" onClick={addSet} className="flex-1 rounded-md border border-dashed border-rule py-1.5 text-sm text-muted hover:border-ink hover:text-ink">
           {t('log.addSet')}
         </button>
-        <label className={`flex items-center gap-1.5 font-mono text-[11px] text-muted ${past ? 'hidden' : ''}`}>
+        <label className={`flex items-center gap-1.5 font-mono text-2xs text-muted ${past ? 'hidden' : ''}`}>
           {t('log.rest')}
           <select value={restOf(exercise)} onChange={(e) => onChange({ ...exercise, rest: Number(e.target.value) })} aria-label={t('log.restFor')} className="rounded-md border border-rule bg-paper px-1.5 py-1 text-[12px] text-ink">
             {REST_OPTIONS.map((s) => (
@@ -669,7 +669,7 @@ function Active({ draft, sync, setDraft, onFinish, onDiscard }: { draft: Draft; 
             {t('log.setsDone', { done, total: done + open })}
           </span>
         </div>
-        <p className={`font-mono text-[11px] ${sync === 'offline' || sync === 'pending' ? 'text-brass' : 'text-muted'}`} aria-live="polite">
+        <p className={`font-mono text-2xs ${sync === 'offline' || sync === 'pending' ? 'text-brass' : 'text-muted'}`} aria-live="polite">
           {t(`log.sync.${sync}`)}
         </p>
       </div>

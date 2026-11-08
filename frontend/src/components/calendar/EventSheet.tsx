@@ -23,7 +23,7 @@ export function EventSheet({ event, onClose }: { event: CalendarEvent | null; on
               </Dialog.Title>
               <Dialog.Description asChild>
                 <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                  <dt className="font-mono text-[11px] tracking-wide text-muted uppercase">{t('cal.when')}</dt>
+                  <dt className="font-mono text-2xs tracking-wide text-muted uppercase">{t('cal.when')}</dt>
                   <dd>
                     {(() => {
                       const { weekday, date } = longDate(localDay(event.starts_at), locale)
@@ -32,11 +32,11 @@ export function EventSheet({ event, onClose }: { event: CalendarEvent | null; on
                   </dd>
                   {event.location && (
                     <>
-                      <dt className="font-mono text-[11px] tracking-wide text-muted uppercase">{t('cal.where')}</dt>
+                      <dt className="font-mono text-2xs tracking-wide text-muted uppercase">{t('cal.where')}</dt>
                       <dd>{event.location}</dd>
                     </>
                   )}
-                  <dt className="font-mono text-[11px] tracking-wide text-muted uppercase">{t('cal.source')}</dt>
+                  <dt className="font-mono text-2xs tracking-wide text-muted uppercase">{t('cal.source')}</dt>
                   <dd className="uppercase">{event.feed}</dd>
                 </dl>
               </Dialog.Description>

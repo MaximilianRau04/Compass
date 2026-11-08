@@ -142,7 +142,7 @@ function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
   const [min, setMin] = useState(String(suggestion.rep_min))
   const [max, setMax] = useState(String(suggestion.rep_max))
   const [step, setStep] = useState(String(suggestion.weight_step))
-  const input = 'w-14 rounded-md border border-rule bg-paper px-2 py-1 text-center font-mono text-[13px]'
+  const input = 'w-14 rounded-md border border-rule bg-paper px-2 py-1 text-center font-mono text-label'
   return (
     <form
       className="mt-2 flex flex-wrap items-center gap-2 text-sm"
@@ -182,7 +182,7 @@ function NextTargets() {
       <SectionLabel count={progression.data?.stagnant.length || undefined} tone={progression.data?.stagnant.length ? 'signal' : undefined}>
         {t('progress.title')}
       </SectionLabel>
-      <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('progress.hint')}</p>
+      <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('progress.hint')}</p>
       <ul className="divide-y divide-rule/60">
         {shown.map((s) => (
           <li key={s.exercise_id} className="py-2.5">
@@ -190,13 +190,13 @@ function NextTargets() {
               <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                 <span>
                   <span className="font-medium">{s.name}</span>
-                  {s.stagnant && <span className="ml-2 rounded-full border border-signal/60 px-1.5 py-px font-mono text-[10px] text-signal">{t('progress.stagnant', { n: s.same_sessions })}</span>}
+                  {s.stagnant && <span className="ml-2 rounded-full border border-signal/60 px-1.5 py-px font-mono text-3xs text-signal">{t('progress.stagnant', { n: s.same_sessions })}</span>}
                 </span>
                 <span className={`font-mono text-[12px] tabular-nums ${s.action === 'increase' ? 'text-brass' : ''}`}>
                   {s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${s.bodyweight ? ' +' : ''} × ${s.reps}` : `× ${s.reps}`}
                   {s.action === 'increase' ? ' ↑' : ''}
                 </span>
-                <span className="w-full font-mono text-[11px] text-muted">
+                <span className="w-full font-mono text-2xs text-muted">
                   {t('progress.last', { sets: sets(s) })} · {s.rep_min}–{s.rep_max} · +{decimal(s.weight_step, locale)} kg
                   {!s.rir_known && ` · ${t('progress.noRir')}`}
                 </span>
@@ -207,7 +207,7 @@ function NextTargets() {
         ))}
       </ul>
       {list.length > 8 && (
-        <button type="button" onClick={() => setAll(!all)} className="mt-1 font-mono text-[11px] text-muted hover:text-ink">
+        <button type="button" onClick={() => setAll(!all)} className="mt-1 font-mono text-2xs text-muted hover:text-ink">
           {all ? t('progress.less') : t('progress.all', { n: list.length })}
         </button>
       )}
@@ -235,10 +235,10 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
       <li className="flex items-baseline justify-between gap-3 py-2.5">
         <span>
           <span className="font-medium">{session.workout_name}</span>
-          {watch && <span className="ml-2 rounded-full border border-rule px-1.5 py-px font-mono text-[10px] text-muted">{t('split.sport')}</span>}
-          <span className="ml-2 font-mono text-[11px] text-muted">{when}</span>
+          {watch && <span className="ml-2 rounded-full border border-rule px-1.5 py-px font-mono text-3xs text-muted">{t('split.sport')}</span>}
+          <span className="ml-2 font-mono text-2xs text-muted">{when}</span>
         </span>
-        <span className="font-mono text-[11px] text-muted" title={watch ? undefined : t('training.withoutSetsHint')}>
+        <span className="font-mono text-2xs text-muted" title={watch ? undefined : t('training.withoutSetsHint')}>
           {duration}
           {heart}
           {watch ? t('training.fromWatch') : t('training.withoutSets')}
@@ -252,9 +252,9 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
         <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
           <span>
             <span className="font-medium">{session.workout_name}</span>
-            <span className="ml-2 font-mono text-[11px] text-muted">{when}</span>
+            <span className="ml-2 font-mono text-2xs text-muted">{when}</span>
           </span>
-          <span className="font-mono text-[11px] text-muted">
+          <span className="font-mono text-2xs text-muted">
             {duration}
             {heart}
             {t('training.exercisesN', { n: session.exercises })} · {t('training.setsN', { n: session.sets })} ·{' '}
@@ -317,7 +317,7 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
             <li key={exercise.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span className="min-w-0">
                 <span className="block">{exercise.name}</span>
-                <span className="font-mono text-[11px] text-muted">
+                <span className="font-mono text-2xs text-muted">
                   {t('training.sessionsN', { n: exercise.sessions })}
                   {exercise.aliases.filter((a) => a !== exercise.name).length > 0 &&
                     ` · ${t('training.aliases', { names: exercise.aliases.filter((a) => a !== exercise.name).join(', ') })}`}
@@ -419,7 +419,7 @@ export function TrainingPage() {
       <div className="space-y-10">
         <section>
           <SectionLabel>{t('training.weeklyVolume')}</SectionLabel>
-          <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('training.weeklyVolumeHint')}</p>
+          <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('training.weeklyVolumeHint')}</p>
           <ColumnChart
             color="var(--m-training)"
             data={weeks}

@@ -43,7 +43,7 @@ function ItemRow({ item, index, count, onChange, onMove, onRemove }: { item: Ite
         </span>
         <label className="flex items-center gap-1.5 text-muted">
           {t('log.rest')}
-          <select value={item.rest_seconds} onChange={(e) => onChange({ ...item, rest_seconds: Number(e.target.value) })} className="rounded-md border border-rule bg-paper-raised px-2 py-1 font-mono text-[13px] text-ink">
+          <select value={item.rest_seconds} onChange={(e) => onChange({ ...item, rest_seconds: Number(e.target.value) })} className="rounded-md border border-rule bg-paper-raised px-2 py-1 font-mono text-label text-ink">
             {REST_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {restLabel(s, t('log.restNone'))}
@@ -105,12 +105,12 @@ function Editor({ template, onClose, onStart }: { template: WorkoutTemplate | nu
     >
       <Dialog.Title className="font-display text-2xl font-semibold tracking-wide uppercase">{template ? t('editor.titleEdit') : t('editor.titleNew')}</Dialog.Title>
       <label className="block">
-        <span className="mb-1 block font-mono text-[11px] tracking-wider text-muted uppercase">{t('editor.name')}</span>
+        <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('editor.name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('editor.namePlaceholder')} className={field} />
       </label>
 
       <div>
-        <span className="mb-1 block font-mono text-[11px] tracking-wider text-muted uppercase">{t('editor.exercises')}</span>
+        <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('editor.exercises')}</span>
         {items.length === 0 && <p className="py-2 text-sm text-muted">{t('editor.empty')}</p>}
         <ul className="space-y-2">
           {items.map((item, i) => (

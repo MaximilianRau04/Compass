@@ -26,7 +26,7 @@ export function TaskChip({ task, day, today, onOpen }: { task: Task; day: string
       >
         {color && <span className={`h-1 w-1 rounded-full ${color}`} />}
       </span>
-      {deadline && task.due_time && <span className="shrink-0 font-mono text-[10px] text-muted">{shortTime(task.due_time)}</span>}
+      {deadline && task.due_time && <span className="shrink-0 font-mono text-3xs text-muted">{shortTime(task.due_time)}</span>}
       <span className={['truncate', deadline ? 'font-medium' : ''].join(' ')}>{task.title}</span>
     </button>
   )
@@ -44,7 +44,7 @@ export function EventChip({ event, onOpen }: { event: CalendarEvent; onOpen: (ev
       className="flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-[12px] leading-tight hover:bg-ink/5"
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${style(event).dot}`} />
-      {!event.all_day && <span className="shrink-0 font-mono text-[10px] text-muted">{clockTime(event.starts_at, locale)}</span>}
+      {!event.all_day && <span className="shrink-0 font-mono text-3xs text-muted">{clockTime(event.starts_at, locale)}</span>}
       <span className="truncate">{event.title}</span>
     </button>
   )

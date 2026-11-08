@@ -53,7 +53,7 @@ export function BodyPanel() {
           {t('body.save')}
         </button>
       </form>
-      <p className="mt-1 font-mono text-[11px] text-muted">{t('body.hint')}</p>
+      <p className="mt-1 font-mono text-2xs text-muted">{t('body.hint')}</p>
 
       {d && (
         <>

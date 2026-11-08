@@ -29,7 +29,7 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
             {sender}
           </span>
         </p>
-        <p className="shrink-0 font-mono text-[11px] text-muted">
+        <p className="shrink-0 font-mono text-2xs text-muted">
           {accountName(mail.account)} · {relativeDay(localDay(mail.received_at), today, t, locale)}{' '}
           {clockTime(mail.received_at, locale)}
         </p>
@@ -38,16 +38,16 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
       {mail.summary ? (
         <p className="mt-1 text-sm text-muted">{mail.summary}</p>
       ) : (
-        <p className="mt-1 font-mono text-[11px] text-muted">
+        <p className="mt-1 font-mono text-2xs text-muted">
           {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
         </p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-        {mail.needs_action && <span className="rounded-full border border-brass px-2 py-0.5 text-[11px] text-brass">{t('mail.needsAction')}</span>}
-        {mail.task_title && !mail.task_id && <span className="text-[13px]">→ {mail.task_title}</span>}
+        {mail.needs_action && <span className="rounded-full border border-brass px-2 py-0.5 text-2xs text-brass">{t('mail.needsAction')}</span>}
+        {mail.task_title && !mail.task_id && <span className="text-label">→ {mail.task_title}</span>}
         <span className="ml-auto flex gap-1.5">
           {mail.task_id ? (
-            <span className="self-center font-mono text-[11px] text-muted">✓ {t('mail.hasTask')}</span>
+            <span className="self-center font-mono text-2xs text-muted">✓ {t('mail.hasTask')}</span>
           ) : (
             <button
               type="button"
@@ -92,7 +92,7 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
 function Accounts({ overview, today }: { overview: MailOverview; today: string }) {
   const { t, locale } = useI18n()
   return (
-    <ul className="mb-6 space-y-0.5 font-mono text-[11px] text-muted">
+    <ul className="mb-6 space-y-0.5 font-mono text-2xs text-muted">
       {overview.accounts.map((a) => (
         <li key={a.account}>
           {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
@@ -198,7 +198,7 @@ export function MailPage() {
       <div className="mb-2 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <button key={f.key} type="button" className={pill(!dismissed && filter === f.key)} aria-pressed={!dismissed && filter === f.key} onClick={() => { setFilter(f.key); setDismissed(false) }}>
-            {t(f.label)} <span className="font-mono text-[11px] opacity-70">{dismissed ? '' : list.filter(f.test).length}</span>
+            {t(f.label)} <span className="font-mono text-2xs opacity-70">{dismissed ? '' : list.filter(f.test).length}</span>
           </button>
         ))}
         <button type="button" className={`${pill(dismissed)} ml-auto`} aria-pressed={dismissed} onClick={() => setDismissed(!dismissed)}>

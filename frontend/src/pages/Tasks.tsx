@@ -177,7 +177,7 @@ export function TasksPage() {
                               { onError: (error) => toast.error(error.message) },
                             )
                           }
-                          className="mt-1 font-mono text-[11px] text-brass hover:underline"
+                          className="mt-1 font-mono text-2xs text-brass hover:underline"
                         >
                           {column.nextLabel && t(column.nextLabel)} →
                         </button>

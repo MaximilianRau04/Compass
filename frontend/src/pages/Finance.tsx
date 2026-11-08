@@ -108,7 +108,7 @@ function BankPicker({ suggested }: { suggested?: string }) {
           </li>
         ))}
       </ul>
-      <p className="font-mono text-[11px] text-muted">{t('fin.connectHint')}</p>
+      <p className="font-mono text-2xs text-muted">{t('fin.connectHint')}</p>
     </div>
   )
 }
@@ -131,7 +131,7 @@ function Connections({ connections }: { connections: BankConnection[] }) {
     )
   }
   return (
-    <div className="space-y-1 font-mono text-[11px] text-muted">
+    <div className="space-y-1 font-mono text-2xs text-muted">
       {active.map((c) => {
         const until = c.valid_until?.slice(0, 10)
         const left = until ? daysBetween(today, until) : null
@@ -234,7 +234,7 @@ function Categories({ data }: { data: FinanceOverview }) {
                     <button type="submit" className="relative text-xs text-brass before:absolute before:-inset-2 before:content-['']">{t('fin.save')}</button>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => (setEditing(c), setValue(budget ? String(budget) : ''))} className="relative mt-0.5 font-mono text-[11px] text-muted hover:text-ink before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']">
+                  <button type="button" onClick={() => (setEditing(c), setValue(budget ? String(budget) : ''))} className="relative mt-0.5 font-mono text-2xs text-muted hover:text-ink before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']">
                     {budget !== undefined ? t('fin.editBudget') : t('fin.setBudget')}
                   </button>
                 ))}
@@ -242,7 +242,7 @@ function Categories({ data }: { data: FinanceOverview }) {
           )
         })}
       </ul>
-      {month.uncategorized > 0 && <p className="mt-3 font-mono text-[11px] text-muted">{t('fin.uncategorized', { n: month.uncategorized })}</p>}
+      {month.uncategorized > 0 && <p className="mt-3 font-mono text-2xs text-muted">{t('fin.uncategorized', { n: month.uncategorized })}</p>}
     </section>
   )
 }
@@ -259,13 +259,13 @@ function Recurring({ data }: { data: FinanceOverview }) {
         <p className="mt-3 text-sm text-muted">{t('fin.noRecurring')}</p>
       ) : (
         <>
-          <p className="mt-2 font-mono text-[11px] text-muted">{t('fin.recurringTotal', { total: money(total, 2) })}</p>
+          <p className="mt-2 font-mono text-2xs text-muted">{t('fin.recurringTotal', { total: money(total, 2) })}</p>
           <ul className="mt-2 divide-y divide-rule">
             {data.recurring.map((r) => (
               <li key={`${r.name}-${r.amount}`} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                 <span className="min-w-0">
                   <span className="block truncate">{r.name}</span>
-                  <span className="font-mono text-[11px] text-muted">
+                  <span className="font-mono text-2xs text-muted">
                     {t(`fin.interval.${r.interval}` as MessageKey)} · {t('fin.next', { day: relativeDay(r.next_date, today, t, locale) })}
                   </span>
                 </span>
@@ -307,7 +307,7 @@ function Depot({ data }: { data: FinanceOverview }) {
           {t('fin.save')}
         </button>
       </form>
-      <p className="mt-1 font-mono text-[11px] text-muted">
+      <p className="mt-1 font-mono text-2xs text-muted">
         {last
           ? t('fin.depotLast', { value: money(last.value), day: parseDate(last.date).toLocaleDateString(locale) }) +
             (before ? ` · ${t('fin.depotChange', { change: money(last.value - before.value) })}` : '')
@@ -349,7 +349,7 @@ function TransactionRow({ tx, categories }: { tx: BankTransaction; categories: s
     <li className="flex items-start justify-between gap-3 py-2 text-sm">
       <span className="min-w-0 flex-1">
         <span className="block truncate">{party || tx.purpose || '–'}</span>
-        <span className="block truncate font-mono text-[11px] text-muted">
+        <span className="block truncate font-mono text-2xs text-muted">
           {relativeDay(tx.booking_date, today, t, locale)}
           {tx.purpose && party ? ` · ${tx.purpose}` : ''}
         </span>

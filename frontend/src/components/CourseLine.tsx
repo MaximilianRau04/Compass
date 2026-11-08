@@ -71,7 +71,7 @@ export function CourseLine({ today, events, tasks, wakeAt }: { today: string; ev
         {/* Label of the current or next waypoint, above the line. */}
         {focus && (
           <span
-            className="absolute top-0 max-w-[60%] -translate-x-1/2 truncate font-mono text-[11px] text-ink"
+            className="absolute top-0 max-w-[60%] -translate-x-1/2 truncate font-mono text-2xs text-ink"
             style={{ left: `${focusPct}%` }}
           >
             <span className="text-muted">{time(focus.start)}</span> {focus.event.title}
@@ -91,7 +91,7 @@ export function CourseLine({ today, events, tasks, wakeAt }: { today: string; ev
           return (
             <span key={h} className="absolute top-[1.95rem] -translate-x-1/2" style={{ left: `${pct(h)}%` }}>
               <span className={`mx-auto block w-px bg-rule ${labelled ? 'h-1.5' : 'h-1'}`} />
-              {labelled && <span className="mt-1 block font-mono text-[10px] text-muted tabular-nums">{String(new Date(h).getHours()).padStart(2, '0')}</span>}
+              {labelled && <span className="mt-1 block font-mono text-3xs text-muted tabular-nums">{String(new Date(h).getHours()).padStart(2, '0')}</span>}
             </span>
           )
         })}
@@ -129,7 +129,7 @@ export function CourseLine({ today, events, tasks, wakeAt }: { today: string; ev
 
         {/* Wake-up mark at the start of the course. */}
         {wake !== null && wake >= t0 && (
-          <span className="absolute top-[0.85rem] -translate-x-1/2 font-mono text-[10px] leading-none text-muted" style={{ left: `${pct(wake)}%` }}>
+          <span className="absolute top-[0.85rem] -translate-x-1/2 font-mono text-3xs leading-none text-muted" style={{ left: `${pct(wake)}%` }}>
             ↑
           </span>
         )}

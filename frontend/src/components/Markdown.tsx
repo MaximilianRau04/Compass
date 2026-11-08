@@ -61,7 +61,7 @@ export function Markdown({ text, className = '' }: { text: string; className?: s
       {blocks(text).map((block, i) => {
         if (block.type === 'h') {
           return (
-            <h3 key={i} className={block.level <= 2 ? 'pt-1 font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase' : 'font-semibold'}>
+            <h3 key={i} className={block.level <= 2 ? 'pt-1 font-display text-label font-semibold tracking-[0.18em] text-muted uppercase' : 'font-semibold'}>
               {inline(block.text)}
             </h3>
           )

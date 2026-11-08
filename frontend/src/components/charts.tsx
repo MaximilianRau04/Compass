@@ -63,7 +63,7 @@ function YAxis({ ticks, scale, right }: { ticks: number[]; scale: (v: number) =>
       {ticks.map((tick) => (
         <g key={tick}>
           <line x1={PAD.left} x2={right} y1={scale(tick)} y2={scale(tick)} stroke="var(--rule)" strokeWidth={1} />
-          <text x={PAD.left - 8} y={scale(tick)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-[10px] tabular-nums">
+          <text x={PAD.left - 8} y={scale(tick)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-3xs tabular-nums">
             {tick >= 1000 ? `${Math.round(tick / 100) / 10}K` : tick}
           </text>
         </g>
@@ -128,12 +128,12 @@ export function ColumnChart({
                   />
                 )}
                 {(i % labelEvery === (last % labelEvery) || i === last) && (
-                  <text x={cx} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[10px]">
+                  <text x={cx} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-3xs">
                     {d.label}
                   </text>
                 )}
                 {i === last && d.value > 0 && (
-                  <text x={cx} y={y(d.value) - 6} textAnchor="middle" className="fill-ink font-mono text-[11px] font-medium">
+                  <text x={cx} y={y(d.value) - 6} textAnchor="middle" className="fill-ink font-mono text-2xs font-medium">
                     {format(d.value)}
                   </text>
                 )}
@@ -175,7 +175,7 @@ export function ColumnChart({
                 stroke="var(--paper)"
                 strokeWidth={3}
                 paintOrder="stroke"
-                className="fill-ink font-mono text-[10px]"
+                className="fill-ink font-mono text-3xs"
               >
                 {target.label}
               </text>
@@ -270,7 +270,7 @@ export function LineChart({
               const every = Math.max(1, Math.ceil(data.length / Math.max(1, Math.floor(innerW / 56))))
               if ((data.length - 1 - i) % every !== 0) return null
               return (
-                <text key={p.key} x={points[i][0]} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[10px]">
+                <text key={p.key} x={points[i][0]} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-3xs">
                   {dayLabel(p.date)}
                 </text>
               )
@@ -281,7 +281,7 @@ export function LineChart({
               const time = new Date(`${month}-01`).getTime()
               if (time < t0 || time > t1) return null
               return (
-                <text key={month} x={x(time)} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[10px]">
+                <text key={month} x={x(time)} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-3xs">
                   {month.slice(5)}/{month.slice(2, 4)}
                 </text>
               )
@@ -294,7 +294,7 @@ export function LineChart({
           {[hover ?? points.length - 1].map((i) => (
             <circle key={i} cx={points[i][0]} cy={points[i][1]} r={4.5} fill={color} stroke="var(--paper)" strokeWidth={2} />
           ))}
-          <text x={end[0] + 8} y={end[1]} dy="0.32em" className="fill-ink font-mono text-[11px] font-medium">
+          <text x={end[0] + 8} y={end[1]} dy="0.32em" className="fill-ink font-mono text-2xs font-medium">
             {format(values[values.length - 1])}
           </text>
           <rect
@@ -380,14 +380,14 @@ export function Hypnogram({
           {lanes.map((label, i) => (
             <g key={label}>
               <line x1={HYPNO_LEFT} x2={width - PAD.right} y1={laneY(i)} y2={laneY(i)} stroke="var(--rule)" strokeWidth={1} />
-              <text x={HYPNO_LEFT - 8} y={laneY(i)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-[10px]">
+              <text x={HYPNO_LEFT - 8} y={laneY(i)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-3xs">
                 {label}
               </text>
             </g>
           ))}
           {hoursList.map((h, i) =>
             i % labelEvery === 0 ? (
-              <text key={h} x={x(h)} y={height - 6} textAnchor="middle" className="fill-muted font-mono text-[10px] tabular-nums">
+              <text key={h} x={x(h)} y={height - 6} textAnchor="middle" className="fill-muted font-mono text-3xs tabular-nums">
                 {hourLabel(new Date(h))}
               </text>
             ) : null,
@@ -592,7 +592,7 @@ export function DayCurve({
                 fill="var(--rule)"
                 opacity={0.45}
               />
-              <text x={x(Math.max(t0, new Date(band.start).getTime())) + 6} y={DAY_PAD.top + 12} className="fill-muted font-mono text-[10px]">
+              <text x={x(Math.max(t0, new Date(band.start).getTime())) + 6} y={DAY_PAD.top + 12} className="fill-muted font-mono text-3xs">
                 {band.label}
               </text>
             </g>
@@ -600,20 +600,20 @@ export function DayCurve({
           {ticks.map((tick) => (
             <g key={tick}>
               <line x1={DAY_PAD.left} x2={DAY_PAD.left + innerW} y1={y(tick)} y2={y(tick)} stroke="var(--rule)" strokeWidth={1} />
-              <text x={DAY_PAD.left - 8} y={y(tick)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-[10px] tabular-nums">
+              <text x={DAY_PAD.left - 8} y={y(tick)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-3xs tabular-nums">
                 {tick}
               </text>
             </g>
           ))}
           {hours.map((t) => (
-            <text key={t} x={x(t)} y={DAY_HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[10px]">
+            <text key={t} x={x(t)} y={DAY_HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-3xs">
               {hourLabel(new Date(t))}
             </text>
           ))}
           {reference && (
             <g>
               <line x1={DAY_PAD.left} x2={DAY_PAD.left + innerW} y1={y(reference.value)} y2={y(reference.value)} stroke="var(--muted)" strokeWidth={1} strokeDasharray="4 3" />
-              <text x={DAY_PAD.left + innerW} y={y(reference.value) - 5} textAnchor="end" className="fill-muted font-mono text-[10px]">
+              <text x={DAY_PAD.left + innerW} y={y(reference.value) - 5} textAnchor="end" className="fill-muted font-mono text-3xs">
                 {reference.label}
               </text>
             </g>

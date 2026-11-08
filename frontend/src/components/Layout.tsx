@@ -64,7 +64,7 @@ function MoreMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen(!open)}
-        className={['flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px]', active || open ? 'text-ink' : 'text-muted'].join(' ')}
+        className={['flex flex-1 flex-col items-center gap-0.5 py-2 text-2xs', active || open ? 'text-ink' : 'text-muted'].join(' ')}
       >
         <span className={active ? 'text-brass' : ''}>
           <Icon d={MORE_ICON} />
@@ -117,7 +117,7 @@ export function Layout() {
             className={({ isActive }) =>
               [
                 item.more ? 'hidden sm:flex' : 'flex',
-                'flex-1 flex-col items-center gap-0.5 py-2 text-[11px] sm:flex-none sm:flex-row sm:gap-3 sm:rounded-md sm:px-2 sm:py-2 sm:text-sm',
+                'flex-1 flex-col items-center gap-0.5 py-2 text-2xs sm:flex-none sm:flex-row sm:gap-3 sm:rounded-md sm:px-2 sm:py-2 sm:text-sm',
                 isActive ? 'text-ink sm:bg-paper-raised' : 'text-muted hover:text-ink',
               ].join(' ')
             }
@@ -145,12 +145,12 @@ export function SectionLabel({ children, count, tone }: { children: string; coun
   return (
     <h2
       className={[
-        'flex items-baseline gap-2 border-b border-rule pb-1 font-display text-[13px] font-semibold tracking-[0.18em] uppercase',
+        'flex items-baseline gap-2 border-b border-rule pb-1 font-display text-label font-semibold tracking-[0.18em] uppercase',
         tone === 'signal' ? 'text-signal' : 'text-muted',
       ].join(' ')}
     >
       {children}
-      {count !== undefined && <span className="font-mono text-[11px] font-normal tracking-normal">{count}</span>}
+      {count !== undefined && <span className="font-mono text-2xs font-normal tracking-normal">{count}</span>}
     </h2>
   )
 }

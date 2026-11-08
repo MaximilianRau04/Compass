@@ -13,6 +13,13 @@
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+  /* Small sizes below Tailwind's text-xs. Only the size: unlike text-xs they keep the inherited
+     line height, like the text-[11px] they replace. 2xs for meta lines, 3xs for chart labels,
+     label for the condensed section labels. */
+  --text-2xs: 11px;
+  --text-3xs: 10px;
+  --text-label: 13px;
+
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);
   --color-ink: var(--ink);

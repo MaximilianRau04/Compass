@@ -14,7 +14,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { SectionLabel } from './Layout'
 
 const input = 'w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-[14px] focus:border-brass focus:outline-none'
-const label = 'flex flex-col gap-1 font-mono text-[11px] tracking-wider text-muted uppercase'
+const label = 'flex flex-col gap-1 font-mono text-2xs tracking-wider text-muted uppercase'
 
 /** Bedtime after the wake-up time (23:30 → 07:00) means the evening before the wake-up day. */
 function nightTimes(wakeDay: string, bed: string, wake: string) {
@@ -117,7 +117,7 @@ function ManualRow({ night, today }: { night: SleepNight; today: string }) {
     <li className="flex items-center justify-between gap-3 py-2">
       <span>
         <span className="font-medium">{hours(night.asleep_minutes)}</span>
-        <span className="ml-2 font-mono text-[11px] text-muted">
+        <span className="ml-2 font-mono text-2xs text-muted">
           {when} · {clockTime(night.start_at, locale)}–{clockTime(night.end_at, locale)}
         </span>
       </span>

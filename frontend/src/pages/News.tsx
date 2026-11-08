@@ -48,7 +48,7 @@ function NewsRow({ item, today, onTopic }: { item: NewsItem; today: string; onTo
           <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="font-medium hover:text-brass">
             {item.title}
           </a>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 font-mono text-2xs text-muted">
             {item.feed} · {relativeDay(localDay(item.published_at), today, t, locale)} {clockTime(item.published_at, locale)}
             {item.score !== 0 && ` · ${item.score > 0 ? '+' : ''}${decimal(item.score, locale)}`}
           </p>
@@ -56,12 +56,12 @@ function NewsRow({ item, today, onTopic }: { item: NewsItem; today: string; onTo
           {(item.topics.length > 0 || item.trending.length > 0) && (
             <p className="mt-1.5 flex flex-wrap gap-1">
               {item.topics.map((topic) => (
-                <button key={topic} type="button" onClick={() => onTopic(topic)} className="rounded-full border border-rule px-2 py-0.5 text-[11px] text-muted hover:border-ink hover:text-ink">
+                <button key={topic} type="button" onClick={() => onTopic(topic)} className="rounded-full border border-rule px-2 py-0.5 text-2xs text-muted hover:border-ink hover:text-ink">
                   {topic}
                 </button>
               ))}
               {item.trending.map((term) => (
-                <button key={term} type="button" onClick={() => onTopic(term)} className="rounded-full border border-brass/60 px-2 py-0.5 text-[11px] text-brass hover:bg-brass/10">
+                <button key={term} type="button" onClick={() => onTopic(term)} className="rounded-full border border-brass/60 px-2 py-0.5 text-2xs text-brass hover:bg-brass/10">
                   ↗ {term}
                 </button>
               ))}
@@ -82,7 +82,7 @@ function Feeds({ overview, today }: { overview: NewsOverview; today: string }) {
   const failed = overview.feeds.filter((f) => f.last_error)
   const last = overview.feeds.map((f) => f.last_success_at).filter((v): v is string => !!v).sort().at(-1)
   return (
-    <div className="mb-6 font-mono text-[11px] text-muted">
+    <div className="mb-6 font-mono text-2xs text-muted">
       <p>
         {t('news.feeds', { n: overview.feeds.length })}
         {last && ` · ${t('news.fetchedAt', { when: `${relativeDay(localDay(last), today, t, locale)} ${clockTime(last, locale)}` })}`}
@@ -110,8 +110,8 @@ function Report({ overview, today }: { overview: NewsOverview; today: string }) 
   return (
     <section className="rounded-lg border border-rule bg-paper-raised px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{report.title ?? t('news.report')}</h2>
-        <span className={`font-mono text-[11px] ${old ? 'text-brass' : 'text-muted'}`}>
+        <h2 className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{report.title ?? t('news.report')}</h2>
+        <span className={`font-mono text-2xs ${old ? 'text-brass' : 'text-muted'}`}>
           {t('news.reportBy', { date: relativeDay(report.local_date, today, t, locale) })}
           {old && ` · ${t('news.reportOld')}`}
         </span>
@@ -150,7 +150,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
         {topics.map((topic) => (
           <li key={topic.term} className={`flex items-center gap-1 rounded-full border py-0.5 pr-1 pl-2.5 ${topic.weight < 0 ? 'border-signal/60 text-signal' : 'border-rule'}`}>
             {topic.term}
-            <span className="font-mono text-[11px] text-muted">
+            <span className="font-mono text-2xs text-muted">
               {topic.weight > 0 ? '+' : ''}
               {decimal(topic.weight, locale)}
             </span>
@@ -181,7 +181,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
           {t('news.save')}
         </button>
       </form>
-      <p className="mt-2 font-mono text-[11px] text-muted">{t('news.weightHint')}</p>
+      <p className="mt-2 font-mono text-2xs text-muted">{t('news.weightHint')}</p>
 
       <div className="mt-4 space-y-1 text-muted">
         <p>
@@ -286,7 +286,7 @@ export function NewsPage() {
                     onClick={() => pickTopic(trend.term)}
                     className={['rounded-full border px-2.5 py-0.5 text-sm', topic === trend.term ? 'border-brass bg-brass text-brass-ink' : 'border-brass/60 text-brass hover:bg-brass/10'].join(' ')}
                   >
-                    ↗ {trend.term} <span className="font-mono text-[11px] opacity-70">{t('news.trendFeeds', { n: trend.feeds.length })}</span>
+                    ↗ {trend.term} <span className="font-mono text-2xs opacity-70">{t('news.trendFeeds', { n: trend.feeds.length })}</span>
                   </button>
                 </li>
               ))}
@@ -329,7 +329,7 @@ export function NewsPage() {
                 {topic} ×
               </button>
             )}
-            <span className="ml-auto font-mono text-[11px] text-muted">{t('news.count', { n: filtered.length, total: news.data.length })}</span>
+            <span className="ml-auto font-mono text-2xs text-muted">{t('news.count', { n: filtered.length, total: news.data.length })}</span>
           </div>
           {filtered.length === 0 ? (
             <p className="text-muted">{overview.data.feeds.length === 0 ? t('news.empty') : t('news.nothing')}</p>

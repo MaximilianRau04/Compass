@@ -10,7 +10,7 @@ export function EventItem({ event, onOpen }: { event: CalendarEvent; onOpen?: (e
   const body = (
     <>
       <span className="block leading-snug">{event.title}</span>
-      <span className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[11px] text-muted">
+      <span className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-2xs text-muted">
         {event.location && <span>{event.location}</span>}
         <span className="uppercase">{event.feed}</span>
       </span>

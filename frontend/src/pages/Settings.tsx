@@ -92,7 +92,7 @@ function Notifications() {
           </li>
         ))}
       </ul>
-      <p className="font-mono text-[11px] text-muted">
+      <p className="font-mono text-2xs text-muted">
         {t('push.quiet', { start: config.data.quiet_start, end: config.data.quiet_end })}
       </p>
       <div className="flex flex-wrap gap-2">

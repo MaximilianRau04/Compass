@@ -78,7 +78,7 @@ export function TaskItem({
             {task.title}
           </span>
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] text-muted">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-2xs text-muted">
           {task.area && (
             <span className={`inline-flex items-center gap-1.5 ${AREA_TEXT[task.area.color] ?? ''}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${AREA_BG[task.area.color] ?? 'bg-muted'}`} />

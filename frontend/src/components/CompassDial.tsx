@@ -38,7 +38,7 @@ export function CompassDial({ done, total }: { done: number; total: number }) {
             strokeWidth={deg % 90 === 0 ? 2 : 1}
           />
         ))}
-        <text y="-30" textAnchor="middle" className="fill-muted font-display text-[11px] font-semibold">
+        <text y="-30" textAnchor="middle" className="fill-muted font-display text-2xs font-semibold">
           N
         </text>
         <g

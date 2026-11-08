@@ -117,7 +117,7 @@ export function WeekView({
           {hours.map((hour) => (
             <span
               key={hour}
-              className="absolute right-1.5 -translate-y-1/2 font-mono text-[10px] text-muted tabular-nums"
+              className="absolute right-1.5 -translate-y-1/2 font-mono text-3xs text-muted tabular-nums"
               style={{ top: top(hour * 60) }}
             >
               {hour > from && `${String(hour).padStart(2, '0')}:00`}
@@ -155,7 +155,7 @@ export function WeekView({
                 >
                   <span className="line-clamp-2 font-medium">{event.title}</span>
                   {height >= 40 && (
-                    <span className="mt-0.5 block truncate font-mono text-[10px] text-muted">
+                    <span className="mt-0.5 block truncate font-mono text-3xs text-muted">
                       {clockTime(event.starts_at, locale)}
                       {event.location && ` · ${event.location}`}
                     </span>

@@ -126,7 +126,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
             rows={12}
             placeholder={t('notes.bodyPlaceholder')}
             aria-label={t('notes.body')}
-            className={`${field} font-mono text-[13px] leading-relaxed`}
+            className={`${field} font-mono text-label leading-relaxed`}
           />
         ) : draft.body.trim() ? (
           <Markdown text={draft.body} className="rounded-md border border-rule bg-paper px-3 py-2 text-[15px]" />
@@ -174,7 +174,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
             {note.archived ? t('notes.restore') : t('notes.archive')}
           </button>
         )}
-        {note && note.source !== 'manual' && <span className="font-mono text-[11px] text-muted">{t(`notes.source.${note.source}`)}</span>}
+        {note && note.source !== 'manual' && <span className="font-mono text-2xs text-muted">{t(`notes.source.${note.source}`)}</span>}
         <span className="flex-1" />
         <Dialog.Close className={button('quiet')}>{t('sheet.close')}</Dialog.Close>
         <button

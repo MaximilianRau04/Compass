@@ -269,7 +269,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
       {events.data && events.data.length > 0 && (
         <details className="border-t border-rule pt-3">
           <summary className={`${label} cursor-pointer`}>{t('sheet.history')}</summary>
-          <ol className="mt-2 space-y-1 font-mono text-[11px] text-muted">
+          <ol className="mt-2 space-y-1 font-mono text-2xs text-muted">
             {events.data.map((event) => (
               <li key={event.id} className="flex gap-3">
                 <time className="shrink-0">

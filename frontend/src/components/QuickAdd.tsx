@@ -125,7 +125,7 @@ export function QuickAdd({
       </div>
       {/* Only show the preview when something besides the title was recognized. */}
       {text.trim() && chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-rule px-3 py-2 font-mono text-[11px] text-muted">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-rule px-3 py-2 font-mono text-2xs text-muted">
           <span className="text-ink">{isNote ? text.replace(NOTE_PREFIX, '') || '…' : p?.title || '…'}</span>
           {chips.map((chip) => (
             <span key={chip.label} className={chip.className}>

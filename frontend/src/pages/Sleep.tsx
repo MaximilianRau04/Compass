@@ -27,7 +27,7 @@ function LastNight({ night, today }: { night: SleepNightDetail; today: string })
         <p className="text-xs text-muted">
           {t('sleep.lastNight')} · {relativeDay(night.local_date, today, t, locale)}
         </p>
-        <p className="font-mono text-[11px] text-muted">{night.source_app === 'compass' ? t('sleepLog.source') : appName(night.source_app)}</p>
+        <p className="font-mono text-2xs text-muted">{night.source_app === 'compass' ? t('sleepLog.source') : appName(night.source_app)}</p>
       </div>
       <p className="mt-1 flex flex-wrap items-baseline gap-x-3">
         <span className="text-4xl font-semibold">{hours(night.asleep_minutes)}</span>
@@ -223,10 +223,10 @@ function Extras({ extras: raw, longLabel, dayLabel }: { extras: ExtraDay[]; long
 
 function SyncLine({ sync, today }: { sync: HealthSummary['sync']; today: string }) {
   const { t, locale } = useI18n()
-  if (!sync?.last_success_at) return <p className="mb-6 font-mono text-[11px] text-muted">{t('sleep.never')}</p>
+  if (!sync?.last_success_at) return <p className="mb-6 font-mono text-2xs text-muted">{t('sleep.never')}</p>
   const when = `${relativeDay(localDay(sync.last_success_at), today, t, locale)} ${clockTime(sync.last_success_at, locale)}`
   return (
-    <p className="mb-6 font-mono text-[11px] text-muted">
+    <p className="mb-6 font-mono text-2xs text-muted">
       {t('sleep.synced', { when })}
       {sync.device && ` · ${sync.device}`}
       {sync.last_error && <span className="block text-signal">{t('sleep.syncError', { message: sync.last_error })}</span>}
@@ -286,9 +286,9 @@ export function SleepPage() {
     <li key={w.id} className="flex items-baseline justify-between gap-3 py-2.5">
       <span>
         <span className="font-medium">{w.title ?? w.exercise?.replaceAll('_', ' ') ?? appName(w.source_app)}</span>
-        <span className="ml-2 font-mono text-[11px] text-muted">{relativeDay(localDay(w.start_at), today, t, locale)}</span>
+        <span className="ml-2 font-mono text-2xs text-muted">{relativeDay(localDay(w.start_at), today, t, locale)}</span>
       </span>
-      <span className="font-mono text-[11px] text-muted">
+      <span className="font-mono text-2xs text-muted">
         {appName(w.source_app)} · {t('training.duration', { n: w.duration_minutes })}
         {w.gymday_duplicate && ` · ${t('sleep.duplicate')}`}
       </span>
@@ -313,7 +313,7 @@ export function SleepPage() {
 
         <section>
           <SectionLabel>{t('sleep.perNight')}</SectionLabel>
-          <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('sleep.perNightHint')}</p>
+          <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('sleep.perNightHint')}</p>
           <ColumnChart
             color="var(--m-sleep)"
             data={sleepBars}
@@ -397,11 +397,11 @@ export function SleepPage() {
         {data.workouts.length > 0 && (
           <section>
             <SectionLabel count={data.workouts.length}>{t('sleep.workouts')}</SectionLabel>
-            <p className="mt-1 font-mono text-[11px] text-muted">{t('sleep.workoutsHint')}</p>
+            <p className="mt-1 font-mono text-2xs text-muted">{t('sleep.workoutsHint')}</p>
             <ul className="divide-y divide-rule/60">{data.workouts.slice(0, 5).map(workout)}</ul>
             {data.workouts.length > 5 && (
               <details>
-                <summary className="cursor-pointer py-2 font-mono text-[11px] text-muted hover:text-ink">{t('sleep.allWorkouts', { n: data.workouts.length })}</summary>
+                <summary className="cursor-pointer py-2 font-mono text-2xs text-muted hover:text-ink">{t('sleep.allWorkouts', { n: data.workouts.length })}</summary>
                 <ul className="divide-y divide-rule/60">{data.workouts.slice(5).map(workout)}</ul>
               </details>
             )}

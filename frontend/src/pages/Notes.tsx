@@ -33,11 +33,11 @@ function NoteRow({ note, today, onOpen }: { note: NoteListItem; today: string; o
             )}
             {note.title}
           </span>
-          <span className="shrink-0 font-mono text-[11px] text-muted">{relativeDay(localDay(note.updated_at), today, t, locale)}</span>
+          <span className="shrink-0 font-mono text-2xs text-muted">{relativeDay(localDay(note.updated_at), today, t, locale)}</span>
         </span>
         {note.snippet && <span className="mt-0.5 line-clamp-2 block text-sm text-muted">{note.snippet}</span>}
         {(note.area || note.tags.length > 0) && (
-          <span className="mt-1 flex flex-wrap gap-x-2 font-mono text-[11px] text-muted">
+          <span className="mt-1 flex flex-wrap gap-x-2 font-mono text-2xs text-muted">
             {note.area && <span className={AREA_TEXT[note.area.color]}>{note.area.name}</span>}
             {note.tags.map((tag) => (
               <span key={tag}>#{tag}</span>
@@ -110,7 +110,7 @@ export function NotesPage() {
         <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[12px]">
           {tags.data.map(({ tag: name, count }) => (
             <button key={name} type="button" aria-pressed={tag === name} onClick={() => setTag(tag === name ? undefined : name)} className={tag === name ? 'text-brass' : 'text-muted hover:text-ink'}>
-              #{name} <span className="text-[10px]">{count}</span>
+              #{name} <span className="text-3xs">{count}</span>
             </button>
           ))}
         </div>

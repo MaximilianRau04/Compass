@@ -136,7 +136,7 @@ export function WelcomePage() {
                 <span className="font-medium">{t(label)}</span>
                 <span className="block text-muted">{t(hint)}</span>
               </span>
-              <span className={`shrink-0 font-mono text-[11px] ${sources[source] ? 'text-chart' : 'text-muted'}`}>
+              <span className={`shrink-0 font-mono text-2xs ${sources[source] ? 'text-chart' : 'text-muted'}`}>
                 {t(sources[source] ? 'welcome.on' : 'welcome.off')}
               </span>
             </li>

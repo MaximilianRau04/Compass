@@ -33,7 +33,7 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
       <Link to="/mail" className="block hover:text-ink">
         <SectionLabel count={overview.important}>{t('today.mail')}</SectionLabel>
       </Link>
-      <p className="mt-1 font-mono text-[11px] text-muted">
+      <p className="mt-1 font-mono text-2xs text-muted">
         {t('today.mailCount', { n: overview.important, unread: overview.unread_important })}
       </p>
       <ul className="mt-1 divide-y divide-rule/60">
@@ -63,7 +63,7 @@ function Bedtime() {
       <span aria-hidden className="text-brass">☾</span>
       <p>
         <span className="font-medium">{t('bedtime.latest', { time: clockTime(b.latest_bedtime, locale) })}</span>
-        <span className="block font-mono text-[11px] text-muted">
+        <span className="block font-mono text-2xs text-muted">
           {t(b.capped ? 'bedtime.capped' : 'bedtime.because', {
             time: clockTime(b.event.starts_at, locale),
             title: b.event.title,
@@ -84,8 +84,8 @@ function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   return (
     <details open className="rise rounded-md border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 3 } as CSSProperties}>
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
-        <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
-        <span className="font-mono text-[11px] text-muted">{clockTime(brief.updated_at, locale)}</span>
+        <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
+        <span className="font-mono text-2xs text-muted">{clockTime(brief.updated_at, locale)}</span>
       </summary>
       <Markdown text={brief.body} className="mt-2" />
     </details>
@@ -106,8 +106,8 @@ function OtherBriefs({ briefs, weekly, today }: { briefs: Brief[] | undefined; w
       {others.map((brief) => (
         <details key={brief.id} className="rounded-md border border-rule px-4 py-3">
           <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
-            <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
-            <span className="font-mono text-[11px] text-muted">
+            <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
+            <span className="font-mono text-2xs text-muted">
               {brief.local_date === today ? clockTime(brief.updated_at, locale) : relativeDay(brief.local_date, today, t, locale)}
             </span>
           </summary>
@@ -132,7 +132,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
             <SectionLabel>{t('today.news')}</SectionLabel>
           </Link>
           <Markdown text={short} className="mt-2 text-[15px]" />
-          <Link to="/news" className="mt-2 inline-block font-mono text-[11px] text-brass hover:underline">
+          <Link to="/news" className="mt-2 inline-block font-mono text-2xs text-brass hover:underline">
             {t('today.newsReport')} →
           </Link>
         </section>
@@ -151,7 +151,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
             <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-brass">
               {item.title}
             </a>
-            <span className="font-mono text-[11px] text-muted"> · {item.feed}</span>
+            <span className="font-mono text-2xs text-muted"> · {item.feed}</span>
           </li>
         ))}
       </ul>

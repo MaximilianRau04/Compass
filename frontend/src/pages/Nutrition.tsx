@@ -83,9 +83,9 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
     <section className="mb-8 rounded-md border border-rule bg-paper-raised px-4 py-3">
       <p className="text-xs text-muted">
         {isToday ? t('nutrition.today') : `${t('nutrition.lastDay')} · ${relativeDay(day.date, today, t, locale)}`}
-        <span className="ml-2 font-mono text-[11px]">{t(`nutrition.source.${day.source}` as MessageKey)}</span>
+        <span className="ml-2 font-mono text-2xs">{t(`nutrition.source.${day.source}` as MessageKey)}</span>
         {day.flags.map((flag) => (
-          <span key={flag} className="ml-2 rounded-full border border-brass/60 px-1.5 py-px font-mono text-[10px] text-brass">
+          <span key={flag} className="ml-2 rounded-full border border-brass/60 px-1.5 py-px font-mono text-3xs text-brass">
             {t(`nutrition.flag.${flag}`)}
           </span>
         ))}
@@ -147,7 +147,7 @@ function Quality({ data }: { data: NutritionSummary }) {
   ].filter(Boolean)
   if (parts.length === 0) return null
   return (
-    <p className="-mt-5 mb-8 font-mono text-[11px] text-muted">
+    <p className="-mt-5 mb-8 font-mono text-2xs text-muted">
       {t('nutrition.qLeftOut', { list: parts.join(' · ') })}
       {data.averages_all.kcal !== null && data.averages_all.kcal !== data.averages.kcal && ` ${t('nutrition.qWithThem', { kcal: kcal(data.averages_all.kcal, locale) })}`}
     </p>
@@ -163,7 +163,7 @@ function MacroAverages({ averages }: { averages: NutritionSummary['averages'] })
   return (
     <section>
       <SectionLabel>{t('nutrition.macros')}</SectionLabel>
-      <p className="mt-1 font-mono text-[11px] text-muted">{t('nutrition.macrosHint')}</p>
+      <p className="mt-1 font-mono text-2xs text-muted">{t('nutrition.macrosHint')}</p>
       <ul className="mt-3 space-y-2">
         {values.map((v) => (
           <li key={v.key} className="grid grid-cols-[7rem_1fr_6.5rem] items-center gap-3 text-sm">
@@ -199,7 +199,7 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
   return (
     <section>
       <SectionLabel>{t('nutrition.goals')}</SectionLabel>
-      <p className="mt-1 mb-3 font-mono text-[11px] text-muted">{t('nutrition.goalsHint')}</p>
+      <p className="mt-1 mb-3 font-mono text-2xs text-muted">{t('nutrition.goalsHint')}</p>
       <form
         className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
@@ -252,7 +252,7 @@ function Weight() {
   return (
     <section>
       <SectionLabel>{t('nutrition.weight')}</SectionLabel>
-      <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('nutrition.weightHint')}</p>
+      <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('nutrition.weightHint')}</p>
       <LineChart
         data={points}
         gapDays={45}
@@ -364,7 +364,7 @@ export function NutritionPage() {
       <div className="space-y-10">
         <section>
           <SectionLabel>{t('nutrition.kcalPerDay')}</SectionLabel>
-          <p className="mt-1 mb-2 font-mono text-[11px] text-muted">{t('nutrition.perDayHint')}</p>
+          <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('nutrition.perDayHint')}</p>
           <ColumnChart
             color="var(--m-food)"
             data={kcalBars}

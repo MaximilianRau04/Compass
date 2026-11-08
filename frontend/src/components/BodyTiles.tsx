@@ -52,8 +52,8 @@ function Tile({
         <span className="text-3xl leading-none font-semibold tabular-nums">{value}</span>
         {unit && <span className="text-sm text-muted">{unit}</span>}
       </span>
-      {note && <span className="mt-1 truncate font-mono text-[11px] text-muted">{note}</span>}
-      {warn && <span className="mt-0.5 font-mono text-[11px] text-brass">{warn}</span>}
+      {note && <span className="mt-1 truncate font-mono text-2xs text-muted">{note}</span>}
+      {warn && <span className="mt-0.5 font-mono text-2xs text-brass">{warn}</span>}
       <span className="mt-auto block pt-2">{children}</span>
     </Link>
   )
