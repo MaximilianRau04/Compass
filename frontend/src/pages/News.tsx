@@ -27,7 +27,7 @@ function Thumb({ item, value }: { item: NewsItem; value: 1 | -1 }) {
       disabled={feedback.isPending}
       onClick={() => feedback.mutate({ id: item.id, value: active ? null : value }, { onError: (error) => toast.error(error.message) })}
       className={[
-        'rounded-md border px-2 py-0.5 text-sm transition-colors disabled:opacity-50',
+        "relative rounded-md border px-2 py-0.5 text-sm transition-colors disabled:opacity-50 before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']",
         active ? (value === 1 ? 'border-brass bg-brass/10 text-brass' : 'border-signal bg-signal/10 text-signal') : 'border-rule text-muted hover:border-ink hover:text-ink',
       ].join(' ')}
     >
@@ -153,7 +153,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
               {topic.weight > 0 ? '+' : ''}
               {decimal(topic.weight, locale)}
             </span>
-            <button type="button" aria-label={t('news.removeTopic', { term: topic.term })} onClick={() => setTopics(topics.filter((x) => x.term !== topic.term))} className="rounded-full px-1.5 text-muted hover:text-ink">
+            <button type="button" aria-label={t('news.removeTopic', { term: topic.term })} onClick={() => setTopics(topics.filter((x) => x.term !== topic.term))} className="relative rounded-full px-1.5 text-muted hover:text-ink before:absolute before:-inset-x-1 before:-inset-y-1.5 before:content-['']">
               ×
             </button>
           </li>

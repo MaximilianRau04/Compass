@@ -52,7 +52,8 @@ export function TaskItem({
         disabled={toggle.isPending}
         aria-label={t(done ? 'task.reopen' : 'task.complete', { title: task.title })}
         className={[
-          'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors',
+          // The circle stays small; the invisible ::before makes the touch target 44 x 40 px.
+          "relative mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors before:absolute before:-inset-x-3 before:-inset-y-2.5 before:content-['']",
           ticked ? 'pop' : '',
           done
             ? 'border-sea bg-sea text-paper'

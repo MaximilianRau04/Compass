@@ -16,7 +16,7 @@ export function DataTable({ rows, head }: { rows: [string, string][]; head: [str
   const { t } = useI18n()
   return (
     <details className="mt-1 text-sm">
-      <summary className="cursor-pointer font-mono text-[11px] text-muted hover:text-ink">{t('training.table')}</summary>
+      <summary className="-my-2 cursor-pointer py-2 font-mono text-[11px] text-muted hover:text-ink">{t('training.table')}</summary>
       <table className="mt-2 w-full font-mono text-[12px] tabular-nums">
         <thead className="text-left text-muted">
           <tr>

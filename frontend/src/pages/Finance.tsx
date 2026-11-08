@@ -228,10 +228,10 @@ function Categories({ data }: { data: FinanceOverview }) {
                     }}
                   >
                     <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder={currencySymbol} className={`${INPUT} w-24 py-0.5 text-xs`} />
-                    <button type="submit" className="text-xs text-brass">{t('fin.save')}</button>
+                    <button type="submit" className="relative text-xs text-brass before:absolute before:-inset-2 before:content-['']">{t('fin.save')}</button>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => (setEditing(c), setValue(budget ? String(budget) : ''))} className="mt-0.5 font-mono text-[11px] text-muted hover:text-ink">
+                  <button type="button" onClick={() => (setEditing(c), setValue(budget ? String(budget) : ''))} className="relative mt-0.5 font-mono text-[11px] text-muted hover:text-ink before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']">
                     {budget !== undefined ? t('fin.editBudget') : t('fin.setBudget')}
                   </button>
                 ))}
@@ -357,7 +357,7 @@ function TransactionRow({ tx, categories }: { tx: BankTransaction; categories: s
           value={tx.category ?? ''}
           onChange={(e) => choose(e.target.value)}
           aria-label={t('fin.category')}
-          className={`rounded border border-rule bg-paper-raised px-1 py-0.5 text-xs ${tx.category ? 'text-muted' : 'text-brass'}`}
+          className={`rounded border border-rule bg-paper-raised px-1 py-1.5 text-xs sm:py-0.5 ${tx.category ? 'text-muted' : 'text-brass'}`}
         >
           {!tx.category && <option value="">{t('fin.cat.none')}</option>}
           {categories.map((c) => (
