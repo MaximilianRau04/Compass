@@ -22,6 +22,7 @@ sessions, and the meals and weights of each touched day (app.services.nutrition)
 """
 
 import logging
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
 
@@ -118,71 +119,90 @@ def _days(row: HealthRecord) -> set[date]:
     return {row.local_date, row.start_at.astimezone(tz).date(), row.end_at.astimezone(tz).date()}
 
 
-def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
-    now = utc_now()
-    # The last version of an id within one batch wins.
-    records = {r.id: r for r in payload.records}
-    ids = set(records) | set(payload.deleted)
-    existing = {
-        r.id: r for r in session.scalars(select(HealthRecord).where(HealthRecord.id.in_(ids)))
-    }
+@dataclass
+class _Batch:
+    """What one ingest changed: the counts it reports and the local days to derive again."""
 
-    touched: set[date] = set()
-    exercise_touched = False
-    created = updated = unchanged = invalid = deleted = restored = 0
-    for record in records.values():
-        row = existing.get(record.id)
-        raw = record.model_dump(mode="json")
-        if row is not None and row.deleted_at is None and row.raw == raw:
-            unchanged += 1
-            continue
-        if row is None:
-            row = HealthRecord(id=record.id)
-            session.add(row)
-            existing[record.id] = row
-            created += 1
+    touched: set[date] = field(default_factory=set)
+    exercise_touched: bool = False
+    created: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    invalid: int = 0
+    deleted: int = 0
+    restored: int = 0
+
+
+def _store(
+    session: Session, batch: _Batch, record: IngestRecord, existing: dict[str, HealthRecord]
+) -> None:
+    """Insert or update one record and derive its sleep session or heart rate samples."""
+    row = existing.get(record.id)
+    raw = record.model_dump(mode="json")
+    if row is not None and row.deleted_at is None and row.raw == raw:
+        batch.unchanged += 1
+        return
+    if row is None:
+        row = HealthRecord(id=record.id)
+        session.add(row)
+        existing[record.id] = row
+        batch.created += 1
+    else:
+        if row.deleted_at is not None:
+            # Health Connect has it again (see the module docstring).
+            row.deleted_at = None
+            batch.restored += 1
         else:
-            if row.deleted_at is not None:
-                # Health Connect has it again (see the module docstring).
-                row.deleted_at = None
-                restored += 1
-            else:
-                updated += 1
-            touched |= _days(row)
-        row.type = record.type
-        row.source_app = record.source
-        row.start_at = record.start
-        row.end_at = max(record.end or record.start, record.start)
-        row.local_date = local_day(record)
-        row.last_modified = record.last_modified
-        row.raw = raw
-        touched |= _days(row)
-        exercise_touched |= record.type == "exercise"
+            batch.updated += 1
+        batch.touched |= _days(row)
+    row.type = record.type
+    row.source_app = record.source
+    row.start_at = record.start
+    row.end_at = max(record.end or record.start, record.start)
+    row.local_date = local_day(record)
+    row.last_modified = record.last_modified
+    row.raw = raw
+    batch.touched |= _days(row)
+    batch.exercise_touched |= record.type == "exercise"
 
-        derive = DERIVED.get(record.type)
-        if derive is None:
-            continue
-        try:
-            with session.begin_nested():
-                extra = derive(session, row)
-                session.flush()
-        except ValidationError as exc:
-            # Keep the raw record (the mapping can be fixed later), but do not block the sync.
-            invalid += 1
-            log.warning("record %s (%s) not derived: %s", record.id, record.type, exc)
-            continue
-        if extra:
-            touched |= extra
+    derive = DERIVED.get(record.type)
+    if derive is None:
+        return
+    try:
+        with session.begin_nested():
+            extra = derive(session, row)
+            session.flush()
+    except ValidationError as exc:
+        # Keep the raw record (the mapping can be fixed later), but do not block the sync.
+        batch.invalid += 1
+        log.warning("record %s (%s) not derived: %s", record.id, record.type, exc)
+        return
+    if extra:
+        batch.touched |= extra
 
+
+def _mark_deleted(session: Session, batch: _Batch, row: HealthRecord, now: datetime) -> None:
+    row.deleted_at = now
+    _remove_derived(session, row)
+    batch.touched |= _days(row)
+    batch.exercise_touched |= row.type == "exercise"
+    batch.deleted += 1
+
+
+def _remove_gone(
+    session: Session,
+    batch: _Batch,
+    payload: IngestPayload,
+    records: dict[str, IngestRecord],
+    existing: dict[str, HealthRecord],
+    now: datetime,
+) -> None:
+    """Mark the records deleted that the app reports deleted or that a snapshot no longer lists."""
     for record_id in payload.deleted:
         row = existing.get(record_id)
         if row is None or row.deleted_at is not None or record_id in records:
             continue
-        row.deleted_at = now
-        _remove_derived(session, row)
-        touched |= _days(row)
-        exercise_touched |= row.type == "exercise"
-        deleted += 1
+        _mark_deleted(session, batch, row, now)
     for snapshot in payload.snapshots:
         keep = set(snapshot.ids) | set(records)
         gone = session.scalars(
@@ -196,29 +216,46 @@ def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
             )
         )
         for row in gone:
-            row.deleted_at = now
-            _remove_derived(session, row)
-            touched |= _days(row)
-            exercise_touched |= row.type == "exercise"
-            deleted += 1
-    session.flush()
+            _mark_deleted(session, batch, row, now)
 
+
+def _derive_days(session: Session, batch: _Batch) -> None:
+    """Recompute everything derived per day for the days the batch touched."""
+    touched = batch.touched
     health.recompute_days(session, touched)
     nutrition.rebuild_from_healthconnect(session, touched)
-    if exercise_touched and touched:
+    if batch.exercise_touched and touched:
         health.match_gymday_sessions(session, min(touched), max(touched))
     if touched:
         # Also when only heart rate came in: it may belong to a session synced earlier.
         health.match_watch_sessions(session, min(touched), max(touched))
 
+
+def ingest(session: Session, payload: IngestPayload) -> dict[str, Any]:
+    now = utc_now()
+    # The last version of an id within one batch wins.
+    records = {r.id: r for r in payload.records}
+    ids = set(records) | set(payload.deleted)
+    existing = {
+        r.id: r for r in session.scalars(select(HealthRecord).where(HealthRecord.id.in_(ids)))
+    }
+
+    batch = _Batch()
+    for record in records.values():
+        _store(session, batch, record, existing)
+    _remove_gone(session, batch, payload, records, existing, now)
+    session.flush()
+    _derive_days(session, batch)
+
+    touched = batch.touched
     stats = {
         "received": len(payload.records),
-        "created": created,
-        "updated": updated,
-        "unchanged": unchanged,
-        "deleted": deleted,
-        "restored": restored,
-        "invalid": invalid,
+        "created": batch.created,
+        "updated": batch.updated,
+        "unchanged": batch.unchanged,
+        "deleted": batch.deleted,
+        "restored": batch.restored,
+        "invalid": batch.invalid,
         "days": len(touched),
     }
     integrations.record_success(
