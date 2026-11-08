@@ -158,13 +158,8 @@ class _Text:
         return re.sub(r"\s+", " ", self.text).strip()
 
 
-def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> ParsedTask:
-    """Parse quick-add text.
-
-    area_slugs maps lowercase slugs and names to the area slug, e.g. {"study": "study"}.
-    """
-    result = ParsedTask(title="")
-    rest = _Text(text)
+def _take_tags(rest: _Text, result: ParsedTask, area_slugs: dict[str, str]) -> None:
+    """#name: the area if one matches (the first wins), otherwise a tag."""
 
     def hashtag(m: re.Match) -> None:
         word = m.group(1)
@@ -175,6 +170,10 @@ def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> Parse
             result.tags.append(word.lower())
 
     rest.take(r"(?<!\S)#([\w-]+)", hashtag)
+
+
+def _take_priority(rest: _Text, result: ParsedTask) -> None:
+    """!, !!, !!! or !word."""
 
     def priority(m: re.Match) -> bool | None:
         bangs, word = m.group(1), m.group(2).lower()
@@ -188,7 +187,9 @@ def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> Parse
 
     rest.take(r"(?<!\S)(!{1,3})(\w*)(?!\S)", priority)
 
-    # Recurrence. Without an explicit date, the first occurrence becomes the scheduled date.
+
+def _take_recurrence(rest: _Text, result: ParsedTask, today: date) -> date | None:
+    """The first recurrence found; returns its first occurrence."""
     first_occurrence: list[date] = []
 
     def recur(rule: str, first: date) -> None:
@@ -230,8 +231,12 @@ def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> Parse
     for pattern, handler in recurrences:
         if result.recurrence is None:
             rest.take_first(pattern, handler)
+    return first_occurrence[0] if first_occurrence else None
 
-    # Time: "14 uhr", "14:30", "14.30 uhr", "um 9", "2pm", "9:30 am", "at 9"
+
+def _take_time(rest: _Text, result: ParsedTask) -> None:
+    """Times like "14 uhr", "14:30", "14.30 uhr", "um 9", "2pm", "9:30 am", "at 9"."""
+
     def set_time(m: re.Match) -> bool | None:
         groups = m.groupdict()
         hour, minute = int(m["h"]), int(groups.get("m") or 0)
@@ -254,7 +259,9 @@ def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> Parse
         if result.due_time is None:
             rest.take_first(pattern, set_time)
 
-    # Dates. "@" marks the scheduled date, everything else is the deadline.
+
+def _take_dates(rest: _Text, result: ParsedTask, today: date) -> None:
+    """Dates. "@" marks the scheduled date, everything else is the deadline."""
     prefix = r"(?:(?<!\S)(?P<at>@)|\b(?:bis|am|fällig|by|on|due)\s+|\b)"
 
     def date_handler(compute):
@@ -299,10 +306,26 @@ def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> Parse
     for pattern, compute in dates:
         rest.take(pattern, date_handler(compute))
 
+
+def parse_quick_add(text: str, today: date, area_slugs: dict[str, str]) -> ParsedTask:
+    """Parse quick-add text.
+
+    area_slugs maps lowercase slugs and names to the area slug, e.g. {"study": "study"}.
+    Each step cuts what it understood out of the text; what is left becomes the title.
+    """
+    result = ParsedTask(title="")
+    rest = _Text(text)
+    _take_tags(rest, result, area_slugs)
+    _take_priority(rest, result)
+    # Without an explicit date, the first occurrence becomes the scheduled date.
+    first_occurrence = _take_recurrence(rest, result, today)
+    _take_time(rest, result)
+    _take_dates(rest, result, today)
+
     if result.due_time and result.due_date is None:
         result.due_date = today
     if first_occurrence and result.due_date is None and result.scheduled_date is None:
-        result.scheduled_date = first_occurrence[0]
+        result.scheduled_date = first_occurrence
 
     result.title = rest.title
     return result
