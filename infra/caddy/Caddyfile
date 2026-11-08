@@ -2,8 +2,11 @@
 	admin off
 	# Requests arrive through the reverse proxy in the VM (and the Docker gateway). Trusting private
 	# ranges keeps the original client in X-Forwarded-For, so client_ip and the login throttle see it.
+	# Strict: read X-Forwarded-For from the right and take the first untrusted address, so a value
+	# the client made up at the left end is never taken, even if a proxy in front appends to it.
 	servers {
 		trusted_proxies static private_ranges
+		trusted_proxies_strict
 	}
 }
 
@@ -47,6 +50,11 @@
 			header Sec-Fetch-Site same-site
 		}
 		respond @other_site 403
+		# The largest legitimate body is a Health Connect batch (20 MB). FastAPI reads a JSON body
+		# before the bearer token of /api/ingest/* is checked, so cap it here.
+		request_body {
+			max_size 25MB
+		}
 		reverse_proxy api:8000
 	}
 
@@ -86,7 +94,11 @@
 		not client_ip {$COMPASS_MCP_ALLOWED_IPS:0.0.0.0/0 ::/0}
 	}
 	respond @blocked 403
-	reverse_proxy mcp:8001
+	reverse_proxy mcp:8001 {
+		# Exactly the client address Caddy determined. uvicorn trusts the header (it is only reachable
+		# through Caddy) and the login throttle counts failures per this address.
+		header_up X-Forwarded-For {client_ip}
+	}
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
