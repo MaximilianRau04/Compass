@@ -25,10 +25,24 @@ erreichen drei Farbkombinationen den AA-Kontrast nicht. Im Code sind es vor alle
 | W6 Touch-Ziele | erledigt | Themen-× im Interessenprofil (das waren die 19 × 20 px, nicht die Daumen), Daumen, Kategorie-Select am Handy, Budget-Buttons, „Als Tabelle“ |
 | N3 Wiederholtes Markup | erledigt | `pageTitle` und `overlay` in `lib/ui.ts` (12 Titel, 6 Overlays) |
 | N8 `strict` | erledigt | ausdrücklich in beiden tsconfigs |
-| N1, N2, N4–N7, N9–N15 | offen | siehe „Bewusst offen“ am Ende |
+| Frage 1 Sprachumschalter | erledigt | am Handy in den Einstellungen, oben weg (`pt-16` → `pt-6`); am Desktop oben rechts wie bisher |
+| Frage 2 Quick-Add-Button | bleibt | auf deinen Wunsch unverändert |
+| W4 Nachtrag | erledigt | weitere 9 Buttons (Feed-Einstellungen, Push, News, Training, Willkommen) auf `button()` |
+| N1 Lange Funktionen | erledigt | `parse_quick_add` in 5 Schritte (alle 88 Regex-Strings verglichen); `healthconnect.ingest` in Speichern, Entfernen, Ableiten mit `_Batch`, doppelte Lösch-Logik zusammengeführt |
+| N2 Große Dateien | erledigt | `components/charts/` (ein Diagramm pro Datei, `index.ts`), `pages/workout/` (Start, Active, ExerciseCard, RestBar, hooks, styles); 47 Deklarationen als unverändert geprüft, Seiten pixelgleich |
+| N4 Schrift-Tokens | erledigt | `text-2xs` (11 px), `text-3xs` (10 px), `text-label` (13 px) an 129 Stellen; nur die Größe, Seiten pixelgleich. 12/14/15 px bleiben, `text-xs`/`text-sm` setzen eine andere Zeilenhöhe |
+| N5 DB-Abfragen in der API | erledigt | `find_area` ersetzt 6 gleiche Abfragen, `list_states(prefix)`, `all_goals`; die Namensprüfung bei Übungen bleibt in der API (siehe unten) |
+| N6 Längenlimits | erledigt | Tag max. 60, Notizen max. 20.000 Zeichen in API und MCP; Quick Add meldet einen zu langen `#tag` als 422; Tests dazu |
+| N7 CLI | erledigt | `python -m app.cli revoke-mcp-tokens`, Test, `docs/deploy.md` |
+| N9 MCP-URL | erledigt | Kommentar in `config.py` |
+| N10, N11 Caddy | erledigt | `trusted_proxies_strict`, `header_up X-Forwarded-For {client_ip}` zum MCP, `request_body 25MB` für `/api/*`; mit Caddy 2.10 im Container nachgemessen (gefälschte IP links wird ignoriert, 26 MB → 413) |
+| N12 Ladezustände | erledigt | Aufgaben und Kalender |
+| N13 Finanzliste | erledigt | 30 Umsätze plus „30 weitere anzeigen“, „Unsortiert“ zeigt alle; Handy-Seite 6371 → 4189 px |
+| N14 Worker | erledigt | `tests/test_worker.py`: alle 7 Jobs geplant, Jobs laufen gegen die DB |
+| N15 `.github/modernize/` | offen | nur lokal, siehe unten |
 
 Nach jedem Schritt liefen ruff, oxlint, `tsc -b`, `pnpm build` und `pytest`, am Ende alles grün
-(319 Tests, einer davon neu). Die UI-Schritte wurden mit Screenshots in 390 px und 1440 px
+(nach Phase 2 und den offenen Punkten 324 Tests, sechs davon neu). Die UI-Schritte wurden mit Screenshots in 390 px und 1440 px
 geprüft: kein Überlauf, keine Konsolenmeldungen.
 
 ### Was geprüft wurde
@@ -233,19 +247,16 @@ gibt es Screenshots zum Vergleich.
 
 ## Bewusst offen
 
-Ohne Antwort auf die offenen Fragen habe ich die vorsichtige Variante gewählt:
-
-- **Sprachumschalter und Quick-Add-Button** bleiben wie sie sind (Fragen 1 und 2).
-- **N6 Längenlimits und N13 Finanzliste kürzen** ändern Verhalten, deshalb nicht umgesetzt (Frage 3).
-- **N1 lange Backend-Funktionen und N2 große Frontend-Dateien:** Das Aufteilen bringt wenig Lesbarkeit
-  und kostet Risiko in getesteter Kernlogik (Quick Add, Health-Connect-Import). Es lohnt sich erst,
-  wenn dort ohnehin etwas geändert wird.
-- **N4 Schrift-Tokens:** betrifft 166 Stellen in fast jeder Datei. Das wäre ein eigener, rein
-  mechanischer Umbau, den ich nicht zusammen mit den sichtbaren UI-Fixes machen wollte.
-- **N7 CLI-Befehl für `revoke_all_tokens`:** wäre ein neuer Befehl, also ein kleines Feature.
-- **N10, N11 Proxy-Header und Body-Limit:** ändern das Caddyfile im Betrieb. In deinem Setup ist beides
-  abgesichert; besser zusammen mit einem Deploy, bei dem du danach testest.
-- **N5, N9, N12, N14, N15:** klein und ohne Eile; N15 ist nur ein lokales Verzeichnis.
+- **N15 `.github/modernize/`:** ein lokales, nicht getracktes Verzeichnis eines Java-Upgrade-Tools.
+  Es gehört nicht zum Repo; löschen kannst du es selbst (`rm -r .github/modernize`).
+- **Namensprüfung bei Übungen** (`api/training.py`, Teil von N5): Die vorhandenen `find_exercise`
+  suchen ohne Groß-/Kleinschreibung und über Aliase, die API prüft den exakten Namen. Eine dritte,
+  leicht andere Suchfunktion im Service würde eher verwirren als helfen.
+- **Schriftgrößen 12, 14 und 15 px** (36 Stellen): `text-xs` und `text-sm` setzen auch eine
+  Zeilenhöhe, ein Austausch würde Abstände verschieben. Eigene Tokens dafür lohnen bei so wenigen
+  Stellen nicht.
+- **Chunked Uploads über 25 MB** enden mit 502 statt 413 (Caddy bricht beim Weiterleiten ab). Die API
+  liest trotzdem nie mehr als 25 MB; die Bridge-App sendet immer mit Content-Length.
 
 ## Plan für Phase 2 (nach deinem OK)
 
