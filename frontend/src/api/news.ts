@@ -20,9 +20,12 @@ export function useTodayBrief() {
   return useQuery({ queryKey: ['briefs', 'today'], queryFn: () => api<Brief | null>('/briefs/today') })
 }
 
-export function useBriefs(kind?: string) {
-  const query = kind ? `?kind=${encodeURIComponent(kind)}` : ''
-  return useQuery({ queryKey: ['briefs', 'list', kind], queryFn: () => api<Brief[]>(`/briefs${query}`) })
+export function useBriefs(kind?: string, limit?: number) {
+  const params = new URLSearchParams()
+  if (kind) params.set('kind', kind)
+  if (limit) params.set('limit', String(limit))
+  const query = params.toString() ? `?${params}` : ''
+  return useQuery({ queryKey: ['briefs', 'list', kind, limit], queryFn: () => api<Brief[]>(`/briefs${query}`) })
 }
 
 function useInvalidateNews() {

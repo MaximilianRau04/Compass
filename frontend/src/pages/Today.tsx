@@ -21,7 +21,7 @@ import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { shortPart } from '../lib/brief'
-import { addDays, clockTime, longDate, toIsoDate } from '../lib/format'
+import { addDays, clockTime, longDate, relativeDay, toIsoDate } from '../lib/format'
 
 /** Important mails of the last two weeks: count and the newest three. */
 function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
@@ -91,10 +91,14 @@ function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   )
 }
 
-/** Today's texts of other routines (any kind but the daily brief and the news report). */
-function OtherBriefs({ briefs, today }: { briefs: Brief[] | undefined; today: string }) {
-  const { locale } = useI18n()
-  const others = (briefs ?? []).filter((b) => b.local_date === today && b.kind !== 'daily' && b.kind !== 'news')
+/** Today's texts of other routines (any kind but the daily brief and the news report), plus the
+ * newest weekly review until the next one comes (it is saved on Sundays, the push links here). */
+function OtherBriefs({ briefs, weekly, today }: { briefs: Brief[] | undefined; weekly: Brief | undefined; today: string }) {
+  const { t, locale } = useI18n()
+  const others = (briefs ?? []).filter(
+    (b) => b.local_date === today && b.kind !== 'daily' && b.kind !== 'news' && b.kind !== 'weekly',
+  )
+  if (weekly && weekly.local_date >= addDays(today, -6)) others.unshift(weekly)
   if (others.length === 0) return null
   return (
     <div className="space-y-2">
@@ -102,7 +106,9 @@ function OtherBriefs({ briefs, today }: { briefs: Brief[] | undefined; today: st
         <details key={brief.id} className="rounded-md border border-rule px-4 py-3">
           <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
             <span className="font-display text-[13px] font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
-            <span className="font-mono text-[11px] text-muted">{clockTime(brief.updated_at, locale)}</span>
+            <span className="font-mono text-[11px] text-muted">
+              {brief.local_date === today ? clockTime(brief.updated_at, locale) : relativeDay(brief.local_date, today, t, locale)}
+            </span>
           </summary>
           <Markdown text={brief.body} className="mt-2" />
         </details>
@@ -162,6 +168,7 @@ export function TodayPage() {
   const mail = useMailOverview()
   const brief = useTodayBrief()
   const briefs = useBriefs()
+  const weekly = useBriefs('weekly', 1)
   const news = useNewsOverview()
   const setup = useSetup()
   const [open, setOpen] = useState<Task | null>(null)
@@ -222,7 +229,7 @@ export function TodayPage() {
 
           <Bedtime />
           <DailyBrief brief={brief.data} />
-          <OtherBriefs briefs={briefs.data} today={today} />
+          <OtherBriefs briefs={briefs.data} weekly={weekly.data?.[0]} today={today} />
 
           {visible.length === 0 && data.done_today.length === 0 && data.events.length === 0 && (
             <p className="max-w-md text-muted">
