@@ -3,11 +3,9 @@ from datetime import timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
 
 from app.api.deps import SessionDep
 from app.ingestion import news as news_sync
-from app.models.integrations import IntegrationState
 from app.models.news import Brief
 from app.schemas.news import (
     BriefRead,
@@ -20,7 +18,7 @@ from app.schemas.news import (
     NewsOverview,
     TrendRead,
 )
-from app.services import briefs
+from app.services import briefs, integrations
 from app.services import news as news_service
 from app.services.clock import local_today
 
@@ -72,11 +70,7 @@ def list_news(
 
 @router.get("/news/overview", response_model=NewsOverview)
 def overview(session: SessionDep):
-    states = session.scalars(
-        select(IntegrationState)
-        .where(IntegrationState.name.like("news:%"))
-        .order_by(IntegrationState.name)
-    )
+    states = integrations.list_states(session, "news:")
     report = briefs.latest(session, "news", since=local_today() - timedelta(days=6))
     return NewsOverview(
         feeds=[

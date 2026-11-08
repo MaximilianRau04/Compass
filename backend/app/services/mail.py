@@ -15,7 +15,7 @@ from app.i18n import t
 from app.mail.triage import TriageResult
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
-from app.models.tasks import Area, Task, TaskSource, TaskStatus
+from app.models.tasks import Task, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate, TaskUpdate
 from app.services import tasks as task_service
 from app.services.clock import utc_now
@@ -125,7 +125,7 @@ def create_task(session: Session, e: Email, actor: str = "web") -> Task:
             task_service.update_task(session, existing, TaskUpdate(status=TaskStatus.open), actor)
         return existing
     slug = get_settings().mail_area_map.get(e.account, "")
-    area = session.scalar(select(Area).where(Area.slug == slug))
+    area = task_service.find_area(session, slug)
     notes = "\n".join(
         part
         for part in (

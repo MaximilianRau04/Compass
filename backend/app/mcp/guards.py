@@ -12,13 +12,12 @@ from typing import Any
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.mcp.db import session_scope
 from app.models.oauth import AuditLog
-from app.models.tasks import Area, Task
+from app.models.tasks import Task
 from app.services import tasks as task_service
 from app.services.notes import NoteError
 from app.services.tasks import TaskError
@@ -70,7 +69,7 @@ def require_task(session: Session, task_id: int) -> Task:
 def area_id_for(session: Session, slug: str | None) -> int | None:
     if slug is None:
         return None
-    area = session.scalar(select(Area).where(Area.slug == slug.lower().lstrip("#")))
+    area = task_service.find_area(session, slug.lower().lstrip("#"))
     if area is None:
         slugs = ", ".join(a.slug for a in task_service.list_areas(session))
         raise ToolError(f"Unknown area {slug!r}. Valid areas: {slugs}.")

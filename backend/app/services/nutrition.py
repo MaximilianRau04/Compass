@@ -256,6 +256,11 @@ def weights(session: Session, since: date | None = None) -> list[WeightPoint]:
 # --- Goals -------------------------------------------------------------------------------------
 
 
+def all_goals(session: Session) -> list[Goal]:
+    """Every goal ever set, by metric, newest first per metric."""
+    return list(session.scalars(select(Goal).order_by(Goal.metric, Goal.valid_from.desc())))
+
+
 def goals_on(session: Session, day: date) -> dict[str, float]:
     """The goal of each metric valid on a day."""
     out: dict[str, float] = {}

@@ -58,5 +58,9 @@ def clear(session: Session, name: str) -> None:
         session.delete(state)
 
 
-def list_states(session: Session) -> list[IntegrationState]:
-    return list(session.scalars(select(IntegrationState).order_by(IntegrationState.name)))
+def list_states(session: Session, prefix: str = "") -> list[IntegrationState]:
+    """All states, or those whose name starts with prefix (e.g. "news:"), by name."""
+    stmt = select(IntegrationState).order_by(IntegrationState.name)
+    if prefix:
+        stmt = stmt.where(IntegrationState.name.startswith(prefix, autoescape=True))
+    return list(session.scalars(stmt))

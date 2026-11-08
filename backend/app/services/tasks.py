@@ -64,6 +64,11 @@ def list_areas(session: Session, include_archived: bool = False) -> list[Area]:
     return list(session.scalars(stmt))
 
 
+def find_area(session: Session, slug: str) -> Area | None:
+    """The area with exactly this slug, archived or not."""
+    return session.scalar(select(Area).where(Area.slug == slug))
+
+
 def area_lookup(session: Session) -> dict[str, str]:
     """Lowercase slug and name -> slug, for the quick-add parser."""
     lookup: dict[str, str] = {}
@@ -285,11 +290,7 @@ def _spawn_next(session: Session, task: Task, actor: str) -> Task | None:
 
 def preview_quick_add(session: Session, text: str, today: date | None = None) -> QuickAddPreview:
     parsed = parse_quick_add(text, today or local_today(), area_lookup(session))
-    area = (
-        session.scalar(select(Area).where(Area.slug == parsed.area_slug))
-        if parsed.area_slug
-        else None
-    )
+    area = find_area(session, parsed.area_slug) if parsed.area_slug else None
     return QuickAddPreview.model_validate({**parsed.__dict__, "area": area}, from_attributes=True)
 
 

@@ -15,7 +15,7 @@ from app.models.notes import Note
 from app.models.tasks import Area, Task
 from app.schemas.notes import NoteCreate, NoteUpdate
 from app.services.clock import utc_now
-from app.services.tasks import area_lookup
+from app.services.tasks import area_lookup, find_area
 
 CONTEXT_TAGS = ("context", "kontext")
 SNIPPET_CHARS = 220
@@ -119,7 +119,7 @@ def quick_note(session: Session, text: str, source: str = "manual") -> Note:
     if len(title) > QUICK_TITLE_CHARS:
         body = f"{title}\n\n{body}".strip()
         title = title[: QUICK_TITLE_CHARS - 1].rsplit(" ", 1)[0] + "…"
-    area = session.scalar(select(Area).where(Area.slug == area_slug)) if area_slug else None
+    area = find_area(session, area_slug) if area_slug else None
     return create_note(
         session,
         NoteCreate(title=title, body=body, area_id=area.id if area else None, tags=tags),

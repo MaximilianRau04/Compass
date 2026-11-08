@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models.tasks import Area, Task, TaskSource, TaskStatus
+from app.models.tasks import Task, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate
 from app.services import feeds
 from app.services import tasks as task_service
@@ -82,7 +82,8 @@ def _default_area_id(session: Session, feed: str) -> int | None:
     slug = slug or feeds.calendar_areas(session).get(feed, "")
     if not slug:
         return None
-    return session.scalar(select(Area.id).where(Area.slug == slug))
+    area = task_service.find_area(session, slug)
+    return area.id if area else None
 
 
 def sync_deadlines(

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
 
 from app.api.deps import SessionDep
 from app.models.tasks import Area
@@ -16,7 +15,7 @@ def list_areas(session: SessionDep, include_archived: bool = False):
 
 @router.post("", response_model=AreaRead, status_code=status.HTTP_201_CREATED)
 def create_area(data: AreaCreate, session: SessionDep):
-    if session.scalar(select(Area).where(Area.slug == data.slug)):
+    if task_service.find_area(session, data.slug):
         raise HTTPException(status.HTTP_409_CONFLICT, f"area '{data.slug}' already exists")
     area = Area(**data.model_dump())
     session.add(area)

@@ -12,7 +12,7 @@ from app.mcp import db as mcp_db
 from app.mcp.server import mcp
 from app.models.integrations import IntegrationState
 from app.models.news import Brief, NewsInterest, NewsItem
-from app.services import briefs
+from app.services import briefs, integrations
 from app.services import news as news_service
 from app.services.clock import local_today, utc_now
 
@@ -223,8 +223,12 @@ def test_news_api(client, session):
     briefs.save(session, "daily", "## Heute\n- Blatt 3")
     briefs.save(session, "news", "## KI\n- [x](https://example.com)")
     assert client.get("/api/briefs/today").json()["body"].startswith("## Heute")
+    integrations.record_success(session, "news:hn", {"stream": "personal", "items": 3})
+    integrations.record_success(session, "calendar:google", {"events": 1})
+    session.flush()
     overview = client.get("/api/news/overview").json()
     assert overview["report"]["kind"] == "news"
+    assert [(f["feed"], f["items"]) for f in overview["feeds"]] == [("hn", 3)]
     assert [i["title"] for i in overview["top"]] == ["LLM ships memory"]
 
 

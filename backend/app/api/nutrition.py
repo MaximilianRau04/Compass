@@ -1,12 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query, Request, status
-from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
 from app.ingestion import nutrition_export
-from app.models.nutrition import Goal
 from app.schemas.nutrition import (
     GoalRead,
     GoalUpdate,
@@ -56,8 +54,10 @@ def weight(session: SessionDep):
 @router.get("/goals", response_model=list[GoalRead])
 def goals(session: SessionDep):
     """Every goal ever set, newest first per metric."""
-    rows = session.scalars(select(Goal).order_by(Goal.metric, Goal.valid_from.desc()))
-    return [GoalRead(metric=g.metric, value=float(g.value), valid_from=g.valid_from) for g in rows]
+    return [
+        GoalRead(metric=g.metric, value=float(g.value), valid_from=g.valid_from)
+        for g in nutrition.all_goals(session)
+    ]
 
 
 @router.put("/goals/{metric}", response_model=GoalRead)
