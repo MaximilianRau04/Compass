@@ -43,9 +43,10 @@
   --ink: #14202b;
   --muted: #5e6b74;
   --rule: #d3dbd8;
-  --brass: #b07d2b;
+  /* brass and signal reach 4.5:1 as text on paper and paper-raised, and white text on brass. */
+  --brass: #906623;
   --brass-ink: #ffffff;
-  --signal: #d1343b;
+  --signal: #ce2f36;
   --sea: #2f7d72;
   /* Data marks: more chroma than --sea so bars and lines do not read gray (validated). */
   --chart: #0e8a7a;

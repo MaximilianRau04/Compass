@@ -118,7 +118,7 @@ def _page(lang: str, body: str, status: int = 200) -> HTMLResponse:
 <title>{t["title"]}</title>
 <style>
   :root {{ --paper:#eef2f0; --raised:#f8faf9; --ink:#14202b; --muted:#5e6b74; --rule:#d3dbd8;
-          --brass:#b07d2b; --brass-ink:#fff; --signal:#d1343b; color-scheme: light; }}
+          --brass:#906623; --brass-ink:#fff; --signal:#ce2f36; color-scheme: light; }}
   @media (prefers-color-scheme: dark) {{
     :root {{ --paper:#0f1a24; --raised:#15232f; --ink:#e4ebe8; --muted:#8d9aa3; --rule:#26384a;
             --brass:#d3a04e; --brass-ink:#14202b; --signal:#f06a6f; color-scheme: dark; }} }}
