@@ -11,6 +11,7 @@ import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { AREA_BG, daysBetween } from '../lib/format'
+import { pageTitle } from '../lib/ui'
 
 type View = 'list' | 'board'
 
@@ -74,7 +75,7 @@ export function TasksPage() {
   return (
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('tasks.title')}</h1>
+        <h1 className={pageTitle}>{t('tasks.title')}</h1>
         <div className="flex gap-1" role="group" aria-label={t('tasks.view')}>
           <button type="button" className={toggle(view === 'list')} onClick={() => setView('list')}>
             {t('tasks.list')}

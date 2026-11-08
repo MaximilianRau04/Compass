@@ -6,6 +6,7 @@ import { useCreateNote, useNote, useUpdateNote } from '../api/notes'
 import { useAreas } from '../api/tasks'
 import type { Note, NoteDraft } from '../api/types'
 import { useI18n } from '../i18n/context'
+import { button, overlay } from '../lib/ui'
 import { Markdown } from './Markdown'
 
 const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-[15px] focus:border-brass focus:outline-none'
@@ -38,7 +39,7 @@ export function NoteSheet({ noteId, initial, onClose }: { noteId: number | 'new'
   return (
     <Dialog.Root open={noteId !== null} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Overlay className={overlay} />
         <Dialog.Content
           className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-2xl border border-rule bg-paper-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[40rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
           aria-describedby={undefined}
@@ -175,11 +176,11 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
         )}
         {note && note.source !== 'manual' && <span className="font-mono text-[11px] text-muted">{t(`notes.source.${note.source}`)}</span>}
         <span className="flex-1" />
-        <Dialog.Close className="rounded-md px-3 py-2 text-sm text-muted hover:text-ink">{t('sheet.close')}</Dialog.Close>
+        <Dialog.Close className={button('quiet')}>{t('sheet.close')}</Dialog.Close>
         <button
           type="submit"
           disabled={!dirty || busy || !draft.title.trim()}
-          className="rounded-md bg-brass px-4 py-2 font-display text-sm font-semibold tracking-wide text-brass-ink uppercase disabled:opacity-30"
+          className={`${button('primary')} font-display font-semibold tracking-wide uppercase`}
         >
           {t('sheet.save')}
         </button>

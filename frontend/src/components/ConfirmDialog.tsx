@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import type { ReactNode } from 'react'
 
 import { useI18n } from '../i18n/context'
-import { button } from '../lib/ui'
+import { button, overlay } from '../lib/ui'
 
 /** A small question before something that cannot be undone, e.g. throwing away a workout. */
 export function ConfirmDialog({
@@ -26,7 +26,7 @@ export function ConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Overlay className={overlay} />
         <Dialog.Content
           className="fixed top-1/2 left-1/2 z-50 w-[min(24rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-rule bg-paper-raised p-5 shadow-xl"
           {...(description ? {} : { 'aria-describedby': undefined })}

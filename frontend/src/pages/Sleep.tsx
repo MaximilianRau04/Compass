@@ -12,6 +12,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { addDays, clockTime, compact, decimal, localDay, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
 import { appName, hours, LANES, type Lane, laneOf } from '../lib/health'
+import { pageTitle } from '../lib/ui'
 
 const RANGES = [7, 30, 90]
 const STAGES: Lane[] = ['deep', 'light', 'rem', 'awake']
@@ -241,7 +242,7 @@ export function SleepPage() {
 
   const header = (
     <header className="mb-2 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('sleep.title')}</h1>
+      <h1 className={pageTitle}>{t('sleep.title')}</h1>
       <div className="flex flex-wrap items-center gap-3">
         <div role="group" aria-label={t('sleep.range')} className="flex gap-1.5">
           {RANGES.map((n) => (

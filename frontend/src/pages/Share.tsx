@@ -10,6 +10,7 @@ import { QuickAdd } from '../components/QuickAdd'
 import { useI18n } from '../i18n/context'
 import { isNutritionExport, nutritionImportMessage } from '../lib/nutrition'
 import { importMessage } from '../lib/training'
+import { button } from '../lib/ui'
 
 // Written by public/share-target-sw.js when a file is shared to Compass.
 const SHARE_CACHE = 'compass-share'
@@ -58,7 +59,7 @@ function SharedFile({ name }: { name: string }) {
           type="button"
           onClick={run}
           disabled={pending}
-          className="rounded-md bg-brass px-4 py-2 font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+          className={button('primary')}
         >
           {pending ? t('training.importing') : t(isNutrition ? 'share.importNutrition' : 'share.importWorkouts')}
         </button>
@@ -90,7 +91,7 @@ function SaveAsNote({ title, text }: { title: string; text: string }) {
           },
         )
       }
-      className="mt-4 rounded-md border border-brass px-4 py-2 text-sm text-brass hover:bg-brass/10 disabled:opacity-50"
+      className={`mt-4 ${button('secondary')}`}
     >
       {t('share.asNote')}
     </button>

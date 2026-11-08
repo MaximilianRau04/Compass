@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import type { CalendarEvent } from '../../api/types'
 import { useI18n } from '../../i18n/context'
 import { eventTime, localDay, longDate } from '../../lib/format'
+import { overlay } from '../../lib/ui'
 import { useEventStyle } from './eventStyle'
 
 /** Details of a calendar entry. Read-only: entries come from the subscribed calendars. */
@@ -12,7 +13,7 @@ export function EventSheet({ event, onClose }: { event: CalendarEvent | null; on
   return (
     <Dialog.Root open={event !== null} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Overlay className={overlay} />
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border border-rule bg-paper-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[26rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl">
           {event && (
             <>

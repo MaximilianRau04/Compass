@@ -9,6 +9,7 @@ import { Markdown } from '../components/Markdown'
 import { SyncIssue } from '../components/SyncIssue'
 import { useI18n } from '../i18n/context'
 import { clockTime, decimal, localDay, pill, relativeDay } from '../lib/format'
+import { button, pageTitle } from '../lib/ui'
 
 type Stream = 'personal' | 'general'
 const RANGES = [36, 72, 168] as const
@@ -175,7 +176,7 @@ function TopicEditor({ interests }: { interests: Interests }) {
           type="button"
           disabled={!dirty || save.isPending}
           onClick={() => save.mutate(topics, { onSuccess: () => toast(t('news.saved')), onError: (error) => toast.error(error.message) })}
-          className="rounded-md bg-brass px-3 py-1.5 font-medium text-brass-ink hover:opacity-90 disabled:opacity-40"
+          className={button('primary')}
         >
           {t('news.save')}
         </button>
@@ -215,7 +216,7 @@ export function NewsPage() {
 
   const header = (
     <header className="mb-2 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('news.title')}</h1>
+      <h1 className={pageTitle}>{t('news.title')}</h1>
       <button
         type="button"
         disabled={sync.isPending}
@@ -228,7 +229,7 @@ export function NewsPage() {
             onError: (error) => toast.error(error.message),
           })
         }
-        className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+        className={button('primary')}
       >
         {sync.isPending ? t('news.fetching') : t('news.fetch')}
       </button>

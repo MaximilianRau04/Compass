@@ -8,7 +8,7 @@ import type { SleepNight } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { clockTime, relativeDay } from '../lib/format'
 import { hours } from '../lib/health'
-import { button } from '../lib/ui'
+import { button, overlay } from '../lib/ui'
 import { localIso } from '../lib/workout'
 import { ConfirmDialog } from './ConfirmDialog'
 import { SectionLabel } from './Layout'
@@ -99,7 +99,7 @@ export function SleepEntryButton() {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger className={button('secondary')}>{t('sleepLog.add')}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
+        <Dialog.Overlay className={overlay} />
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-2xl border border-rule bg-paper-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[28rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl">
           {open && <Form onClose={() => setOpen(false)} />}
         </Dialog.Content>

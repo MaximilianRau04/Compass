@@ -5,6 +5,7 @@ import { useBodyTrend, useLogBody } from '../api/nutrition'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { decimal, parseDate } from '../lib/format'
+import { button } from '../lib/ui'
 import { LineChart } from './charts'
 import { DataTable, Stat } from './DataBlocks'
 import { SectionLabel } from './Layout'
@@ -48,7 +49,7 @@ export function BodyPanel() {
           <span className="mb-1 block text-xs text-muted">{t('body.waist')}</span>
           <input value={waist} onChange={(e) => setWaist(e.target.value)} inputMode="decimal" placeholder="cm" className="w-28 rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none" />
         </label>
-        <button type="submit" disabled={log.isPending || (!weight.trim() && !waist.trim())} className="rounded-md bg-brass px-3 py-1.5 text-sm font-medium text-brass-ink disabled:opacity-40">
+        <button type="submit" disabled={log.isPending || (!weight.trim() && !waist.trim())} className={button('primary')}>
           {t('body.save')}
         </button>
       </form>

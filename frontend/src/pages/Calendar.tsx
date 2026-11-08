@@ -13,6 +13,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { addMonths, isoWeek, monthGrid, weekStart } from '../lib/calendar'
 import { AREA_BG, addDays, parseDate } from '../lib/format'
+import { pageTitle } from '../lib/ui'
 
 type View = 'week' | 'month' | 'agenda'
 
@@ -120,7 +121,7 @@ export function CalendarPage() {
   return (
     <>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('cal.view')}</h1>
+        <h1 className={pageTitle}>{t('cal.view')}</h1>
         <div className="flex gap-1" role="group" aria-label={t('tasks.view')}>
           {(Object.keys(VIEW_PARAM) as View[]).map((v) => (
             <button key={v} type="button" className={toggle(view === v)} onClick={() => go({ view: v })}>

@@ -22,6 +22,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { shortPart } from '../lib/brief'
 import { addDays, clockTime, longDate, relativeDay, toIsoDate } from '../lib/format'
+import { pageTitle } from '../lib/ui'
 
 /** Important mails of the last two weeks: count and the newest three. */
 function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
@@ -199,7 +200,7 @@ export function TodayPage() {
       <header className="rise mb-2 flex items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs text-muted">{date}</p>
-          <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">
+          <h1 className={pageTitle}>
             {weekday}
           </h1>
         </div>

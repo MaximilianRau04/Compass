@@ -12,6 +12,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { decimal, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
 import { grams, kcal, nutritionImportMessage } from '../lib/nutrition'
+import { button, pageTitle } from '../lib/ui'
 
 const RANGES = [7, 30, 90]
 // kcal per gram, for the share of calories per macro.
@@ -46,7 +47,7 @@ function ImportButton() {
         type="button"
         onClick={() => input.current?.click()}
         disabled={upload.isPending}
-        className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+        className={button('primary')}
       >
         {upload.isPending ? t('nutrition.importing') : t('nutrition.import')}
       </button>
@@ -233,7 +234,7 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
         <button
           type="submit"
           disabled={save.isPending}
-          className="rounded-md border border-brass px-3 py-1.5 text-sm text-brass hover:bg-brass/10 disabled:opacity-50"
+          className={button('secondary')}
         >
           {t('nutrition.save')}
         </button>
@@ -277,7 +278,7 @@ export function NutritionPage() {
 
   const header = (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('nutrition.title')}</h1>
+      <h1 className={pageTitle}>{t('nutrition.title')}</h1>
       <ImportButton />
     </header>
   )

@@ -16,3 +16,9 @@ const kinds: Record<ButtonKind, string> = {
 }
 
 export const button = (kind: ButtonKind = 'secondary', size: keyof typeof sizes = 'md') => `${base} ${sizes[size]} ${kinds[kind]}`
+
+/** The big heading at the top of every page. */
+export const pageTitle = 'font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl'
+
+/** The dimmed backdrop behind sheets and dialogs. */
+export const overlay = 'fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]'

@@ -9,7 +9,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { clockTime, localDay, pill, relativeDay } from '../lib/format'
 import { accountName, isImportant } from '../lib/mail'
-import { button } from '../lib/ui'
+import { button, pageTitle } from '../lib/ui'
 
 const DAYS = 14
 
@@ -151,7 +151,7 @@ export function MailPage() {
 
   const header = (
     <header className="mb-2 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('mail.title')}</h1>
+      <h1 className={pageTitle}>{t('mail.title')}</h1>
       <button
         type="button"
         disabled={sync.isPending}

@@ -8,6 +8,7 @@ import { SectionLabel } from '../components/Layout'
 import { NoteSheet } from '../components/NoteSheet'
 import { useI18n } from '../i18n/context'
 import { AREA_TEXT, localDay, pill, relativeDay } from '../lib/format'
+import { button, pageTitle } from '../lib/ui'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -77,8 +78,8 @@ export function NotesPage() {
   return (
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('notes.title')}</h1>
-        <button type="button" onClick={() => setOpen('new')} className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90">
+        <h1 className={pageTitle}>{t('notes.title')}</h1>
+        <button type="button" onClick={() => setOpen('new')} className={button('primary')}>
           {t('notes.new')}
         </button>
       </header>

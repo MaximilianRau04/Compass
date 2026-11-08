@@ -24,7 +24,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { compact, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
 import { importMessage } from '../lib/training'
-import { button } from '../lib/ui'
+import { button, pageTitle } from '../lib/ui'
 import { loadDraft } from '../lib/workout'
 
 const WEEKS = 12
@@ -352,7 +352,7 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
                         },
                       )
                     }
-                    className="rounded-md border border-brass px-2 py-1 text-sm text-brass hover:bg-brass/10"
+                    className={button('secondary', 'sm')}
                   >
                     {t('training.merge')}
                   </button>
@@ -375,7 +375,7 @@ export function TrainingPage() {
 
   const header = (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('training.title')}</h1>
+      <h1 className={pageTitle}>{t('training.title')}</h1>
       <div className="flex flex-wrap gap-2">
         <Link to="/training/log" className={button('primary')}>
           {loadDraft() ? t('log.continue') : t('log.startTraining')}

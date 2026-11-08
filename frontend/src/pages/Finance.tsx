@@ -25,6 +25,7 @@ import { SectionLabel } from '../components/Layout'
 import { type Translate, useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { daysBetween, parseAmount, parseDate, pill, relativeDay } from '../lib/format'
+import { button, pageTitle } from '../lib/ui'
 
 const INPUT = 'rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none'
 // The bank sends the browser back once per approval; StrictMode would run the effect twice.
@@ -300,7 +301,7 @@ function Depot({ data }: { data: FinanceOverview }) {
           <span className="mb-1 block text-xs text-muted">{t('fin.depotToday')}</span>
           <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder={currencySymbol} className={`${INPUT} w-36`} />
         </label>
-        <button type="submit" disabled={log.isPending || !value.trim()} className="rounded-md bg-brass px-3 py-1.5 text-sm font-medium text-brass-ink disabled:opacity-40">
+        <button type="submit" disabled={log.isPending || !value.trim()} className={button('primary')}>
           {t('fin.save')}
         </button>
       </form>
@@ -408,7 +409,7 @@ export function FinancePage() {
   const connected = status.data?.connections.some((c) => c.status === 'active')
   const header = (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('fin.title')}</h1>
+      <h1 className={pageTitle}>{t('fin.title')}</h1>
       {connected && (
         <button
           type="button"
@@ -419,7 +420,7 @@ export function FinancePage() {
               onError: (err) => toast.error(err.message),
             })
           }
-          className="rounded-md border border-brass px-3 py-1.5 text-sm text-brass hover:bg-brass/10 disabled:opacity-50"
+          className={button('secondary')}
         >
           {sync.isPending ? t('fin.syncing') : t('fin.sync')}
         </button>

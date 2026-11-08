@@ -13,6 +13,7 @@ import { FeedSettings } from '../components/FeedSettings'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
+import { button, pageTitle } from '../lib/ui'
 
 const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
   { topic: 'bedtime', label: 'push.topic.bedtime', hint: 'push.topic.bedtimeHint' },
@@ -50,7 +51,7 @@ function Notifications() {
         <button
           type="button"
           disabled={enable.isPending}
-          className="rounded-md bg-brass px-3 py-2 text-sm font-medium text-brass-ink hover:opacity-90 disabled:opacity-50"
+          className={button('primary')}
           onClick={() =>
             enable.mutate(publicKey, {
               onSuccess: (result) => toast(result ? t('push.enabled') : t('push.permissionRefused')),
@@ -125,7 +126,7 @@ export function SettingsPage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="font-display text-5xl leading-none font-semibold tracking-tight uppercase sm:text-6xl">{t('settings.title')}</h1>
+        <h1 className={pageTitle}>{t('settings.title')}</h1>
       </header>
       <section>
         <SectionLabel>{t('push.title')}</SectionLabel>
