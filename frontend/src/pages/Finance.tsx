@@ -27,6 +27,8 @@ import type { MessageKey } from '../i18n/messages'
 import { daysBetween, parseAmount, parseDate, pill, relativeDay } from '../lib/format'
 import { button, pageTitle } from '../lib/ui'
 
+/** Transactions shown at first and added per click. */
+const TX_PAGE = 30
 const INPUT = 'rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none'
 // The bank sends the browser back once per approval; StrictMode would run the effect twice.
 const handledCodes = new Set<string>()
@@ -375,25 +377,38 @@ function TransactionRow({ tx, categories }: { tx: BankTransaction; categories: s
 function Transactions({ categories }: { categories: string[] }) {
   const { t } = useI18n()
   const [unsorted, setUnsorted] = useState(false)
+  const [shown, setShown] = useState(TX_PAGE)
   const list = useTransactions(unsorted)
+  const all = list.data ?? []
+  // The unsorted ones are a to-do list, so they all show at once; everything else in pages.
+  const visible = unsorted ? all : all.slice(0, shown)
+  const pick = (value: boolean) => {
+    setUnsorted(value)
+    setShown(TX_PAGE)
+  }
   return (
     <section>
       <SectionLabel>{t('fin.transactions')}</SectionLabel>
       <div className="mt-3 flex gap-2">
-        <button type="button" className={pill(!unsorted)} onClick={() => setUnsorted(false)}>
+        <button type="button" className={pill(!unsorted)} onClick={() => pick(false)}>
           {t('fin.all')}
         </button>
-        <button type="button" className={pill(unsorted)} onClick={() => setUnsorted(true)}>
+        <button type="button" className={pill(unsorted)} onClick={() => pick(true)}>
           {t('fin.cat.none')}
         </button>
       </div>
       {list.isPending && <p className="mt-3 font-mono text-sm text-muted">{t('common.loading')}</p>}
       {list.data && !list.data.length && <p className="mt-3 text-sm text-muted">{t('fin.noTransactions')}</p>}
       <ul className="mt-2 divide-y divide-rule">
-        {list.data?.map((tx) => (
+        {visible.map((tx) => (
           <TransactionRow key={tx.id} tx={tx} categories={categories} />
         ))}
       </ul>
+      {visible.length < all.length && (
+        <button type="button" onClick={() => setShown(shown + TX_PAGE)} className={`mt-3 w-full ${button('secondary')}`}>
+          {t('common.more', { n: Math.min(TX_PAGE, all.length - visible.length) })}
+        </button>
+      )}
     </section>
   )
 }

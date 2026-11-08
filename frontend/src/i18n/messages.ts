@@ -14,6 +14,7 @@ export const de = {
 
   'common.loading': 'Lade …',
   'common.apiUnreachable': 'Die API ist nicht erreichbar: {message}',
+  'common.more': '{n} weitere anzeigen',
   'common.cancel': 'Abbrechen',
 
   'dial.label': '{done} von {total} erledigt',
@@ -316,7 +317,6 @@ export const de = {
   'news.allSources': 'Alle Quellen',
   'news.onlyRelevant': 'Nur passende',
   'news.count': '{n} von {total}',
-  'news.more': '{n} weitere anzeigen',
   'news.general': 'Allgemein',
   'news.days': '{n} Tage',
   'news.like': 'Interessant',
@@ -793,6 +793,7 @@ export const en: Record<MessageKey, string> = {
 
   'common.loading': 'Loading …',
   'common.apiUnreachable': 'Cannot reach the API: {message}',
+  'common.more': 'Show {n} more',
   'common.cancel': 'Cancel',
 
   'dial.label': '{done} of {total} done',
@@ -1095,7 +1096,6 @@ export const en: Record<MessageKey, string> = {
   'news.allSources': 'All sources',
   'news.onlyRelevant': 'Matching only',
   'news.count': '{n} of {total}',
-  'news.more': 'Show {n} more',
   'news.general': 'General',
   'news.days': '{n} days',
   'news.like': 'Interesting',

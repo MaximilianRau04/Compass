@@ -342,7 +342,7 @@ export function NewsPage() {
               </ul>
               {filtered.length > shown && (
                 <button type="button" onClick={() => setShown(shown + PAGE)} className={`mt-3 w-full ${button('secondary')}`}>
-                  {t('news.more', { n: Math.min(PAGE, filtered.length - shown) })}
+                  {t('common.more', { n: Math.min(PAGE, filtered.length - shown) })}
                 </button>
               )}
             </>
