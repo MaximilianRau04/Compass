@@ -217,7 +217,7 @@ export function TodayPage() {
 
       {/* Phone: tiles, the day, then mail and news. Desktop: the day on the left, the body and
           the inbox on the right. */}
-      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:grid-rows-[auto_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:grid-rows-[auto_1fr]">
         <div className="lg:col-start-2 lg:row-start-1">
           <BodyTiles today={today} health={health.data} heart={heart.data} food={food.data} training={training.data} />
         </div>

@@ -367,7 +367,7 @@ function Start({ onStart }: { onStart: (d: Draft) => void }) {
       <section>
         <SectionLabel count={templates.data?.length || undefined}>{t('log.templates')}</SectionLabel>
         <p className="mt-1 font-mono text-[11px] text-muted">{t('log.templatesHint')}</p>
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+        <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
           {templates.data?.map((x) => (
             <TemplateCard key={x.id} template={x} disabled={blocked} onStart={() => void begin(x.name)} onEdit={() => setEditing(x)} />
           ))}
