@@ -62,6 +62,8 @@ class Settings(BaseSettings):
 
     # MCP server and its built-in OAuth server. The public URL is what the assistant connects to;
     # the MCP endpoint is <public url>/mcp.
+    # The default is `make mcp` (uvicorn on 8001, no Caddy); the tests rely on it too. In Docker the
+    # MCP server sits behind Caddy on 8081, see MCP_PUBLIC_URL in .env.example.
     mcp_public_url: str = "http://localhost:8001"
     mcp_access_token_ttl: int = 3600
     mcp_refresh_token_ttl: int = 60 * 60 * 24 * 30
