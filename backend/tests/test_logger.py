@@ -14,7 +14,8 @@ from app.services.clock import local_today, local_tz
 from app.services.workout_log import LoggedSession
 
 
-def at(days_ago: int, hhmm: str = "18:00") -> datetime:
+def at(days_ago: int, hhmm: str = "00:05") -> datetime:
+    # Early in the day, so a session "today" never lies in the future (the logger refuses those).
     day = local_today() - timedelta(days=days_ago)
     h, m = map(int, hhmm.split(":"))
     return datetime(day.year, day.month, day.day, h, m, tzinfo=local_tz())
