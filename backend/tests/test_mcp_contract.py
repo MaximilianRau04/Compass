@@ -6,6 +6,7 @@ After an intended change, update the fixture:
     UPDATE_MCP_CONTRACT=1 uv run pytest tests/test_mcp_contract.py
 """
 
+import inspect
 import json
 import os
 from pathlib import Path
@@ -29,7 +30,12 @@ async def contract() -> dict:
         prompts = (await c.list_prompts()).prompts
 
     def dump(item) -> dict:
-        return item.model_dump(mode="json", by_alias=True, exclude_none=True)
+        data = item.model_dump(mode="json", by_alias=True, exclude_none=True)
+        # The description is the docstring. Python 3.13 and later strip its indentation when
+        # compiling, older versions keep it; compare the text, not the indentation.
+        if "description" in data:
+            data["description"] = inspect.cleandoc(data["description"])
+        return data
 
     return {
         "tools": {t.name: dump(t) for t in tools},

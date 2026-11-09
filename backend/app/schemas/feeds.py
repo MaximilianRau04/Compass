@@ -36,8 +36,13 @@ class CalendarFeedCreate(FeedCreate):
         return value
 
 
+# The one definition: typing treats Literals with the same values as equal and, up to Python 3.12,
+# hands out the first one it built, so a second spelling in another order changes the MCP schema.
+NewsStream = Literal["general", "personal"]
+
+
 class NewsFeedCreate(FeedCreate):
-    stream: Literal["general", "personal"] = "personal"
+    stream: NewsStream = "personal"
 
 
 class FeedRead(BaseModel):

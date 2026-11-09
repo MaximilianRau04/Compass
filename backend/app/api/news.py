@@ -1,12 +1,13 @@
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import SessionDep
 from app.ingestion import news as news_sync
 from app.models.news import Brief
+from app.schemas.feeds import NewsStream
 from app.schemas.news import (
     BriefRead,
     FeedStatus,
@@ -23,8 +24,6 @@ from app.services import news as news_service
 from app.services.clock import local_today
 
 router = APIRouter(tags=["news"])
-
-Stream = Literal["general", "personal"]
 
 
 def read(s: news_service.Scored) -> NewsItemRead:
@@ -63,7 +62,7 @@ def _interests(session) -> InterestsRead:
 def list_news(
     session: SessionDep,
     hours: Annotated[int, Query(ge=1, le=24 * 30)] = 36,
-    stream: Stream | None = None,
+    stream: NewsStream | None = None,
 ):
     return [read(s) for s in news_service.ranked(session, hours, stream)]
 

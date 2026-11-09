@@ -8,6 +8,7 @@ from app.mcp.core import IDEMPOTENT_WRITE, READ, mcp
 from app.mcp.db import session_scope
 from app.mcp.guards import audited
 from app.mcp.schemas import NewsDigestOut, NewsOut, TrendOut, news_out
+from app.schemas.feeds import NewsStream
 from app.services import news as news_service
 
 
@@ -15,7 +16,7 @@ from app.services import news as news_service
 def get_news_digest(
     hours: Annotated[int, Field(ge=1, le=168, description="How far back")] = 36,
     stream: Annotated[
-        Literal["personal", "general"] | None,
+        NewsStream | None,
         Field(description="personal: tech feeds ranked by the profile; general: world news"),
     ] = None,
     limit: Annotated[int, Field(ge=1, le=60)] = 20,
