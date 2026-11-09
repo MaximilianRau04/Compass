@@ -10,6 +10,7 @@ import { Layout } from './components/Layout'
 import { LegacyRedirect } from './components/LegacyRedirect'
 import { I18nProvider } from './i18n/I18nProvider'
 import { LEGACY_PATHS } from './lib/legacy'
+import { initPreferences, openStartPage } from './lib/preferences'
 import { registerServiceWorker } from './lib/pwa'
 import { persistOptions, queryClient } from './lib/queryCache'
 import { CalendarPage } from './pages/Calendar'
@@ -28,6 +29,8 @@ import { WelcomePage } from './pages/Welcome'
 import { WorkoutLogPage } from './pages/WorkoutLog'
 
 registerServiceWorker()
+initPreferences()
+openStartPage()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

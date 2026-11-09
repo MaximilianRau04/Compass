@@ -5,7 +5,9 @@
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* data-theme is set by public/prefs.js and lib/preferences.ts: the design chosen in the settings,
+   or the system's one. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* Palette: a nautical chart. Paper, ink, brass for actions, signal red only for overdue. */
 @theme {
@@ -16,13 +18,14 @@
   /* Text sizes that set only the size: unlike Tailwind's text-xs and text-sm they keep the
      inherited line height. 3xs chart labels, 2xs meta lines, data tables, numbers and chips,
      label the condensed section labels, field the mono form fields, input text inputs and
-     text set like them. */
-  --text-3xs: 10px;
-  --text-2xs: 11px;
-  --text-data: 12px;
-  --text-label: 13px;
-  --text-field: 14px;
-  --text-input: 15px;
+     text set like them. In rem (10 to 15 px at the normal size), so they grow with the text size
+     from the settings. */
+  --text-3xs: 0.625rem;
+  --text-2xs: 0.6875rem;
+  --text-data: 0.75rem;
+  --text-label: 0.8125rem;
+  --text-field: 0.875rem;
+  --text-input: 0.9375rem;
 
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);
@@ -54,8 +57,14 @@
   --ink: #14202b;
   --muted: #5e6b74;
   --rule: #d3dbd8;
-  /* brass and signal reach 4.5:1 as text on paper and paper-raised, and white text on brass. */
-  --brass: #906623;
+  /* brass is the accent, one of these chosen in the settings. Each reaches 4.5:1 as text on
+     paper and paper-raised and with brass-ink on it, in both designs (validated); so does signal
+     as text. */
+  --accent-brass: #906623;
+  --accent-sea: #1f7268;
+  --accent-blue: #2f5f8a;
+  --accent-violet: #6b4fa8;
+  --brass: var(--accent-brass);
   --brass-ink: #ffffff;
   --signal: #ce2f36;
   --sea: #2f7d72;
@@ -78,32 +87,53 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1a24;
-    --paper-raised: #15232f;
-    --ink: #e4ebe8;
-    --muted: #8d9aa3;
-    --rule: #26384a;
-    --brass: #d3a04e;
-    --brass-ink: #14202b;
-    --signal: #f06a6f;
-    --sea: #5fb8a9;
-    --chart: #22a892;
-    --m-sleep: #6c82e0;
-    --m-heart: #c94a5a;
-    --m-steps: #22a892;
-    --m-food: #b8822c;
-    --m-training: #a06fd6;
+:root[data-theme='dark'] {
+  --paper: #0f1a24;
+  --paper-raised: #15232f;
+  --ink: #e4ebe8;
+  --muted: #8d9aa3;
+  --rule: #26384a;
+  --accent-brass: #d3a04e;
+  --accent-sea: #4fb3a3;
+  --accent-blue: #7aa7d4;
+  --accent-violet: #a897dc;
+  --brass-ink: #14202b;
+  --signal: #f06a6f;
+  --sea: #5fb8a9;
+  --chart: #22a892;
+  --m-sleep: #6c82e0;
+  --m-heart: #c94a5a;
+  --m-steps: #22a892;
+  --m-food: #b8822c;
+  --m-training: #a06fd6;
 
-    --area-blue: #7aa7d4;
-    --area-violet: #a497d6;
-    --area-teal: #5fb8a9;
-    --area-amber: #d3a04e;
-    --area-rose: #e08a9e;
-    --area-slate: #8d9aa3;
-    color-scheme: dark;
-  }
+  --area-blue: #7aa7d4;
+  --area-violet: #a497d6;
+  --area-teal: #5fb8a9;
+  --area-amber: #d3a04e;
+  --area-rose: #e08a9e;
+  --area-slate: #8d9aa3;
+  color-scheme: dark;
+}
+
+/* The accent chosen in the settings; --accent-* follow the design. */
+:root[data-accent='sea'] {
+  --brass: var(--accent-sea);
+}
+:root[data-accent='blue'] {
+  --brass: var(--accent-blue);
+}
+:root[data-accent='violet'] {
+  --brass: var(--accent-violet);
+}
+
+/* Text size from the settings. Spacing is in rem too, so the layout grows with the text and
+   nothing overflows. */
+:root[data-text-size='large'] {
+  font-size: 112.5%;
+}
+:root[data-text-size='larger'] {
+  font-size: 125%;
 }
 
 html,
@@ -205,12 +235,11 @@ body {
   animation: ping 1100ms ease-out 700ms both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0s !important;
-    transition-duration: 0.01ms !important;
-  }
+/* data-motion: the animation choice from the settings, or the system's reduced motion. */
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.01ms !important;
 }

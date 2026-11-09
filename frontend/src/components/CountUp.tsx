@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-const DURATION = 700
+import { reducedMotion } from '../lib/preferences'
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const DURATION = 700
 
 /** A number that counts up to its value on mount, and from the old to the new value when it
  * changes. The final text is in the DOM from the start for screen readers. */

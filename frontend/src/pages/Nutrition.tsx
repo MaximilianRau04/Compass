@@ -13,6 +13,7 @@ import type { MessageKey } from '../i18n/messages'
 import { decimal, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
 import { grams, kcal, nutritionImportMessage } from '../lib/nutrition'
 import { button, pageTitle } from '../lib/ui'
+import { useUnits } from '../lib/units'
 
 const RANGES = [7, 30, 90]
 // kcal per gram, for the share of calories per macro.
@@ -185,8 +186,15 @@ function MacroAverages({ averages }: { averages: NutritionSummary['averages'] })
 
 function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
   const { t } = useI18n()
+  const u = useUnits()
   const save = useSetGoal()
   const [values, setValues] = useState<Partial<Record<GoalMetric, string>>>({})
+  // The loss goals are kept in kg per week and shown in the chosen unit.
+  const isWeight = (metric: GoalMetric) => metric === 'weight_loss_min' || metric === 'weight_loss_max'
+  const shown = (metric: GoalMetric) => {
+    const goal = goals[metric]
+    return goal == null || !isWeight(metric) ? goal : Math.round(u.weight(goal) * 100) / 100
+  }
   const fields: { metric: GoalMetric; label: MessageKey }[] = [
     { metric: 'kcal', label: 'nutrition.goalKcal' },
     { metric: 'protein_g', label: 'nutrition.goalProtein' },
@@ -206,11 +214,11 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
           e.preventDefault()
           const changed = fields.filter(({ metric }) => {
             const v = Number(values[metric])
-            return values[metric] !== undefined && v > 0 && v !== goals[metric]
+            return values[metric] !== undefined && v > 0 && v !== shown(metric)
           })
           changed.forEach(({ metric }) =>
             save.mutate(
-              { metric, value: Number(values[metric]) },
+              { metric, value: isWeight(metric) ? u.toKg(Number(values[metric])) : Number(values[metric]) },
               { onSuccess: () => toast(t('nutrition.saved')), onError: (error) => toast.error(error.message) },
             ),
           )
@@ -219,13 +227,13 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
       >
         {fields.map(({ metric, label }) => (
           <label key={metric} className="text-sm">
-            <span className="mb-1 block text-xs text-muted">{t(label)}</span>
+            <span className="mb-1 block text-xs text-muted">{t(label, { unit: u.weightUnit })}</span>
             <input
               type="number"
               inputMode="decimal"
               min={0}
               step="any"
-              value={values[metric] ?? goals[metric] ?? ''}
+              value={values[metric] ?? shown(metric) ?? ''}
               onChange={(e) => setValues({ ...values, [metric]: e.target.value })}
               className="w-32 rounded-md border border-rule bg-paper-raised px-2 py-1.5 font-mono focus:border-brass focus:outline-none"
             />
@@ -245,9 +253,10 @@ function Goals({ goals }: { goals: NutritionSummary['goals'] }) {
 
 function Weight() {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const weights = useWeights()
   if (!weights.data?.length) return null
-  const points = weights.data.map((w) => ({ key: w.date, date: w.date, value: w.kg }))
+  const points = weights.data.map((w) => ({ key: w.date, date: w.date, value: u.weight(w.kg) }))
   const long = (d: string) => parseDate(d).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
   return (
     <section>
@@ -256,22 +265,23 @@ function Weight() {
       <LineChart
         data={points}
         gapDays={45}
-        format={(v) => `${decimal(v, locale)} kg`}
+        format={(v) => `${decimal(v, locale)} ${u.weightUnit}`}
         ariaLabel={t('nutrition.weight')}
         tooltip={(p) => (
           <>
-            <strong className="font-semibold">{decimal(p.value, locale)} kg</strong>
+            <strong className="font-semibold">{decimal(p.value, locale)} {u.weightUnit}</strong>
             <span className="ml-2 text-muted">{long(p.date)}</span>
           </>
         )}
       />
-      <DataTable head={[t('training.date'), t('sleep.value')]} rows={[...points].reverse().map((p) => [long(p.date), `${decimal(p.value, locale)} kg`])} />
+      <DataTable head={[t('training.date'), t('sleep.value')]} rows={[...points].reverse().map((p) => [long(p.date), `${decimal(p.value, locale)} ${u.weightUnit}`])} />
     </section>
   )
 }
 
 export function NutritionPage() {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const [range, setRange] = useState(30)
   const summary = useNutritionSummary(range)
   const today = useTodayDate()
@@ -348,10 +358,10 @@ export function NutritionPage() {
         />
         <Stat
           label={t('nutrition.weight')}
-          value={data.weight ? `${decimal(data.weight.kg, locale)} kg` : '–'}
+          value={data.weight ? u.formatWeight(data.weight.kg) : '–'}
           note={
             data.weight_change !== null
-              ? t('nutrition.weightChange', { change: `${data.weight_change > 0 ? '+' : ''}${decimal(data.weight_change, locale)}`, n: range })
+              ? t('nutrition.weightChange', { change: `${data.weight_change > 0 ? '+' : ''}${u.formatWeight(data.weight_change)}`, n: range })
               : data.weight
                 ? relativeDay(data.weight.date, today, t, locale)
                 : undefined

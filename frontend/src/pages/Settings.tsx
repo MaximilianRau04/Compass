@@ -10,9 +10,25 @@ import {
   useSetPushTopics,
 } from '../api/push'
 import { FeedSettings } from '../components/FeedSettings'
-import { LanguageSwitch, SectionLabel } from '../components/Layout'
-import { useI18n } from '../i18n/context'
+import { SectionLabel } from '../components/Layout'
+import { type Lang, useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
+import {
+  type Accent,
+  ACCENTS,
+  type Motion,
+  MOTIONS,
+  type Page,
+  PAGES,
+  setPreference,
+  TEXT_SIZES,
+  type TextSize,
+  type Theme,
+  THEMES,
+  type Units,
+  UNITS,
+  usePreferences,
+} from '../lib/preferences'
 import { button, pageTitle } from '../lib/ui'
 
 const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
@@ -25,6 +41,163 @@ const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
 ]
 
 const BUTTON = button('secondary')
+
+// Each language in its own name, so it can be found whatever is set.
+const LANGUAGES: { value: Lang; label: string }[] = [
+  { value: 'de', label: 'Deutsch' },
+  { value: 'en', label: 'English' },
+]
+
+function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
+  return (
+    <div role="group" aria-label={label} className="flex w-fit shrink-0 rounded-full border border-rule bg-paper-raised p-0.5 text-sm">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={option.value === value}
+          className={['rounded-full px-3 py-1 transition-colors', option.value === value ? 'bg-ink font-medium text-paper' : 'text-muted hover:text-ink'].join(' ')}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <span>
+        <span className="block text-sm text-ink">{label}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
+      {children}
+    </li>
+  )
+}
+
+const PAGE_LIST = Object.entries(PAGES) as [Page, MessageKey][]
+
+// The units by their symbols, which read the same in every language.
+const UNIT_LABELS: Record<Units, string> = { metric: 'kg · cm · km', imperial: 'lb · in · mi' }
+
+/** Round color fields for the accent, each in the shade of the current design. */
+function AccentPicker({ value }: { value: Accent }) {
+  const { t } = useI18n()
+  return (
+    <div className="flex shrink-0 items-center gap-3">
+      <span className="text-sm text-muted">{t(`settings.accent.${value}`)}</span>
+      <div role="group" aria-label={t('settings.accent')} className="flex gap-1.5">
+        {ACCENTS.map((accent) => (
+          <button
+            key={accent}
+            type="button"
+            onClick={() => setPreference('accent', accent)}
+            aria-pressed={accent === value}
+            aria-label={t(`settings.accent.${accent}`)}
+            title={t(`settings.accent.${accent}`)}
+            className={['h-7 w-7 rounded-full border-2 transition-transform', accent === value ? 'scale-110 border-ink' : 'border-transparent hover:scale-110'].join(' ')}
+            style={{ background: `var(--accent-${accent})` }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Appearance() {
+  const { lang, setLang, t } = useI18n()
+  const prefs = usePreferences()
+  return (
+    <>
+      <p className="mt-3 text-sm text-muted">{t('settings.appearanceHint')}</p>
+      <ul className="mt-1 divide-y divide-rule/60">
+        <Row label={t('lang.label')}>
+          <Segmented label={t('lang.label')} value={lang} options={LANGUAGES} onChange={setLang} />
+        </Row>
+        <Row label={t('settings.theme')}>
+          <Segmented<Theme>
+            label={t('settings.theme')}
+            value={prefs.theme}
+            options={THEMES.map((value) => ({ value, label: t(`settings.theme.${value}`) }))}
+            onChange={(value) => setPreference('theme', value)}
+          />
+        </Row>
+        <Row label={t('settings.accent')}>
+          <AccentPicker value={prefs.accent} />
+        </Row>
+        <Row label={t('settings.textSize')}>
+          <Segmented<TextSize>
+            label={t('settings.textSize')}
+            value={prefs.textSize}
+            options={TEXT_SIZES.map((value) => ({ value, label: t(`settings.textSize.${value}`) }))}
+            onChange={(value) => setPreference('textSize', value)}
+          />
+        </Row>
+        <Row label={t('settings.motion')} hint={t('settings.motionHint')}>
+          <Segmented<Motion>
+            label={t('settings.motion')}
+            value={prefs.motion}
+            options={MOTIONS.map((value) => ({ value, label: t(`settings.motion.${value}`) }))}
+            onChange={(value) => setPreference('motion', value)}
+          />
+        </Row>
+        <Row label={t('settings.units')} hint={t('settings.unitsHint')}>
+          <Segmented<Units>
+            label={t('settings.units')}
+            value={prefs.units}
+            options={UNITS.map((value) => ({ value, label: UNIT_LABELS[value] }))}
+            onChange={(value) => setPreference('units', value)}
+          />
+        </Row>
+      </ul>
+    </>
+  )
+}
+
+function Navigation() {
+  const { t } = useI18n()
+  const prefs = usePreferences()
+  const toggle = (page: Page, shown: boolean) =>
+    setPreference('hidden', shown ? prefs.hidden.filter((p) => p !== page) : [...prefs.hidden, page])
+  return (
+    <ul className="mt-1 divide-y divide-rule/60">
+      <Row label={t('settings.start')} hint={t('settings.startHint')}>
+        <select
+          aria-label={t('settings.start')}
+          value={prefs.start}
+          onChange={(e) => setPreference('start', e.target.value as Page)}
+          className="w-full rounded-md border border-rule bg-paper-raised px-3 py-1.5 text-sm text-ink focus:border-brass focus:outline-none sm:w-48"
+        >
+          {PAGE_LIST.map(([path, label]) => (
+            <option key={path} value={path}>
+              {t(label)}
+            </option>
+          ))}
+        </select>
+      </Row>
+      <li className="py-3">
+        <span className="block text-sm text-ink">{t('settings.pages')}</span>
+        <span className="block text-xs text-muted">{t('settings.navigationHint')}</span>
+        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+          {PAGE_LIST.map(([path, label]) => (
+            <label key={path} className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-brass"
+                checked={!prefs.hidden.includes(path)}
+                onChange={(e) => toggle(path, e.target.checked)}
+              />
+              {t(label)}
+            </label>
+          ))}
+        </div>
+      </li>
+    </ul>
+  )
+}
 
 function Notifications() {
   const { t } = useI18n()
@@ -129,8 +302,12 @@ export function SettingsPage() {
         <h1 className={pageTitle}>{t('settings.title')}</h1>
       </header>
       <section className="mb-10">
-        <SectionLabel>{t('lang.label')}</SectionLabel>
-        <LanguageSwitch className="mt-3" />
+        <SectionLabel>{t('settings.appearance')}</SectionLabel>
+        <Appearance />
+      </section>
+      <section className="mb-10">
+        <SectionLabel>{t('settings.navigation')}</SectionLabel>
+        <Navigation />
       </section>
       <section>
         <SectionLabel>{t('push.title')}</SectionLabel>

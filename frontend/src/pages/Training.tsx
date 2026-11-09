@@ -25,6 +25,7 @@ import type { MessageKey } from '../i18n/messages'
 import { compact, decimal, localDay, parseDate, pill, relativeDay } from '../lib/format'
 import { importMessage } from '../lib/training'
 import { button, pageTitle } from '../lib/ui'
+import { useUnits, weightField } from '../lib/units'
 import { loadDraft } from '../lib/workout'
 
 const WEEKS = 12
@@ -70,6 +71,7 @@ function shortDate(value: string, locale: string): string {
 
 function Progression({ exercises }: { exercises: Exercise[] }) {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const [selected, setSelected] = useState<number | null>(null)
   const [metric, setMetric] = useState<Metric>('best_e1rm')
   const exercise = exercises.find((e) => e.id === selected) ?? exercises[0]
@@ -78,11 +80,12 @@ function Progression({ exercises }: { exercises: Exercise[] }) {
 
   const metrics: Metric[] = exercise.bodyweight ? ['max_reps'] : ['best_e1rm', 'top_weight', 'max_reps', 'volume_kg']
   const active = metrics.includes(metric) ? metric : metrics[0]
-  const unit = active === 'max_reps' ? '' : ' kg'
+  const reps = active === 'max_reps'
+  const unit = reps ? '' : ` ${u.weightUnit}`
   const format = (v: number) => `${active === 'volume_kg' ? compact(v, locale) : decimal(v, locale)}${unit}`
   const points = (progress.data ?? [])
     .filter((p) => p[active] !== null)
-    .map((p: ProgressPoint) => ({ key: String(p.session_id), date: p.date, value: p[active] as number, point: p }))
+    .map((p: ProgressPoint) => ({ key: String(p.session_id), date: p.date, value: reps ? (p[active] as number) : u.weight(p[active] as number), point: p }))
 
   return (
     <section>
@@ -138,10 +141,12 @@ function Progression({ exercises }: { exercises: Exercise[] }) {
 /** Rep range and weight step of one exercise, edited in place. */
 function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
   const { t } = useI18n()
+  const u = useUnits()
   const update = useUpdateExercise()
   const [min, setMin] = useState(String(suggestion.rep_min))
   const [max, setMax] = useState(String(suggestion.rep_max))
-  const [step, setStep] = useState(String(suggestion.weight_step))
+  // The step is kept in kg and edited in the chosen unit.
+  const [step, setStep] = useState(weightField(suggestion.weight_step, u.weightUnit))
   const input = 'w-14 rounded-md border border-rule bg-paper px-2 py-1 text-center font-mono text-label'
   return (
     <form
@@ -149,7 +154,7 @@ function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
       onSubmit={(e) => {
         e.preventDefault()
         update.mutate(
-          { id: suggestion.exercise_id, data: { rep_min: Number(min), rep_max: Number(max), weight_step: Number(step.replace(',', '.')) } },
+          { id: suggestion.exercise_id, data: { rep_min: Number(min), rep_max: Number(max), weight_step: u.toKg(Number(step.replace(',', '.'))) } },
           { onSuccess: () => toast(t('progress.saved')), onError: (error) => toast.error(error.message) },
         )
       }}
@@ -159,7 +164,7 @@ function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
       <input value={max} onChange={(e) => setMax(e.target.value)} inputMode="numeric" aria-label={t('progress.repMax')} className={input} />
       <span className="text-muted">{t('progress.reps')}</span>
       <input value={step} onChange={(e) => setStep(e.target.value)} inputMode="decimal" aria-label={t('progress.step')} className={input} />
-      <span className="text-muted">{t('progress.stepUnit')}</span>
+      <span className="text-muted">{t('progress.stepUnit', { unit: u.weightUnit })}</span>
       <button type="submit" disabled={update.isPending} className={button('secondary', 'sm')}>
         {t('progress.save')}
       </button>
@@ -170,13 +175,14 @@ function RangeEditor({ suggestion }: { suggestion: Suggestion }) {
 /** The next target per exercise (double progression) and the exercises that stagnate. */
 function NextTargets() {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const progression = useProgression()
   const [all, setAll] = useState(false)
   const list = progression.data?.suggestions ?? []
   if (list.length === 0) return null
   const shown = all ? list : list.slice(0, 8)
   const sets = (s: Suggestion) =>
-    s.last_sets.map((x) => `${x.weight_kg != null ? decimal(x.weight_kg, locale) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
+    s.last_sets.map((x) => `${x.weight_kg != null ? decimal(u.weight(x.weight_kg), locale) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
   return (
     <section>
       <SectionLabel count={progression.data?.stagnant.length || undefined} tone={progression.data?.stagnant.length ? 'signal' : undefined}>
@@ -193,11 +199,11 @@ function NextTargets() {
                   {s.stagnant && <span className="ml-2 rounded-full border border-signal/60 px-1.5 py-px font-mono text-3xs text-signal">{t('progress.stagnant', { n: s.same_sessions })}</span>}
                 </span>
                 <span className={`font-mono text-data tabular-nums ${s.action === 'increase' ? 'text-brass' : ''}`}>
-                  {s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${s.bodyweight ? ' +' : ''} × ${s.reps}` : `× ${s.reps}`}
+                  {s.weight_kg != null ? `${u.formatWeight(s.weight_kg)}${s.bodyweight ? ' +' : ''} × ${s.reps}` : `× ${s.reps}`}
                   {s.action === 'increase' ? ' ↑' : ''}
                 </span>
                 <span className="w-full font-mono text-2xs text-muted">
-                  {t('progress.last', { sets: sets(s) })} · {s.rep_min}–{s.rep_max} · +{decimal(s.weight_step, locale)} kg
+                  {t('progress.last', { sets: sets(s) })} · {s.rep_min}–{s.rep_max} · +{u.formatWeight(s.weight_step)}
                   {!s.rir_known && ` · ${t('progress.noRir')}`}
                 </span>
               </summary>
@@ -217,6 +223,7 @@ function NextTargets() {
 
 function SessionRow({ session, today }: { session: SessionBrief; today: string }) {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const [open, setOpen] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const remove = useDeleteSession()
@@ -258,7 +265,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
             {duration}
             {heart}
             {t('training.exercisesN', { n: session.exercises })} · {t('training.setsN', { n: session.sets })} ·{' '}
-            {compact(session.volume_kg, locale)} kg
+            {u.formatVolume(session.volume_kg)}
           </span>
         </summary>
         {detail.data && (
@@ -268,7 +275,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
                 <span>{group.name}</span>
                 <span className="font-mono text-data text-muted tabular-nums">
                   {group.sets
-                    .map((s) => (s.weight_kg === null ? `${t('training.bodyweight')} × ${s.reps}` : `${decimal(s.weight_kg, locale)} × ${s.reps}`))
+                    .map((s) => (s.weight_kg === null ? `${t('training.bodyweight')} × ${s.reps}` : `${decimal(u.weight(s.weight_kg), locale)} × ${s.reps}`))
                     .join(' · ')}
                 </span>
               </li>
@@ -368,6 +375,7 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
 
 export function TrainingPage() {
   const { t, locale } = useI18n()
+  const u = useUnits()
   const summary = useTrainingSummary(WEEKS)
   const sessions = useSessions()
   const exercises = useExercises()
@@ -399,7 +407,7 @@ export function TrainingPage() {
     )
   }
 
-  const weeks = data.weeks.map((w) => ({ key: w.week_start, value: w.volume_kg, label: shortDate(w.week_start, locale), week: w }))
+  const weeks = data.weeks.map((w) => ({ key: w.week_start, value: u.weight(w.volume_kg), label: shortDate(w.week_start, locale), week: w }))
   const splitMax = Math.max(...SPLITS.map((s) => data.split[s] ?? 0), 1)
   const last = data.last_session
 
@@ -408,7 +416,7 @@ export function TrainingPage() {
       {header}
       <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Stat label={t('training.thisWeek')} value={String(data.this_week_sessions)} />
-        <Stat label={t('training.inWeeks', { n: WEEKS })} value={String(data.sessions)} note={`${compact(data.volume_kg, locale)} kg`} />
+        <Stat label={t('training.inWeeks', { n: WEEKS })} value={String(data.sessions)} note={u.formatVolume(data.volume_kg)} />
         <Stat
           label={t('training.lastSession')}
           value={relativeDay(localDay(last.started_at), today, t, locale)}
@@ -419,7 +427,7 @@ export function TrainingPage() {
       <div className="space-y-10">
         <section>
           <SectionLabel>{t('training.weeklyVolume')}</SectionLabel>
-          <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('training.weeklyVolumeHint')}</p>
+          <p className="mt-1 mb-2 font-mono text-2xs text-muted">{t('training.weeklyVolumeHint', { unit: u.weightUnit })}</p>
           <ColumnChart
             color="var(--m-training)"
             data={weeks}
@@ -429,7 +437,7 @@ export function TrainingPage() {
               const week = weeks.find((w) => w.key === d.key)!.week
               return (
                 <>
-                  <strong className="font-semibold">{decimal(d.value, locale)} kg</strong>
+                  <strong className="font-semibold">{decimal(d.value, locale)} {u.weightUnit}</strong>
                   <span className="ml-2 text-muted">
                     {t('training.weekOf', { date: d.label })} · {t('training.sessionsN', { n: week.sessions })}
                   </span>
@@ -439,7 +447,7 @@ export function TrainingPage() {
           />
           <DataTable
             head={[t('training.date'), t('training.value')]}
-            rows={[...weeks].reverse().map((w) => [t('training.weekOf', { date: w.label }), `${decimal(w.value, locale)} kg`])}
+            rows={[...weeks].reverse().map((w) => [t('training.weekOf', { date: w.label }), `${decimal(w.value, locale)} ${u.weightUnit}`])}
           />
         </section>
 

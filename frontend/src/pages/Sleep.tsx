@@ -13,6 +13,7 @@ import type { MessageKey } from '../i18n/messages'
 import { addDays, clockTime, compact, decimal, localDay, parseDate, pill, rangeDays, relativeDay } from '../lib/format'
 import { appName, hours, LANES, type Lane, laneOf } from '../lib/health'
 import { pageTitle } from '../lib/ui'
+import { useUnits } from '../lib/units'
 
 const RANGES = [7, 30, 90]
 const STAGES: Lane[] = ['deep', 'light', 'rem', 'awake']
@@ -174,13 +175,14 @@ type ExtraKey = (typeof EXTRA_KEYS)[number]
  * only for the ones that arrive. */
 function Extras({ extras: raw, longLabel, dayLabel }: { extras: ExtraDay[]; longLabel: (d: string) => string; dayLabel: (d: string) => string }) {
   const { t, locale } = useI18n()
-  // Distance arrives in meters; charts and averages use km, so axis and labels agree.
-  const extras = raw.map((d) => ({ ...d, distance: d.distance != null ? d.distance / 1000 : null }))
+  const u = useUnits()
+  // Distance arrives in meters; charts and averages use km or miles, so axis and labels agree.
+  const extras = raw.map((d) => ({ ...d, distance: d.distance != null ? u.distance(d.distance / 1000) : null }))
   const format: Record<ExtraKey, (v: number) => string> = {
     oxygen_saturation: (v) => `${decimal(v, locale)} %`,
     heart_rate_variability: (v) => `${Math.round(v)} ms`,
     respiratory_rate: (v) => `${decimal(v, locale)} /min`,
-    distance: (v) => `${decimal(v, locale)} km`,
+    distance: (v) => `${decimal(v, locale)} ${u.distanceUnit}`,
     active_calories: (v) => `${Math.round(v).toLocaleString(locale)} kcal`,
   }
   const present = EXTRA_KEYS.filter((key) => extras.some((d) => d[key] !== null))

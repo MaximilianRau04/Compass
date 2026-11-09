@@ -10,6 +10,7 @@ import { TemplateEditor } from '../../components/TemplateEditor'
 import { useI18n } from '../../i18n/context'
 import { addDays, localDay, pill, relativeDay } from '../../lib/format'
 import { button } from '../../lib/ui'
+import { useUnits } from '../../lib/units'
 import { type Draft, type DraftExercise, exerciseFrom, localIso, newId } from '../../lib/workout'
 import { nowIso } from './hooks'
 import { input } from './styles'
@@ -55,6 +56,7 @@ export function PastFields({ day, time, minutes, onChange, max }: { day: string;
 
 export function Start({ onStart }: { onStart: (d: Draft) => void }) {
   const { t, locale } = useI18n()
+  const unit = useUnits().weightUnit
   const workouts = useWorkoutNames()
   const templates = useTemplates()
   const [name, setName] = useState('')
@@ -76,7 +78,7 @@ export function Start({ onStart }: { onStart: (d: Draft) => void }) {
     let workoutName = title
     try {
       const template = await fetchTemplate(title)
-      exercises = template.exercises.map(exerciseFrom)
+      exercises = template.exercises.map((e) => exerciseFrom(e, unit))
       workoutName = template.workout_name
     } catch {
       // Offline: start empty, the exercises can be added by name.
@@ -90,6 +92,7 @@ export function Start({ onStart }: { onStart: (d: Draft) => void }) {
       exercises,
       changed_at: now,
       synced_at: null,
+      unit,
       ...(past ? { backfill: { minutes: Number(when.minutes) } } : {}),
     })
     setLoading(false)

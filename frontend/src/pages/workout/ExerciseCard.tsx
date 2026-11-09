@@ -8,18 +8,20 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useI18n } from '../../i18n/context'
 import { decimal, relativeDay } from '../../lib/format'
 import { button } from '../../lib/ui'
+import { fromKg, type WeightUnit } from '../../lib/units'
 import { type DraftExercise, type DraftSet, exerciseFrom, newId, REST_OPTIONS, restLabel, restOf } from '../../lib/workout'
 import { field, iconButton } from './styles'
 
 const RIR_OPTIONS = ['', '0', '1', '2', '3', '4']
 
-function Target({ exercise }: { exercise: DraftExercise }) {
+function Target({ exercise, unit }: { exercise: DraftExercise; unit: WeightUnit }) {
   const { t, locale } = useI18n()
   const today = useTodayDate()
   const s = exercise.target
   if (!s) return <p className="font-mono text-2xs text-muted">{t('log.firstTime')}</p>
-  const last = s.last_sets.map((x) => `${x.weight_kg != null ? decimal(x.weight_kg, locale) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
-  const goal = `${s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${exercise.bodyweight ? ' +' : ''} × ` : '× '}${s.reps}`
+  const weight = (kg: number) => decimal(fromKg(kg, unit), locale)
+  const last = s.last_sets.map((x) => `${x.weight_kg != null ? weight(x.weight_kg) : t('training.bodyweight')}×${x.reps}${x.rir != null ? ` @${x.rir}` : ''}`).join(' · ')
+  const goal = `${s.weight_kg != null ? `${weight(s.weight_kg)} ${unit}${exercise.bodyweight ? ' +' : ''} × ` : '× '}${s.reps}`
   return (
     <div className="space-y-0.5 font-mono text-2xs text-muted">
       <p>{t('log.last', { sets: last, when: relativeDay(s.last_date, today, t, locale) })}</p>
@@ -31,14 +33,14 @@ function Target({ exercise }: { exercise: DraftExercise }) {
   )
 }
 
-function SetRow({ index, set, onChange, onRemove }: { index: number; set: DraftSet; onChange: (s: DraftSet) => void; onRemove: () => void }) {
+function SetRow({ index, set, unit, onChange, onRemove }: { index: number; set: DraftSet; unit: WeightUnit; onChange: (s: DraftSet) => void; onRemove: () => void }) {
   const { t } = useI18n()
   return (
     <li className={`grid grid-cols-[1.75rem_1fr_1fr_4.2rem_2.75rem] items-center gap-1.5 ${set.done ? '' : 'opacity-80'}`}>
       <button type="button" onClick={onRemove} aria-label={t('log.removeSet', { n: index + 1 })} title={t('log.removeSet', { n: index + 1 })} className="h-10 rounded-md font-mono text-data text-muted hover:bg-signal/10 hover:text-signal">
         {index + 1}
       </button>
-      <input value={set.weight} onChange={(e) => onChange({ ...set, weight: e.target.value })} inputMode="decimal" placeholder="kg" aria-label={t('log.weight', { n: index + 1 })} className={field} />
+      <input value={set.weight} onChange={(e) => onChange({ ...set, weight: e.target.value })} inputMode="decimal" placeholder={unit} aria-label={t('log.weight', { n: index + 1 })} className={field} />
       <input value={set.reps} onChange={(e) => onChange({ ...set, reps: e.target.value.replace(/\D/g, '') })} inputMode="numeric" placeholder={t('log.reps')} aria-label={t('log.repsN', { n: index + 1 })} className={field} />
       <select value={set.rir} onChange={(e) => onChange({ ...set, rir: e.target.value })} aria-label={t('log.rir', { n: index + 1 })} className={`${field} px-1`}>
         {RIR_OPTIONS.map((v) => (
@@ -70,9 +72,11 @@ export function ExerciseCard({
   onMove,
   onSetDone,
   past,
+  unit,
 }: {
   exercise: DraftExercise
   past: boolean
+  unit: WeightUnit
   first: boolean
   last: boolean
   onChange: (e: DraftExercise) => void
@@ -112,10 +116,10 @@ export function ExerciseCard({
           ×
         </button>
       </div>
-      <Target exercise={exercise} />
+      <Target exercise={exercise} unit={unit} />
       <ul className="mt-3 space-y-1.5">
         {exercise.sets.map((s, i) => (
-          <SetRow key={i} index={i} set={s} onChange={(next) => setAt(i, next)} onRemove={() => onChange({ ...exercise, sets: exercise.sets.filter((_, j) => j !== i) })} />
+          <SetRow key={i} index={i} set={s} unit={unit} onChange={(next) => setAt(i, next)} onRemove={() => onChange({ ...exercise, sets: exercise.sets.filter((_, j) => j !== i) })} />
         ))}
       </ul>
       <div className="mt-2 flex items-center gap-2">
@@ -145,7 +149,7 @@ export function ExerciseCard({
   )
 }
 
-export function AddExercise({ onAdd }: { onAdd: (e: DraftExercise) => void }) {
+export function AddExercise({ unit, onAdd }: { unit: WeightUnit; onAdd: (e: DraftExercise) => void }) {
   const { t } = useI18n()
   const exercises = useExercises()
   const [name, setName] = useState('')
@@ -156,7 +160,7 @@ export function AddExercise({ onAdd }: { onAdd: (e: DraftExercise) => void }) {
     let item: DraftExercise = { key: newId(), exercise_id: known?.id ?? null, name: known?.name ?? title, bodyweight: known?.bodyweight ?? false, target: null, sets: [{ weight: '', reps: '', rir: '', done: false }] }
     if (known) {
       try {
-        item = exerciseFrom(await fetchExerciseTarget(known.id))
+        item = exerciseFrom(await fetchExerciseTarget(known.id), unit)
       } catch {
         // Offline: add it without a target.
       }

@@ -109,9 +109,10 @@ export function Active({ draft, sync, setDraft, onFinish, onDiscard }: { draft: 
           onMove={(by) => move(i, by)}
           onSetDone={setDone}
           past={Boolean(past)}
+          unit={draft.unit ?? 'kg'}
         />
       ))}
-      <AddExercise onAdd={(e) => setDraft((d) => ({ ...d, exercises: [...d.exercises, e] }))} />
+      <AddExercise unit={draft.unit ?? 'kg'} onAdd={(e) => setDraft((d) => ({ ...d, exercises: [...d.exercises, e] }))} />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-rule pt-4">
         <button type="button" onClick={() => setDialog('discard')} className={button('danger')}>

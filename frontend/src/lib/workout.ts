@@ -1,5 +1,6 @@
 import { post } from '../api/client'
 import type { SessionBrief, TemplateExercise } from '../api/types'
+import { toKg, type WeightUnit, weightField } from './units'
 
 /*
  * The running workout lives on the phone (localStorage) and is sent whole after every change, so
@@ -37,6 +38,8 @@ export interface Draft {
   /** Entered afterwards: started_at is in the past and the session lasted this long. No clock,
    * no rest timer. */
   backfill?: { minutes: number }
+  /** Unit the weights are typed in, fixed when the workout starts; missing in older drafts (kg). */
+  unit?: WeightUnit
 }
 
 const KEY = 'compass.workout'
@@ -114,10 +117,10 @@ const num = (value: string) => {
 
 /** Planned sets from the progression target: as many as the template plans (or as last time),
  * at the target. */
-export function exerciseFrom(t: TemplateExercise): DraftExercise {
+export function exerciseFrom(t: TemplateExercise, unit: WeightUnit): DraftExercise {
   const s = t.suggestion
   const count = Math.max(1, t.sets ?? s?.last_set_count ?? 3)
-  const weight = s?.weight_kg != null ? String(s.weight_kg) : ''
+  const weight = s?.weight_kg != null ? weightField(s.weight_kg, unit) : ''
   return {
     key: newId(),
     exercise_id: t.exercise_id,
@@ -129,8 +132,12 @@ export function exerciseFrom(t: TemplateExercise): DraftExercise {
   }
 }
 
-/** Only sets marked done are sent; planned ones stay on the phone. */
+/** Only sets marked done are sent, with the weight in kg; planned ones stay on the phone. */
 export function toPayload(draft: Draft) {
+  const kg = (weight: string) => {
+    const value = num(weight)
+    return value === null ? null : toKg(value, draft.unit ?? 'kg')
+  }
   return {
     client_id: draft.client_id,
     workout_name: draft.workout_name,
@@ -141,7 +148,7 @@ export function toPayload(draft: Draft) {
       name: e.name,
       sets: e.sets
         .filter((s) => s.done && num(s.reps) !== null)
-        .map((s) => ({ weight_kg: num(s.weight), reps: num(s.reps), rir: num(s.rir) })),
+        .map((s) => ({ weight_kg: kg(s.weight), reps: num(s.reps), rir: num(s.rir) })),
     })),
   }
 }
