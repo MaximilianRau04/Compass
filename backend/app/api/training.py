@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
@@ -31,7 +30,7 @@ from app.schemas.training import (
 )
 from app.services import analysis, progression, training, workout_log
 from app.services.clock import local_today
-from app.services.training import TrainingError
+from app.services.training import ExerciseNameTaken, TrainingError
 from app.services.workout_log import LogError, LoggedSession, TemplateData
 
 router = APIRouter(prefix="/training", tags=["training"])
@@ -181,21 +180,12 @@ def exercise_progress(
 @router.patch("/exercises/{exercise_id}", response_model=ExerciseRead)
 def update_exercise(exercise_id: int, data: ExerciseUpdate, session: SessionDep):
     exercise = _exercise(session, exercise_id)
-    changes = data.model_dump(exclude_unset=True)
-    new_name = changes.get("name")
-    taken = (
-        new_name
-        and new_name != exercise.name
-        and session.scalar(select(Exercise).where(Exercise.name == new_name))
-    )
-    if taken:
-        raise HTTPException(status.HTTP_409_CONFLICT, "an exercise with this name exists")
-    for field, value in changes.items():
-        if field == "name" and value is None:
-            continue
-        setattr(exercise, field, value)
-    if (exercise.rep_min or 0) and (exercise.rep_max or 0) and exercise.rep_min > exercise.rep_max:
-        raise HTTPException(422, "rep_min is above rep_max")
+    try:
+        training.update_exercise(session, exercise, data.model_dump(exclude_unset=True))
+    except ExerciseNameTaken as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except TrainingError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     session.commit()
     return next(e for e in exercises(session) if e.id == exercise_id)
 

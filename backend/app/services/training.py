@@ -21,6 +21,10 @@ class TrainingError(ValueError):
     pass
 
 
+class ExerciseNameTaken(TrainingError):
+    pass
+
+
 def split_for(s: TrainingSession) -> str:
     """Push, pull, legs, other for strength sessions; "sport" for a watch workout like
     bouldering or a run."""
@@ -265,6 +269,25 @@ def progress(
 
 
 # --- Mapping ---------------------------------------------------------------------------------
+
+
+def update_exercise(session: Session, exercise: Exercise, changes: dict) -> Exercise:
+    """Apply the given fields. The name stays unique (exactly, unlike find_exercise), a name of
+    None is ignored, and rep_min must not be above rep_max."""
+    new_name = changes.get("name")
+    if (
+        new_name
+        and new_name != exercise.name
+        and session.scalar(select(Exercise).where(Exercise.name == new_name))
+    ):
+        raise ExerciseNameTaken("an exercise with this name exists")
+    for key, value in changes.items():
+        if key == "name" and value is None:
+            continue
+        setattr(exercise, key, value)
+    if (exercise.rep_min or 0) and (exercise.rep_max or 0) and exercise.rep_min > exercise.rep_max:
+        raise TrainingError("rep_min is above rep_max")
+    return exercise
 
 
 def merge_exercises(session: Session, source: Exercise, target: Exercise) -> Exercise:
