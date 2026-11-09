@@ -30,8 +30,8 @@ erreichen drei Farbkombinationen den AA-Kontrast nicht. Im Code sind es vor alle
 | W4 Nachtrag | erledigt | weitere 9 Buttons (Feed-Einstellungen, Push, News, Training, Willkommen) auf `button()` |
 | N1 Lange Funktionen | erledigt | `parse_quick_add` in 5 Schritte (alle 88 Regex-Strings verglichen); `healthconnect.ingest` in Speichern, Entfernen, Ableiten mit `_Batch`, doppelte Lösch-Logik zusammengeführt |
 | N2 Große Dateien | erledigt | `components/charts/` (ein Diagramm pro Datei, `index.ts`), `pages/workout/` (Start, Active, ExerciseCard, RestBar, hooks, styles); 47 Deklarationen als unverändert geprüft, Seiten pixelgleich |
-| N4 Schrift-Tokens | erledigt | `text-2xs` (11 px), `text-3xs` (10 px), `text-label` (13 px) an 129 Stellen; nur die Größe, Seiten pixelgleich. 12/14/15 px bleiben, `text-xs`/`text-sm` setzen eine andere Zeilenhöhe |
-| N5 DB-Abfragen in der API | erledigt | `find_area` ersetzt 6 gleiche Abfragen, `list_states(prefix)`, `all_goals`; die Namensprüfung bei Übungen bleibt in der API (siehe unten) |
+| N4 Schrift-Tokens | erledigt | `text-3xs` (10), `text-2xs` (11), `text-data` (12), `text-label` (13), `text-field` (14), `text-input` (15 px) an allen 165 Stellen; nur die Größe (die Zeilenhöhe bleibt geerbt), Seiten pixelgleich; keine festen px-Größen mehr |
+| N5 DB-Abfragen in der API | erledigt | `find_area` ersetzt 6 gleiche Abfragen, `list_states(prefix)`, `all_goals`; Übung ändern samt Namens- und Wiederholungsprüfung jetzt in `training.update_exercise` |
 | N6 Längenlimits | erledigt | Tag max. 60, Notizen max. 20.000 Zeichen in API und MCP; Quick Add meldet einen zu langen `#tag` als 422; Tests dazu |
 | N7 CLI | erledigt | `python -m app.cli revoke-mcp-tokens`, Test, `docs/deploy.md` |
 | N9 MCP-URL | erledigt | Kommentar in `config.py` |
@@ -39,10 +39,12 @@ erreichen drei Farbkombinationen den AA-Kontrast nicht. Im Code sind es vor alle
 | N12 Ladezustände | erledigt | Aufgaben und Kalender |
 | N13 Finanzliste | erledigt | 30 Umsätze plus „30 weitere anzeigen“, „Unsortiert“ zeigt alle; Handy-Seite 6371 → 4189 px |
 | N14 Worker | erledigt | `tests/test_worker.py`: alle 7 Jobs geplant, Jobs laufen gegen die DB |
-| N15 `.github/modernize/` | offen | nur lokal, siehe unten |
+| N15 `.github/modernize/` | erledigt | von dir gelöscht |
+| N11 Nachtrag | erledigt | die API antwortet über 21 MiB selbst mit 413 (`app/body_limit.py`), auch bei chunked Uploads; durch Caddy nachgemessen: vorher 502, jetzt 413 |
+| Nebenfund | erledigt | `test_logger.py` schlug jeden Tag vor 18:00 fehl (Trainings „in der Zukunft“); die Suite läuft jetzt um 00:20, 08:00 und 23:50 durch (mit `time-machine` geprüft) |
 
 Nach jedem Schritt liefen ruff, oxlint, `tsc -b`, `pnpm build` und `pytest`, am Ende alles grün
-(nach Phase 2 und den offenen Punkten 324 Tests, sechs davon neu). Die UI-Schritte wurden mit Screenshots in 390 px und 1440 px
+(am Ende 328 Tests, zehn davon neu). Die UI-Schritte wurden mit Screenshots in 390 px und 1440 px
 geprüft: kein Überlauf, keine Konsolenmeldungen.
 
 ### Was geprüft wurde
@@ -247,16 +249,8 @@ gibt es Screenshots zum Vergleich.
 
 ## Bewusst offen
 
-- **N15 `.github/modernize/`:** ein lokales, nicht getracktes Verzeichnis eines Java-Upgrade-Tools.
-  Es gehört nicht zum Repo; löschen kannst du es selbst (`rm -r .github/modernize`).
-- **Namensprüfung bei Übungen** (`api/training.py`, Teil von N5): Die vorhandenen `find_exercise`
-  suchen ohne Groß-/Kleinschreibung und über Aliase, die API prüft den exakten Namen. Eine dritte,
-  leicht andere Suchfunktion im Service würde eher verwirren als helfen.
-- **Schriftgrößen 12, 14 und 15 px** (36 Stellen): `text-xs` und `text-sm` setzen auch eine
-  Zeilenhöhe, ein Austausch würde Abstände verschieben. Eigene Tokens dafür lohnen bei so wenigen
-  Stellen nicht.
-- **Chunked Uploads über 25 MB** enden mit 502 statt 413 (Caddy bricht beim Weiterleiten ab). Die API
-  liest trotzdem nie mehr als 25 MB; die Bridge-App sendet immer mit Content-Length.
+Nichts mehr. Alle Punkte aus dem Review sind umgesetzt oder auf deinen Wunsch so gelassen
+(Quick-Add-Button).
 
 ## Plan für Phase 2 (nach deinem OK)
 
