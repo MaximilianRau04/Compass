@@ -131,7 +131,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
           <Link to="/news" className="block hover:text-ink">
             <SectionLabel>{t('today.news')}</SectionLabel>
           </Link>
-          <Markdown text={short} className="mt-2 text-[15px]" />
+          <Markdown text={short} className="mt-2 text-input" />
           <Link to="/news" className="mt-2 inline-block font-mono text-2xs text-brass hover:underline">
             {t('today.newsReport')} →
           </Link>

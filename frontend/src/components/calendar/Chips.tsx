@@ -14,7 +14,7 @@ export function TaskChip({ task, day, today, onOpen }: { task: Task; day: string
       onClick={() => onOpen(task)}
       title={task.title}
       className={[
-        'flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-[12px] leading-tight hover:bg-ink/5',
+        'flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-data leading-tight hover:bg-ink/5',
         overdue ? 'text-signal' : '',
       ].join(' ')}
     >
@@ -41,7 +41,7 @@ export function EventChip({ event, onOpen }: { event: CalendarEvent; onOpen: (ev
       type="button"
       onClick={() => onOpen(event)}
       title={event.title}
-      className="flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-[12px] leading-tight hover:bg-ink/5"
+      className="flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-data leading-tight hover:bg-ink/5"
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${style(event).dot}`} />
       {!event.all_day && <span className="shrink-0 font-mono text-3xs text-muted">{clockTime(event.starts_at, locale)}</span>}

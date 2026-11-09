@@ -17,7 +17,7 @@ export function DataTable({ rows, head }: { rows: [string, string][]; head: [str
   return (
     <details className="mt-1 text-sm">
       <summary className="-my-2 cursor-pointer py-2 font-mono text-2xs text-muted hover:text-ink">{t('training.table')}</summary>
-      <table className="mt-2 w-full font-mono text-[12px] tabular-nums">
+      <table className="mt-2 w-full font-mono text-data tabular-nums">
         <thead className="text-left text-muted">
           <tr>
             <th className="py-1 font-normal">{head[0]}</th>

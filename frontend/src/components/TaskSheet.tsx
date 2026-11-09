@@ -69,7 +69,7 @@ function changes(task: Task, draft: Draft): TaskUpdate {
   return out
 }
 
-const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-[15px] focus:border-brass focus:outline-none'
+const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-input focus:border-brass focus:outline-none'
 const label = 'mb-1 block font-display text-xs font-semibold tracking-[0.12em] text-muted uppercase'
 
 export function TaskSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {

@@ -33,7 +33,7 @@ function LastNight({ night, today }: { night: SleepNightDetail; today: string })
         <span className="text-4xl font-semibold">{hours(night.asleep_minutes)}</span>
         <span className="text-muted">{t('sleep.asleep')}</span>
       </p>
-      <p className="mt-0.5 font-mono text-[12px] text-muted">
+      <p className="mt-0.5 font-mono text-data text-muted">
         {clockTime(night.start_at, locale)}–{clockTime(night.end_at, locale)} · {t('sleep.inBed', { time: hours(night.in_bed_minutes) })}
         {bpm.length > 0 &&
           ` · ${t('sleep.nightHr', { min: Math.min(...bpm), max: Math.max(...bpm), avg: Math.round(bpm.reduce((a, b) => a + b, 0) / bpm.length) })}`}
@@ -88,7 +88,7 @@ function StageAverages({ averages }: { averages: HealthSummary['averages'] }) {
                 />
               )}
             </span>
-            <span className="text-right font-mono text-[12px] tabular-nums">
+            <span className="text-right font-mono text-data tabular-nums">
               {v === null ? '–' : `${hours(v)} · ${Math.round((v / total) * 100)} %`}
             </span>
           </li>
@@ -121,7 +121,7 @@ function HeartRateDay({ today }: { today: string }) {
           <button type="button" className={nav} aria-label={t('hr.prev')} onClick={() => setDay(addDays(day, -1))}>
             ‹
           </button>
-          <span className="min-w-24 text-center font-mono text-[12px]">{relativeDay(day, today, t, locale)}</span>
+          <span className="min-w-24 text-center font-mono text-data">{relativeDay(day, today, t, locale)}</span>
           <button type="button" className={nav} aria-label={t('hr.next')} disabled={day >= today} onClick={() => setDay(addDays(day, 1))}>
             ›
           </button>

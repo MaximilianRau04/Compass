@@ -192,7 +192,7 @@ function NextTargets() {
                   <span className="font-medium">{s.name}</span>
                   {s.stagnant && <span className="ml-2 rounded-full border border-signal/60 px-1.5 py-px font-mono text-3xs text-signal">{t('progress.stagnant', { n: s.same_sessions })}</span>}
                 </span>
-                <span className={`font-mono text-[12px] tabular-nums ${s.action === 'increase' ? 'text-brass' : ''}`}>
+                <span className={`font-mono text-data tabular-nums ${s.action === 'increase' ? 'text-brass' : ''}`}>
                   {s.weight_kg != null ? `${decimal(s.weight_kg, locale)} kg${s.bodyweight ? ' +' : ''} × ${s.reps}` : `× ${s.reps}`}
                   {s.action === 'increase' ? ' ↑' : ''}
                 </span>
@@ -266,7 +266,7 @@ function SessionRow({ session, today }: { session: SessionBrief; today: string }
             {detail.data.exercise_sets.map((group) => (
               <li key={group.exercise_id} className="flex flex-wrap justify-between gap-x-3">
                 <span>{group.name}</span>
-                <span className="font-mono text-[12px] text-muted tabular-nums">
+                <span className="font-mono text-data text-muted tabular-nums">
                   {group.sets
                     .map((s) => (s.weight_kg === null ? `${t('training.bodyweight')} × ${s.reps}` : `${decimal(s.weight_kg, locale)} × ${s.reps}`))
                     .join(' · ')}
@@ -454,7 +454,7 @@ export function TrainingPage() {
                   <span className="h-3">
                     {n > 0 && <span className="block h-3 rounded-r-[4px] bg-m-training" style={{ width: `${(n / splitMax) * 100}%` }} />}
                   </span>
-                  <span className="text-right font-mono text-[12px] tabular-nums">{n}</span>
+                  <span className="text-right font-mono text-data tabular-nums">{n}</span>
                 </li>
               )
             })}

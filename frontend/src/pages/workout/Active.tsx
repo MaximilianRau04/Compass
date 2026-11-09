@@ -89,7 +89,7 @@ export function Active({ draft, sync, setDraft, onFinish, onDiscard }: { draft: 
               {clock(elapsed)}
             </span>
           )}
-          <span className="font-mono text-[12px] text-muted">
+          <span className="font-mono text-data text-muted">
             {t('log.setsDone', { done, total: done + open })}
           </span>
         </div>

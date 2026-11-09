@@ -18,7 +18,7 @@ export function EventItem({ event, onOpen }: { event: CalendarEvent; onOpen?: (e
   )
   return (
     <li className="flex items-start gap-3 py-2.5">
-      <span className="mt-0.5 w-[5.5rem] shrink-0 font-mono text-[12px] text-muted tabular-nums">
+      <span className="mt-0.5 w-[5.5rem] shrink-0 font-mono text-data text-muted tabular-nums">
         {eventTime(event, t, locale)}
       </span>
       <div className={`min-w-0 flex-1 border-l-2 pl-3 ${style(event).border}`}>

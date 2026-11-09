@@ -107,7 +107,7 @@ export function NotesPage() {
         </button>
       </div>
       {tags.data && tags.data.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[12px]">
+        <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-data">
           {tags.data.map(({ tag: name, count }) => (
             <button key={name} type="button" aria-pressed={tag === name} onClick={() => setTag(tag === name ? undefined : name)} className={tag === name ? 'text-brass' : 'text-muted hover:text-ink'}>
               #{name} <span className="text-3xs">{count}</span>

@@ -9,7 +9,7 @@ import { useI18n } from '../i18n/context'
 import { button, overlay } from '../lib/ui'
 import { Markdown } from './Markdown'
 
-const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-[15px] focus:border-brass focus:outline-none'
+const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-input focus:border-brass focus:outline-none'
 const label = 'mb-1 block font-display text-xs font-semibold tracking-[0.12em] text-muted uppercase'
 
 type Draft = { title: string; body: string; area_id: string; tags: string; pinned: boolean }
@@ -105,7 +105,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
       <div>
         <div className="mb-1 flex items-center justify-between">
           <span className={label}>{t('notes.body')}</span>
-          <span className="flex gap-1 text-[12px]">
+          <span className="flex gap-1 text-data">
             {[false, true].map((edit) => (
               <button
                 key={String(edit)}
@@ -129,7 +129,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
             className={`${field} font-mono text-label leading-relaxed`}
           />
         ) : draft.body.trim() ? (
-          <Markdown text={draft.body} className="rounded-md border border-rule bg-paper px-3 py-2 text-[15px]" />
+          <Markdown text={draft.body} className="rounded-md border border-rule bg-paper px-3 py-2 text-input" />
         ) : (
           <p className="rounded-md border border-dashed border-rule px-3 py-6 text-center text-sm text-muted">{t('notes.emptyBody')}</p>
         )}

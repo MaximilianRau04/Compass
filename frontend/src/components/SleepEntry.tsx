@@ -13,7 +13,7 @@ import { localIso } from '../lib/workout'
 import { ConfirmDialog } from './ConfirmDialog'
 import { SectionLabel } from './Layout'
 
-const input = 'w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-[14px] focus:border-brass focus:outline-none'
+const input = 'w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-field focus:border-brass focus:outline-none'
 const label = 'flex flex-col gap-1 font-mono text-2xs tracking-wider text-muted uppercase'
 
 /** Bedtime after the wake-up time (23:30 → 07:00) means the evening before the wake-up day. */
@@ -78,7 +78,7 @@ function Form({ onClose }: { onClose: () => void }) {
           <input value={awake} inputMode="numeric" placeholder="0" onChange={(e) => setAwake(e.target.value.replace(/\D/g, '').slice(0, 3))} className={input} />
         </label>
       </div>
-      <p className={`font-mono text-[12px] ${valid ? 'text-muted' : 'text-signal'}`} aria-live="polite">
+      <p className={`font-mono text-data ${valid ? 'text-muted' : 'text-signal'}`} aria-live="polite">
         {valid ? t('sleepLog.preview', { asleep: hours(asleep), inBed: hours(inBed) }) : t('sleepLog.invalid')}
       </p>
       <div className="flex justify-end gap-2 border-t border-rule pt-4">

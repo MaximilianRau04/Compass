@@ -205,7 +205,7 @@ export function MailPage() {
           {t('mail.dismissedList')}
         </button>
       </div>
-      <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[12px]">
+      <div className="mb-6 flex flex-wrap gap-x-3 gap-y-1 font-mono text-data">
         <button type="button" aria-pressed={!account} onClick={() => setAccount(undefined)} className={!account ? 'text-brass' : 'text-muted hover:text-ink'}>
           {t('mail.allAccounts')}
         </button>

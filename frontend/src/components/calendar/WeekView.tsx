@@ -80,12 +80,12 @@ export function WeekView({
               onClick={() => onSelect(day)}
               className={['border-l border-rule px-1 py-2 text-center transition-colors', day === selected ? 'bg-brass/10' : 'hover:bg-ink/[0.04]'].join(' ')}
             >
-              <span className={['block font-display text-[12px] tracking-[0.16em] uppercase', isToday ? 'text-brass' : 'text-muted'].join(' ')}>
+              <span className={['block font-display text-data tracking-[0.16em] uppercase', isToday ? 'text-brass' : 'text-muted'].join(' ')}>
                 {date.toLocaleDateString(locale, { weekday: 'short' })}
               </span>
               <span
                 className={[
-                  'mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full font-mono text-[15px] tabular-nums',
+                  'mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full font-mono text-input tabular-nums',
                   isToday ? 'bg-brass font-medium text-brass-ink' : day < today ? 'text-muted' : 'text-ink',
                 ].join(' ')}
               >
@@ -145,7 +145,7 @@ export function WeekView({
                     onOpenEvent(event)
                   }}
                   title={event.title}
-                  className={`absolute overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-1 text-left text-[12px] leading-tight text-ink transition-shadow hover:z-10 hover:shadow-md ${style(event).block} ${day < today ? 'opacity-60' : ''}`}
+                  className={`absolute overflow-hidden rounded-[5px] border-l-[3px] px-1.5 py-1 text-left text-data leading-tight text-ink transition-shadow hover:z-10 hover:shadow-md ${style(event).block} ${day < today ? 'opacity-60' : ''}`}
                   style={{
                     top: top(start) + 1,
                     height: Math.max(height - 2, 18),

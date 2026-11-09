@@ -35,7 +35,7 @@ function SetRow({ index, set, onChange, onRemove }: { index: number; set: DraftS
   const { t } = useI18n()
   return (
     <li className={`grid grid-cols-[1.75rem_1fr_1fr_4.2rem_2.75rem] items-center gap-1.5 ${set.done ? '' : 'opacity-80'}`}>
-      <button type="button" onClick={onRemove} aria-label={t('log.removeSet', { n: index + 1 })} title={t('log.removeSet', { n: index + 1 })} className="h-10 rounded-md font-mono text-[12px] text-muted hover:bg-signal/10 hover:text-signal">
+      <button type="button" onClick={onRemove} aria-label={t('log.removeSet', { n: index + 1 })} title={t('log.removeSet', { n: index + 1 })} className="h-10 rounded-md font-mono text-data text-muted hover:bg-signal/10 hover:text-signal">
         {index + 1}
       </button>
       <input value={set.weight} onChange={(e) => onChange({ ...set, weight: e.target.value })} inputMode="decimal" placeholder="kg" aria-label={t('log.weight', { n: index + 1 })} className={field} />
@@ -124,7 +124,7 @@ export function ExerciseCard({
         </button>
         <label className={`flex items-center gap-1.5 font-mono text-2xs text-muted ${past ? 'hidden' : ''}`}>
           {t('log.rest')}
-          <select value={restOf(exercise)} onChange={(e) => onChange({ ...exercise, rest: Number(e.target.value) })} aria-label={t('log.restFor')} className="rounded-md border border-rule bg-paper px-1.5 py-1 text-[12px] text-ink">
+          <select value={restOf(exercise)} onChange={(e) => onChange({ ...exercise, rest: Number(e.target.value) })} aria-label={t('log.restFor')} className="rounded-md border border-rule bg-paper px-1.5 py-1 text-data text-ink">
             {REST_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {restLabel(s, t('log.restNone'))}

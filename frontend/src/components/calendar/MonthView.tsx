@@ -42,7 +42,7 @@ export function MonthView({
       <div className="grid grid-cols-[1.75rem_repeat(7,minmax(0,1fr))] border-b border-rule bg-paper-raised sm:grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]">
         <span />
         {weekdays.map((name) => (
-          <span key={name} className="py-2 text-center font-display text-[12px] tracking-[0.16em] text-muted uppercase">
+          <span key={name} className="py-2 text-center font-display text-data tracking-[0.16em] text-muted uppercase">
             {name}
           </span>
         ))}
@@ -84,7 +84,7 @@ export function MonthView({
               >
                 <span
                   className={[
-                    'grid h-6 w-6 place-items-center rounded-full font-mono text-[12px] tabular-nums',
+                    'grid h-6 w-6 place-items-center rounded-full font-mono text-data tabular-nums',
                     isToday ? 'bg-brass font-medium text-brass-ink' : outside ? 'text-muted/60' : day < today ? 'text-muted' : 'text-ink',
                   ].join(' ')}
                 >

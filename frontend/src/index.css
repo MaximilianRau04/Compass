@@ -13,12 +13,16 @@
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  /* Small sizes below Tailwind's text-xs. Only the size: unlike text-xs they keep the inherited
-     line height, like the text-[11px] they replace. 2xs for meta lines, 3xs for chart labels,
-     label for the condensed section labels. */
-  --text-2xs: 11px;
+  /* Text sizes that set only the size: unlike Tailwind's text-xs and text-sm they keep the
+     inherited line height. 3xs chart labels, 2xs meta lines, data tables, numbers and chips,
+     label the condensed section labels, field the mono form fields, input text inputs and
+     text set like them. */
   --text-3xs: 10px;
+  --text-2xs: 11px;
+  --text-data: 12px;
   --text-label: 13px;
+  --text-field: 14px;
+  --text-input: 15px;
 
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);

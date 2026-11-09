@@ -113,7 +113,7 @@ export function QuickAdd({
           placeholder={t('quick.placeholder')}
           autoComplete="off"
           enterKeyHint="done"
-          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] placeholder:text-muted/70 focus-visible:outline-none"
+          className="h-12 min-w-0 flex-1 bg-transparent text-input placeholder:text-muted/70 focus-visible:outline-none"
         />
         <button
           type="submit"

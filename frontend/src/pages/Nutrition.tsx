@@ -62,7 +62,7 @@ function GoalBar({ label, value, goal, format }: { label: string; value: number 
     <div>
       <p className="flex items-baseline justify-between gap-3 text-sm">
         <span>{label}</span>
-        <span className="font-mono text-[12px] tabular-nums">
+        <span className="font-mono text-data tabular-nums">
           <span className="font-medium">{value === null ? '–' : format(value)}</span>
           <span className="text-muted"> {goal ? t('nutrition.ofGoal', { goal: format(goal) }) : `· ${t('nutrition.noGoal')}`}</span>
         </span>
@@ -94,7 +94,7 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
         <GoalBar label={t('nutrition.kcal')} value={day.kcal} goal={goals.kcal} format={(v) => kcal(v, locale)} />
         <GoalBar label={t('nutrition.protein')} value={day.protein_g} goal={goals.protein_g} format={grams} />
       </div>
-      <p className="mt-3 font-mono text-[12px] text-muted">
+      <p className="mt-3 font-mono text-data text-muted">
         {t('nutrition.carbs')} {day.carbs_g === null ? '–' : grams(day.carbs_g)} · {t('nutrition.fat')}{' '}
         {day.fat_g === null ? '–' : grams(day.fat_g)}
         {day.fiber_g !== null && ` · ${t('nutrition.fiber')} ${grams(day.fiber_g)}`}
@@ -104,7 +104,7 @@ function DayCard({ day, goals, today }: { day: NutritionDay; goals: NutritionSum
         {day.meals.map((m) => (
           <li key={m.meal} className="flex justify-between gap-3 py-1.5">
             <span>{t(`nutrition.meal.${m.meal}` as MessageKey)}</span>
-            <span className="font-mono text-[12px] text-muted tabular-nums">
+            <span className="font-mono text-data text-muted tabular-nums">
               {kcal(m.kcal, locale)}
               {m.protein_g !== null && ` · ${grams(m.protein_g)} ${t('nutrition.protein')}`}
             </span>
@@ -130,7 +130,7 @@ function Micros({ values, className = '' }: { values: Partial<Record<keyof Nutri
   const present = MICROS.filter((m) => values[m.key] != null)
   if (present.length === 0) return null
   return (
-    <p className={`font-mono text-[12px] text-muted ${className}`}>
+    <p className={`font-mono text-data text-muted ${className}`}>
       {present.map((m) => `${t(m.label)} ${decimal(values[m.key] as number, locale)} ${m.unit}`).join(' · ')}
     </p>
   )
@@ -173,7 +173,7 @@ function MacroAverages({ averages }: { averages: NutritionSummary['averages'] })
                 <span className="block h-3 rounded-r-[4px] bg-m-food" style={{ width: `${((v.g * v.kcal) / max) * 100}%` }} />
               )}
             </span>
-            <span className="text-right font-mono text-[12px] tabular-nums">
+            <span className="text-right font-mono text-data tabular-nums">
               {v.g === null ? '–' : t('nutrition.macroShare', { g: grams(v.g), pct: Math.round(((v.g * v.kcal) / total) * 100) })}
             </span>
           </li>
