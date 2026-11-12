@@ -556,6 +556,7 @@ def test_extra_metrics_in_the_summary(client, session):
             "date": today.isoformat(),
             "oxygen_saturation": 97.0,
             "heart_rate_variability": 42.0,
+            "heart_rate_variability_sdnn": None,
             "respiratory_rate": None,
             "distance": 2000.0,
             "active_calories": None,

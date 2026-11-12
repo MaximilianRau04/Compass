@@ -44,7 +44,7 @@ def sources(session: Session) -> dict[str, bool]:
         mail = False
     return {
         "calendars": _any(feeds.calendars, session),
-        "health": bool(s.healthconnect_token),
+        "health": bool(s.ingest_health_token),
         "mail": mail,
         "news": _any(feeds.news, session),
         "finance": bool(

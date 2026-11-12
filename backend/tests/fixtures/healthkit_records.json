@@ -1,0 +1,190 @@
+[
+  {
+    "id": "hk:sleep:36f95e8e2e80d6e1:2026-10-18",
+    "type": "sleep",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-17T20:45:00Z",
+    "end": "2026-10-18T05:00:00Z",
+    "data": {
+      "stages": [
+        {
+          "start": "2026-10-17T20:45:00Z",
+          "end": "2026-10-17T21:00:00Z",
+          "stage": "awake_in_bed"
+        },
+        {
+          "start": "2026-10-17T21:00:00Z",
+          "end": "2026-10-17T23:30:00Z",
+          "stage": "light"
+        },
+        {
+          "start": "2026-10-17T23:30:00Z",
+          "end": "2026-10-18T00:30:00Z",
+          "stage": "deep"
+        },
+        {
+          "start": "2026-10-18T00:30:00Z",
+          "end": "2026-10-18T00:45:00Z",
+          "stage": "awake"
+        },
+        {
+          "start": "2026-10-18T00:45:00Z",
+          "end": "2026-10-18T02:15:00Z",
+          "stage": "rem"
+        },
+        {
+          "start": "2026-10-18T02:15:00Z",
+          "end": "2026-10-18T04:45:00Z",
+          "stage": "light"
+        },
+        {
+          "start": "2026-10-18T04:45:00Z",
+          "end": "2026-10-18T05:00:00Z",
+          "stage": "awake_in_bed"
+        }
+      ]
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000001",
+    "type": "steps",
+    "source": "com.apple.health.iphone",
+    "start": "2026-10-17T21:00:00Z",
+    "data": {
+      "count": 1234
+    },
+    "end": "2026-10-17T21:10:00Z"
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000002",
+    "type": "heart_rate",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-17T21:00:00Z",
+    "data": {
+      "samples": [
+        {
+          "time": "2026-10-17T21:00:00Z",
+          "bpm": 58
+        }
+      ]
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000003",
+    "type": "resting_heart_rate",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T06:00:00Z",
+    "data": {
+      "bpm": 52
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000004",
+    "type": "heart_rate_variability_sdnn",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T03:00:00Z",
+    "data": {
+      "sdnn_ms": 48.5
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000005",
+    "type": "oxygen_saturation",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T03:00:00Z",
+    "data": {
+      "percent": 97
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000006",
+    "type": "respiratory_rate",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T03:00:00Z",
+    "data": {
+      "rate": 14.5
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000007",
+    "type": "distance",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T07:00:00Z",
+    "data": {
+      "meters": 1200.5
+    },
+    "end": "2026-10-18T07:30:00Z"
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000008",
+    "type": "active_calories",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T07:00:00Z",
+    "data": {
+      "kcal": 300
+    },
+    "end": "2026-10-18T08:00:00Z"
+  },
+  {
+    "id": "hk:total:00000000-0000-0000-0000-000000000008",
+    "type": "total_calories",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T07:00:00Z",
+    "data": {
+      "kcal": 300
+    },
+    "end": "2026-10-18T08:00:00Z"
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-000000000009",
+    "type": "total_calories",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T07:00:00Z",
+    "data": {
+      "kcal": 1600
+    },
+    "end": "2026-10-18T08:00:00Z"
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-00000000000a",
+    "type": "weight",
+    "source": "com.withings.wiScaleNG",
+    "start": "2026-10-18T05:30:00Z",
+    "data": {
+      "kg": 78.7
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-00000000000b",
+    "type": "nutrition",
+    "source": "com.myfitnesspal.mfp",
+    "start": "2026-10-18T11:30:00Z",
+    "data": {
+      "meal_type": "unknown",
+      "energy_kcal": 650,
+      "name": "Pasta"
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-00000000000c",
+    "type": "nutrition",
+    "source": "com.myfitnesspal.mfp",
+    "start": "2026-10-18T11:30:00Z",
+    "data": {
+      "meal_type": "unknown",
+      "protein_g": 40,
+      "name": "Pasta"
+    }
+  },
+  {
+    "id": "hk:00000000-0000-0000-0000-00000000000d",
+    "type": "exercise",
+    "source": "com.apple.health.watch",
+    "start": "2026-10-18T16:00:00Z",
+    "data": {
+      "exercise": "strength_training",
+      "activity_type": 50
+    },
+    "end": "2026-10-18T17:15:00Z"
+  }
+]

@@ -205,16 +205,17 @@ def _remove_gone(
         _mark_deleted(session, batch, row, now)
     for snapshot in payload.snapshots:
         keep = set(snapshot.ids) | set(records)
-        gone = session.scalars(
-            select(HealthRecord).where(
-                HealthRecord.type == snapshot.type,
-                HealthRecord.start_at >= snapshot.since,
-                HealthRecord.deleted_at.is_(None),
-                HealthRecord.id.not_in(keep),
-                # Nights entered in Compass were never in Health Connect (app.services.sleep_log).
-                HealthRecord.source_app != "compass",
-            )
+        query = select(HealthRecord).where(
+            HealthRecord.type == snapshot.type,
+            HealthRecord.start_at >= snapshot.since,
+            HealthRecord.deleted_at.is_(None),
+            HealthRecord.id.not_in(keep),
+            # Nights entered in Compass were never in Health Connect (app.services.sleep_log).
+            HealthRecord.source_app != "compass",
         )
+        if snapshot.prefix:
+            query = query.where(HealthRecord.id.startswith(snapshot.prefix, autoescape=True))
+        gone = session.scalars(query)
         for row in gone:
             _mark_deleted(session, batch, row, now)
 

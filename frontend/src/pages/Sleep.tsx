@@ -168,7 +168,7 @@ function HeartRateDay({ today }: { today: string }) {
   )
 }
 
-const EXTRA_KEYS = ['oxygen_saturation', 'heart_rate_variability', 'respiratory_rate', 'distance', 'active_calories'] as const
+const EXTRA_KEYS = ['oxygen_saturation', 'heart_rate_variability', 'heart_rate_variability_sdnn', 'respiratory_rate', 'distance', 'active_calories'] as const
 type ExtraKey = (typeof EXTRA_KEYS)[number]
 
 /** Values only some watches write (SpO2, HRV, breathing rate, distance, active calories): shown
@@ -181,6 +181,7 @@ function Extras({ extras: raw, longLabel, dayLabel }: { extras: ExtraDay[]; long
   const format: Record<ExtraKey, (v: number) => string> = {
     oxygen_saturation: (v) => `${decimal(v, locale)} %`,
     heart_rate_variability: (v) => `${Math.round(v)} ms`,
+    heart_rate_variability_sdnn: (v) => `${Math.round(v)} ms`,
     respiratory_rate: (v) => `${decimal(v, locale)} /min`,
     distance: (v) => `${decimal(v, locale)} ${u.distanceUnit}`,
     active_calories: (v) => `${Math.round(v).toLocaleString(locale)} kcal`,

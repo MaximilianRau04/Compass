@@ -1,6 +1,6 @@
-"""Endpoints for machines: the Health Connect bridge on the phone and the local mail triage on
-the laptop. Not behind the basic auth (neither can do the browser login); each needs its own
-bearer token instead (HEALTHCONNECT_TOKEN, MAIL_TRIAGE_TOKEN)."""
+"""Endpoints for machines: the health bridges on the phone (the Android and iOS apps, Health Auto
+Export) and the local mail triage on the laptop. Not behind the basic auth (none can do the browser
+login); each needs its own bearer token instead (HEALTH_TOKEN, MAIL_TRIAGE_TOKEN)."""
 
 import hmac
 from typing import Annotated
@@ -11,24 +11,25 @@ from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import SessionDep
 from app.config import get_settings
-from app.ingestion import healthconnect
+from app.ingestion import health_auto_export, healthconnect
 from app.mail.triage import TriageResult, sanitize
 from app.models.integrations import IntegrationState
-from app.schemas.health import IngestPayload, IngestResult, IngestStatus
+from app.schemas.health import AutoExportResult, IngestPayload, IngestResult, IngestStatus
 from app.schemas.mail import PendingMail, TriageUpload, TriageUploadResult
 from app.services import mail as mail_service
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 
-def bearer_token(setting: str):
-    """Dependency that checks the bearer token against the named setting."""
+def bearer_token(setting: str, variable: str | None = None):
+    """Dependency that checks the bearer token against the named setting; `variable` is its name
+    in .env for the error message."""
 
     def check(authorization: Annotated[str | None, Header()] = None) -> None:
         expected = getattr(get_settings(), setting)
         if not expected:
             raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE, f"{setting.upper()} is not set"
+                status.HTTP_503_SERVICE_UNAVAILABLE, f"{variable or setting.upper()} is not set"
             )
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not hmac.compare_digest(token.encode(), expected.encode()):
@@ -41,12 +42,19 @@ def bearer_token(setting: str):
     return Depends(check)
 
 
-Authorized = bearer_token("healthconnect_token")
+Authorized = bearer_token("ingest_health_token", "HEALTH_TOKEN")
 MailTriageAuthorized = bearer_token("mail_triage_token")
 
 
-@router.get("/healthconnect", response_model=IngestStatus, dependencies=[Authorized])
-def healthconnect_status(session: SessionDep):
+# /healthconnect is the path before the iOS bridge; the installed Android apps still use it.
+@router.get("/health", response_model=IngestStatus, dependencies=[Authorized])
+@router.get(
+    "/healthconnect",
+    response_model=IngestStatus,
+    dependencies=[Authorized],
+    include_in_schema=False,
+)
+def health_status(session: SessionDep):
     """Connection test for the app: token valid, plus the last sync as the server saw it."""
     state = session.get(IntegrationState, "healthconnect")
     return IngestStatus(
@@ -56,25 +64,57 @@ def healthconnect_status(session: SessionDep):
     )
 
 
-@router.post("/healthconnect", response_model=IngestResult, dependencies=[Authorized])
-async def ingest_healthconnect(request: Request, session: SessionDep):
+async def _read_json(request: Request, model):
+    """The body as `model`, at most healthconnect.MAX_BYTES; 413 or 422 otherwise."""
     if int(request.headers.get("content-length") or 0) > healthconnect.MAX_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "batch is larger than 20 MB")
     body = await request.body()
     if len(body) > healthconnect.MAX_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "batch is larger than 20 MB")
     try:
-        payload = IngestPayload.model_validate_json(body)
+        return model.model_validate_json(body)
     except ValidationError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             exc.errors(include_url=False, include_context=False, include_input=False)[:20],
         ) from exc
 
+
+@router.post("/health", response_model=IngestResult, dependencies=[Authorized])
+@router.post(
+    "/healthconnect",
+    response_model=IngestResult,
+    dependencies=[Authorized],
+    include_in_schema=False,
+)
+async def ingest_health(request: Request, session: SessionDep):
+    """Records of the bridge apps (Health Connect on Android, HealthKit on iOS)."""
+    payload = await _read_json(request, IngestPayload)
+
     def run() -> dict:
         result = healthconnect.ingest(session, payload)
         session.commit()
         return result
+
+    return await run_in_threadpool(run)
+
+
+@router.post("/health-auto-export", response_model=AutoExportResult, dependencies=[Authorized])
+async def ingest_health_auto_export(request: Request, session: SessionDep):
+    """The JSON of the iOS app Health Auto Export (REST API automation, health metrics or
+    workouts); see app.ingestion.health_auto_export."""
+    export = await _read_json(request, health_auto_export.Export)
+    device = request.headers.get("automation-name")
+    device = f"{health_auto_export.SOURCE}: {device}"[:120] if device else None
+
+    def run() -> dict:
+        converted = health_auto_export.convert(session, export)
+        totals: dict = {}
+        for payload in health_auto_export.batches(converted, device):
+            for key, value in healthconnect.ingest(session, payload).items():
+                totals[key] = totals.get(key, 0) + value
+        session.commit()
+        return {**totals, "skipped": converted.skipped, "unknown": sorted(converted.unknown)}
 
     return await run_in_threadpool(run)
 

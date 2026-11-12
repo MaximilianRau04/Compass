@@ -26,6 +26,9 @@ class Snapshot(BaseModel):
     type: str = Field(pattern=r"^[a-z_]{1,40}$")
     since: AwareDatetime
     ids: list[str] = Field(default_factory=list, max_length=5000)
+    # Only records whose id starts with this (the iOS bridge: "hk:sleep:"), so a snapshot of one
+    # bridge leaves the records of another one alone.
+    prefix: str | None = Field(None, min_length=1, max_length=20)
 
 
 class IngestPayload(BaseModel):
@@ -45,6 +48,11 @@ class IngestResult(BaseModel):
     restored: int = Field(0, description="Deleted earlier, now back in Health Connect")
     invalid: int
     days: int = Field(description="Local days whose daily metrics were recomputed")
+
+
+class AutoExportResult(IngestResult):
+    skipped: int = Field(description="Readings without a usable time or value")
+    unknown: list[str] = Field(description="Metrics in the export that Compass does not use")
 
 
 class IngestStatus(BaseModel):
@@ -143,6 +151,9 @@ class ExtraDayRead(BaseModel):
     date: date
     oxygen_saturation: float | None = Field(None, description="SpO2 in percent, day average")
     heart_rate_variability: float | None = Field(None, description="HRV (RMSSD) in ms")
+    heart_rate_variability_sdnn: float | None = Field(
+        None, description="HRV (SDNN) in ms, from Apple Health"
+    )
     respiratory_rate: float | None = Field(None, description="Breaths per minute")
     distance: float | None = Field(None, description="Meters")
     active_calories: float | None = Field(None, description="kcal")

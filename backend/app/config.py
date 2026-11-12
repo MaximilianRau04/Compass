@@ -90,8 +90,11 @@ class Settings(BaseSettings):
     # Area for new ILIAS deadline tasks (slug); empty means the area of the feed, unknown no area.
     ilias_deadline_area: str = ""
 
-    # Health Connect bridge app on the phone. It sends this token as a bearer token to
-    # /api/ingest/healthconnect, which is not behind the basic auth. Empty disables the endpoint.
+    # Bearer token of the health ingest (/api/ingest/health and /api/ingest/health-auto-export):
+    # the Android and iOS bridge apps and Health Auto Export send it. Not behind the basic auth.
+    # Empty disables the endpoints.
+    health_token: str = ""
+    # The name of health_token until the iOS bridge; still read when health_token is empty.
     healthconnect_token: str = ""
     # Apps whose Health Connect exercise sessions are Gym Day sessions (they give the duration of
     # the sessions from the CSV export). Space separated package names.
@@ -236,6 +239,10 @@ class Settings(BaseSettings):
     @property
     def mcp_resource_url(self) -> str:
         return self.mcp_public_url.rstrip("/") + "/mcp"
+
+    @property
+    def ingest_health_token(self) -> str:
+        return self.health_token or self.healthconnect_token
 
     @property
     def gymday_apps(self) -> set[str]:

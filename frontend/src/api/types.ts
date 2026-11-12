@@ -434,6 +434,7 @@ export interface ExtraDay {
   date: string
   oxygen_saturation: number | null
   heart_rate_variability: number | null
+  heart_rate_variability_sdnn: number | null
   respiratory_rate: number | null
   distance: number | null
   active_calories: number | null

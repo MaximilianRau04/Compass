@@ -610,6 +610,8 @@ def day_heart_rate(session: Session, day: date) -> DayHeartRate:
 EXTRAS = {
     "oxygen_saturation": ("percent", "avg"),
     "heart_rate_variability": ("rmssd_ms", "avg"),
+    # Apple Health measures SDNN instead; the two are not comparable, so it is its own value.
+    "heart_rate_variability_sdnn": ("sdnn_ms", "avg"),
     "respiratory_rate": ("rate", "avg"),
     "distance": ("meters", "sum"),
     "active_calories": ("kcal", "sum"),
