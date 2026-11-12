@@ -22,7 +22,7 @@ import java.time.Instant
 import kotlin.reflect.KClass
 
 /** A Health Connect record type the bridge reads, with its name on the wire (the `type` field
- * that /api/ingest/healthconnect expects). Keep in sync with the manifest permissions. */
+ * that /api/ingest/health expects). Keep in sync with the manifest permissions. */
 data class HealthType(val name: String, val recordClass: KClass<out Record>) {
     val permission: String get() = HealthPermission.getReadPermission(recordClass)
 }

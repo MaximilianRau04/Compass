@@ -12,8 +12,8 @@ android {
         // Android 12+. Health Connect is part of the system from Android 14; before, it is an app.
         minSdk = 31
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.2.3"
+        versionCode = 8
+        versionName = "0.2.4"
     }
 
     buildTypes {

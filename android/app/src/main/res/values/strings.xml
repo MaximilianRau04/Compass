@@ -5,7 +5,7 @@
 
     <string name="server">Server</string>
     <string name="server_url">Address, e.g. https://compass.example.com</string>
-    <string name="token" translatable="false">Token (HEALTHCONNECT_TOKEN)</string>
+    <string name="token" translatable="false">Token (HEALTH_TOKEN)</string>
     <string name="save_and_test">Save and test</string>
     <string name="testing">Testing …</string>
     <string name="connected">Connected. Last sync according to the server: %1$s</string>
@@ -47,7 +47,7 @@
     <string name="error_network">Network: %1$s</string>
     <string name="error_denied">Health Connect refused to read (background permission?): %1$s</string>
     <string name="error_token">Token rejected (401)</string>
-    <string name="error_ingest_off">Ingest is not active on the server (HEALTHCONNECT_TOKEN missing)</string>
+    <string name="error_ingest_off">Ingest is not active on the server (HEALTH_TOKEN missing)</string>
     <string name="error_rejected">Server rejects the request (%1$d): %2$s</string>
     <string name="error_server">Server error %1$d</string>
 </resources>

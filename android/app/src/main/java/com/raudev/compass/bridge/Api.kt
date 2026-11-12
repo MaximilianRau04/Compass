@@ -11,9 +11,9 @@ import java.net.URL
 /** The server answered with an error that a retry will not fix (wrong token, bad data). */
 class PermanentApiError(message: String) : Exception(message)
 
-/** Client for /api/ingest/healthconnect. Plain HttpURLConnection, no extra dependencies. */
+/** Client for /api/ingest/health. Plain HttpURLConnection, no extra dependencies. */
 class Api(private val context: Context, private val baseUrl: String, private val token: String) {
-    private val endpoint get() = URL("$baseUrl/api/ingest/healthconnect")
+    private val endpoint get() = URL("$baseUrl/api/ingest/health")
 
     /** Checks URL and token; returns the server's last successful sync (ISO) or null. */
     fun status(): String? {

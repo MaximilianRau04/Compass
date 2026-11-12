@@ -45,7 +45,7 @@
     <string name="error_network">Netzwerk: %1$s</string>
     <string name="error_denied">Health Connect verweigert das Lesen (Hintergrund-Berechtigung?): %1$s</string>
     <string name="error_token">Token abgelehnt (401)</string>
-    <string name="error_ingest_off">Ingest auf dem Server nicht aktiv (HEALTHCONNECT_TOKEN fehlt)</string>
+    <string name="error_ingest_off">Ingest auf dem Server nicht aktiv (HEALTH_TOKEN fehlt)</string>
     <string name="error_rejected">Server lehnt ab (%1$d): %2$s</string>
     <string name="error_server">Serverfehler %1$d</string>
 </resources>

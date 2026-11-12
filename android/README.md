@@ -1,7 +1,7 @@
 # Compass Bridge (Android)
 
 Small app that reads Health Connect on the phone and pushes it to Compass
-(`POST /api/ingest/healthconnect`). Health Connect has no cloud API, so the server cannot fetch the
+(`POST /api/ingest/health`). Health Connect has no cloud API, so the server cannot fetch the
 data itself.
 
 - Reads sleep (with stages), steps, heart rate, resting heart rate, exercise sessions, nutrition,
@@ -38,7 +38,10 @@ update over an existing install when the key is the same, so always build on the
 
 ## Setup on the phone
 
-1. On the server, set `HEALTHCONNECT_TOKEN` in `.env` (`openssl rand -hex 32`) and redeploy.
+1. On the server, set `HEALTH_TOKEN` in `.env` (`openssl rand -hex 32`) and redeploy. A server
+   with the old name `HEALTHCONNECT_TOKEN` keeps working. App versions before 0.2.4 post to the old
+   path `/api/ingest/healthconnect`, which the server still accepts; from 0.2.4 on the app needs a
+   server that has `/api/ingest/health`, so update the server first.
 2. Your VPN must be connected on the phone if the server is only reachable there; the app talks to the
    dashboard address.
 3. In the app: server address (`https://<dashboard host>`, no `/api`), the token, "Save and test".
