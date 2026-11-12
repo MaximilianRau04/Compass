@@ -1,0 +1,26 @@
+/* German texts of Compass Bridge. The keys are the English texts in the code. */
+
+"Save and test" = "Speichern und testen";
+"The dashboard address, without /api. Connect your VPN first if the server is only reachable there." = "Die Adresse des Dashboards, ohne /api. Verbinde zuerst dein VPN, wenn der Server nur darüber erreichbar ist.";
+"Grant access" = "Zugriff erlauben";
+"Allow all types. iOS does not tell the app what was denied; denied types simply stay empty in Compass." = "Erlaube alle Typen. iOS sagt der App nicht, was abgelehnt wurde; abgelehnte Typen bleiben in Compass einfach leer.";
+"First sync reads %lld days" = "Erster Sync liest %lld Tage";
+"Sync now" = "Jetzt synchronisieren";
+"Read again" = "Neu einlesen";
+"Sync" = "Synchronisieren";
+"Syncs in the background when Apple Health gets new data and about every hour, whenever iOS allows it, and each time you open the app." = "Synchronisiert im Hintergrund, wenn Apple Health neue Daten bekommt, und etwa stündlich, soweit iOS es zulässt, außerdem bei jedem Öffnen der App.";
+"Last sync" = "Letzter Sync";
+"Read the last %lld days again?" = "Die letzten %lld Tage neu einlesen?";
+"Compass stores nothing twice." = "Compass speichert nichts doppelt.";
+"Connected." = "Verbunden.";
+"Done. Now tap Sync now." = "Erledigt. Tippe jetzt auf „Jetzt synchronisieren“.";
+"Not synced yet." = "Noch nicht synchronisiert.";
+"%lld records sent, %lld deletions" = "%lld Einträge gesendet, %lld Löschungen";
+"Enter the server address and the token first." = "Gib zuerst die Serveradresse und den Token ein.";
+"Apple Health is not available on this device." = "Apple Health ist auf diesem Gerät nicht verfügbar.";
+"Apple Health is locked until the phone is unlocked; the next sync catches up." = "Apple Health ist gesperrt, bis das Telefon entsperrt wird; der nächste Sync holt es nach.";
+"The token is not valid (HEALTH_TOKEN on the server)." = "Der Token ist ungültig (HEALTH_TOKEN auf dem Server).";
+"Ingest is not active on the server (HEALTH_TOKEN missing)." = "Ingest auf dem Server nicht aktiv (HEALTH_TOKEN fehlt).";
+"The server refused a batch as too large." = "Der Server hat einen Stapel als zu groß abgelehnt.";
+"The server answered %lld." = "Der Server hat mit %lld geantwortet.";
+"The server address is not valid." = "Die Serveradresse ist ungültig.";

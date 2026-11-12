@@ -370,21 +370,24 @@ Check the first sync in the Tasks tab (calendar view, "fetch now") or on the ser
 asks for the login). Run it twice: the second run must report `"created": 0` for the deadlines, otherwise the feed's UIDs are not
 stable.
 
-## 7. Health Connect bridge on the phone
+## 7. Health data from the phone
 
-Sleep and health data arrive from the Android app in `android/` (build and setup in its README).
-It posts to `/api/ingest/healthconnect` on the dashboard address. That path is exempt from the
-basic auth in Caddy and needs a bearer token instead:
+Sleep and health data arrive from the phone: from the Android app in `android/` (Health Connect), or
+on the iPhone from the app in `ios/` or from Health Auto Export (Apple Health). Build and setup are in
+their READMEs. The apps post to `/api/ingest/health`, Health Auto Export to
+`/api/ingest/health-auto-export`, on the dashboard address. `/api/ingest/*` is exempt from the basic
+auth in Caddy and needs a bearer token instead:
 
 | Variable | Value |
 |---|---|
-| `HEALTHCONNECT_TOKEN` | output of `openssl rand -hex 32`; empty disables the endpoint (503) |
+| `HEALTH_TOKEN` | output of `openssl rand -hex 32`; empty disables the endpoints (503). The old name `HEALTHCONNECT_TOKEN` still works |
 | `HEALTHCONNECT_GYMDAY_APPS` | package of Gym Day (default `com.anthonyng.workoutapp`), for the session durations |
 
 After `make deploy`, check the token from your computer:
-`curl -H "Authorization: Bearer <token>" https://<dashboard host>/api/ingest/healthconnect`
+`curl -H "Authorization: Bearer <token>" https://<dashboard host>/api/ingest/health`
 must answer `{"ok": true, ...}`. Enter the same address and token in the app. The phone reaches the
-server over the VPN like the dashboard, nothing new becomes public.
+server over the VPN like the dashboard, nothing new becomes public. Android app versions before
+0.2.4 post to `/api/ingest/healthconnect`, which keeps working.
 
 A sync only derives the days it changes. When a release derives something new from the records
 (for example meals, or Gym Day sessions without an export), recompute it once for the records that

@@ -1,0 +1,52 @@
+# Xcode project of the iOS bridge, generated with XcodeGen (brew install xcodegen; xcodegen).
+# The .xcodeproj is not in git; generate it again after changing this file.
+name: CompassBridge
+options:
+  bundleIdPrefix: com.raudev.compass
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: en
+packages:
+  BridgeCore:
+    path: Core
+targets:
+  CompassBridge:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    dependencies:
+      - package: BridgeCore
+    # A shared scheme, so xcodebuild (and CI) can build it.
+    scheme: {}
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Compass Bridge
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, de]
+        NSHealthShareUsageDescription: >-
+          Compass Bridge reads sleep, heart rate, steps, workouts, nutrition and weight and sends
+          them to your own Compass server. It never writes to Apple Health.
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.raudev.compass.bridge.refresh]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSupportsIndirectInputEvents: true
+    entitlements:
+      path: App/CompassBridge.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.healthkit.background-delivery: true
+    settings:
+      base:
+        # In a fork, use a bundle id of your own (and your team in Signing & Capabilities).
+        PRODUCT_BUNDLE_IDENTIFIER: com.raudev.compass.bridge
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic

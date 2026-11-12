@@ -1,0 +1,38 @@
+name: iOS
+
+# Only when the iOS bridge or its data contract changes: macOS runners are slow and expensive.
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", "backend/tests/fixtures/healthkit_records.json", ".github/workflows/ios.yml"]
+  pull_request:
+    paths: ["ios/**", "backend/tests/fixtures/healthkit_records.json", ".github/workflows/ios.yml"]
+
+jobs:
+  core:
+    # The part without HealthKit, including the contract test against the backend fixture.
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    defaults:
+      run:
+        working-directory: ios/Core
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  app:
+    # Builds the app for the simulator, unsigned. Installing on a phone needs your own signing.
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - run: >-
+          xcodebuild build
+          -project CompassBridge.xcodeproj
+          -scheme CompassBridge
+          -destination "generic/platform=iOS Simulator"
+          CODE_SIGNING_ALLOWED=NO

@@ -45,7 +45,7 @@ The screenshots show made-up data.
 | Integration | Needs | Off when |
 |---|---|---|
 | Calendars | ICS links, added under Settings or in `.env` (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
-| Health, sleep, nutrition | Android only: the bridge app (`android/`) and `HEALTHCONNECT_TOKEN` | no token set |
+| Health, sleep, nutrition | a bridge on the phone: `android/` (Health Connect) or `ios/` (Apple Health, also via Health Auto Export), and `HEALTH_TOKEN` | no token set |
 | Training import | a CSV export of Gym Day, or Strong or Hevy (experimental), uploaded or shared from the phone | not used |
 | Mail | IMAP accounts (`MAIL_ACCOUNTS`); `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
 | News | RSS feeds, added under Settings or in `.env` (`NEWS_FEEDS`, a small default list otherwise) | no feeds left |
@@ -151,10 +151,11 @@ top weight, reps). Exercises renamed in the app can be merged so their progressi
 
 ## Sleep and health
 
-Sleep, steps, heart rate and workouts come from any watch or app that writes to Health Connect. Health
-Connect only lives on Android phones, so a small Android app (`android/`, see its README) pushes the changes every
-hour to `/api/ingest/healthconnect`, protected by its own token (`HEALTHCONNECT_TOKEN`) instead of the
-dashboard login. Every record is stored as it arrived; derived from it are sleep sessions with stages
+Sleep, steps, heart rate and workouts come from any watch or app that writes to Health Connect (Android)
+or Apple Health (iPhone). Both only live on the phone, so a small app pushes the changes: `android/` every
+hour to `/api/ingest/health`, and on the iPhone either `ios/` (own app, same endpoint) or the App Store app
+Health Auto Export (`/api/ingest/health-auto-export`); see their READMEs. Both are protected by their own
+token (`HEALTH_TOKEN`) instead of the dashboard login. Every record is stored as it arrived; derived from it are sleep sessions with stages
 (a night counts for the day of waking up), heart rate samples and daily metrics. When two apps write the
 same steps or sleep, a day takes the source with the larger total instead of adding them up.
 
