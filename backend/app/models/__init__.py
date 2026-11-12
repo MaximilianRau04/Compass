@@ -1,5 +1,6 @@
 from app.models.base import Base
 from app.models.calendar import CalendarEvent
+from app.models.credentials import Credential
 from app.models.feeds import Feed
 from app.models.finance import (
     BankAccount,
@@ -37,6 +38,7 @@ __all__ = [
     "BodyWeight",
     "Brief",
     "CalendarEvent",
+    "Credential",
     "DailyMetrics",
     "DepotValue",
     "Email",

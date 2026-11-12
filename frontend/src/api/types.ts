@@ -321,8 +321,35 @@ export interface Mail {
   dismissed: boolean
 }
 
+export interface MailAccount {
+  account: string
+  triage: string
+  last_success_at: string | null
+  last_error: string | null
+  pending: number
+  /** password, or microsoft for an OAuth sign-in */
+  auth: string
+  /** Only for accounts with a sign-in. */
+  signed_in: boolean | null
+  signed_in_as: string | null
+  signin_error: string | null
+}
+
+export interface SignInStart {
+  user_code: string
+  verification_uri: string
+  expires_at: string
+  interval: number
+}
+
+export interface SignInPoll {
+  status: 'pending' | 'done' | 'failed'
+  message: string | null
+  signed_in_as: string | null
+}
+
 export interface MailOverview {
-  accounts: { account: string; triage: string; last_success_at: string | null; last_error: string | null; pending: number }[]
+  accounts: MailAccount[]
   important: number
   unread_important: number
   top: Mail[]

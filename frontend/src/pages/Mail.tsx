@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useDismissMail, useMailOverview, useMails, useMailToTask, useSyncMail } from '../api/mail'
+import { pollSignIn, useDismissMail, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
 import { useTodayDate } from '../api/tasks'
-import type { Mail, MailOverview } from '../api/types'
+import type { Mail, MailAccount, MailOverview, SignInStart } from '../api/types'
 import { SectionLabel } from '../components/Layout'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -89,20 +89,129 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
   )
 }
 
+/** Device sign-in: the user enters the code at Microsoft, the page asks the server until it is
+ * done. Compass never sees the Microsoft password. */
+function SignInCode({ account, code, onEnd }: { account: string; code: SignInStart; onEnd: () => void }) {
+  const { t } = useI18n()
+  const sync = useSyncMail()
+  useEffect(() => {
+    let stopped = false
+    const timer = window.setInterval(async () => {
+      if (stopped) return
+      if (Date.now() > Date.parse(code.expires_at)) {
+        stopped = true
+        toast.error(t('mail.signin.expired'))
+        onEnd()
+        return
+      }
+      try {
+        const result = await pollSignIn(account)
+        if (stopped || result.status === 'pending') return
+        stopped = true
+        if (result.status === 'done') {
+          toast(t('mail.signin.done', { who: result.signed_in_as ?? accountName(account) }))
+          sync.mutate()
+        } else {
+          toast.error(t('mail.signin.failed', { message: result.message ?? '' }))
+        }
+        onEnd()
+      } catch (error) {
+        stopped = true
+        toast.error(t('mail.signin.failed', { message: (error as Error).message }))
+        onEnd()
+      }
+    }, Math.max(code.interval, 3) * 1000)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+    }
+    // Runs once per code; sync and t are stable enough for the few minutes it waits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, code])
+  return (
+    <div className="my-2 max-w-md rounded border border-brass/60 p-3 font-sans text-sm text-ink">
+      <p>
+        {t('mail.signin.step1')}{' '}
+        <a href={code.verification_uri} target="_blank" rel="noreferrer" className="text-brass underline">
+          {code.verification_uri.replace(/^https?:\/\//, '')}
+        </a>
+      </p>
+      <p className="mt-1">{t('mail.signin.step2')}</p>
+      <p className="mt-2 flex items-center gap-3">
+        <span className="select-all font-mono text-lg tracking-widest">{code.user_code}</span>
+        <button
+          type="button"
+          className={button('quiet', 'sm')}
+          onClick={() => void navigator.clipboard?.writeText(code.user_code).then(() => toast(t('mail.signin.copied')))}
+        >
+          {t('mail.signin.copy')}
+        </button>
+      </p>
+      <p className="mt-2 font-mono text-2xs text-muted">{t('mail.signin.waiting')}</p>
+      <button type="button" className={`${button('quiet', 'sm')} mt-1`} onClick={onEnd}>
+        {t('common.cancel')}
+      </button>
+    </div>
+  )
+}
+
+function SignIn({ account }: { account: MailAccount }) {
+  const { t } = useI18n()
+  const start = useStartSignIn()
+  const signOut = useSignOut()
+  const [code, setCode] = useState<SignInStart | null>(null)
+  const signedIn = account.signed_in === true
+  if (code) return <SignInCode account={account.account} code={code} onEnd={() => setCode(null)} />
+  return (
+    <span className="block">
+      {signedIn && t('mail.signin.as', { who: account.signed_in_as ?? '?' })}{' '}
+      <button
+        type="button"
+        disabled={start.isPending}
+        className={signedIn ? 'text-muted underline hover:text-ink' : `${button('secondary', 'sm')} mt-1 border-brass/60 text-brass hover:border-brass`}
+        onClick={() => start.mutate(account.account, { onSuccess: setCode, onError: (error) => toast.error(error.message) })}
+      >
+        {signedIn ? t('mail.signin.again') : t('mail.signin.start')}
+      </button>
+      {signedIn && (
+        <>
+          {' · '}
+          <button
+            type="button"
+            disabled={signOut.isPending}
+            className="text-muted underline hover:text-ink"
+            onClick={() => signOut.mutate(account.account, { onSuccess: () => toast(t('mail.signin.signedOut')), onError: (error) => toast.error(error.message) })}
+          >
+            {t('mail.signin.signOut')}
+          </button>
+        </>
+      )}
+    </span>
+  )
+}
+
 function Accounts({ overview, today }: { overview: MailOverview; today: string }) {
   const { t, locale } = useI18n()
   return (
-    <ul className="mb-6 space-y-0.5 font-mono text-2xs text-muted">
-      {overview.accounts.map((a) => (
-        <li key={a.account}>
-          {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
-          {a.last_success_at
-            ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
-            : t('mail.syncNever')}
-          {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
-          {a.last_error && <span className="block text-signal">{t('mail.syncError', { message: a.last_error })}</span>}
-        </li>
-      ))}
+    <ul className="mb-6 space-y-1 font-mono text-2xs text-muted">
+      {overview.accounts.map((a) => {
+        const needsSignIn = a.auth !== 'password' && a.signed_in === false
+        return (
+          <li key={a.account}>
+            {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
+            {a.last_success_at
+              ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
+              : t('mail.syncNever')}
+            {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
+            {needsSignIn ? (
+              <span className="block text-signal">{a.signin_error ? t('mail.signin.error', { message: a.signin_error }) : t('mail.signin.needed')}</span>
+            ) : (
+              a.last_error && <span className="block text-signal">{t('mail.syncError', { message: a.last_error })}</span>
+            )}
+            {a.auth !== 'password' && <SignIn account={a} />}
+          </li>
+        )
+      })}
     </ul>
   )
 }

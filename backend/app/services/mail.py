@@ -17,6 +17,7 @@ from app.models.integrations import IntegrationState
 from app.models.mail import Email
 from app.models.tasks import Task, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate, TaskUpdate
+from app.services import mail_auth
 from app.services import tasks as task_service
 from app.services.clock import utc_now
 
@@ -87,24 +88,42 @@ class AccountStatus:
     last_success_at: object
     last_error: str | None
     pending: int
+    auth: str = "password"
+    signed_in: bool | None = None
+    signed_in_as: str | None = None
+    signin_error: str | None = None
 
 
 def accounts(session: Session) -> list[AccountStatus]:
-    out = []
+    """Accounts that were synced, and configured ones that were not yet (an account with a
+    Microsoft sign-in cannot sync before the user signed in, so it has to show up here)."""
+    out: dict[str, AccountStatus] = {}
     for state in session.scalars(
         select(IntegrationState).where(IntegrationState.name.like("mail:%"))
     ):
         stats = state.stats or {}
-        out.append(
-            AccountStatus(
-                account=state.name.removeprefix("mail:"),
-                triage=stats.get("triage", "rules"),
-                last_success_at=state.last_success_at,
-                last_error=state.last_error,
-                pending=int(stats.get("pending", 0)),
-            )
+        name = state.name.removeprefix("mail:")
+        out[name] = AccountStatus(
+            account=name,
+            triage=stats.get("triage", "rules"),
+            last_success_at=state.last_success_at,
+            last_error=state.last_error,
+            pending=int(stats.get("pending", 0)),
         )
-    return sorted(out, key=lambda a: a.account)
+    try:
+        configured = get_settings().mail_accounts
+    except ValueError:  # the sync reports the broken setting
+        configured = {}
+    for name, account in configured.items():
+        status = out.setdefault(name, AccountStatus(name, account.triage, None, None, 0))
+        status.triage = account.triage
+        status.auth = account.auth
+        if account.auth != "password":
+            signin = mail_auth.state(session, name)
+            status.signed_in = signin.signed_in
+            status.signed_in_as = signin.signed_in_as
+            status.signin_error = signin.error
+    return sorted(out.values(), key=lambda a: a.account)
 
 
 def get_mail(session: Session, mail_id: int) -> Email:

@@ -7,6 +7,9 @@ MAIL_LOOKBACK_DAYS back; rows are unique per account and Message-ID, so nothing 
 Every mail gets a priority from its headers right away. Mails of accounts with triage "claude"
 are then summarised here, a limited number per run so a full inbox does not cost much at once.
 Accounts with triage "local" wait for the laptop (app.mail.local_triage).
+
+Accounts with a Microsoft sign-in get their access token first, in a transaction of its own: a
+renewed refresh token must be kept even when the IMAP part fails afterwards.
 """
 
 import logging
@@ -18,9 +21,10 @@ from sqlalchemy.orm import Session
 
 from app.config import MailAccount, get_settings
 from app.mail import imap, triage
+from app.mail.microsoft import SignInError
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
-from app.services import integrations
+from app.services import integrations, mail_auth
 from app.services import mail as mail_service
 from app.services.clock import local_today, utc_now
 
@@ -31,7 +35,8 @@ CLAUDE_PER_RUN = 40
 # Seen flags are refreshed for mails this recent.
 FLAG_DAYS = 14
 
-MailboxFactory = Callable[[MailAccount], imap.Mailbox]
+# Called as mailbox(account, access_token=...): the token is None for password accounts.
+MailboxFactory = Callable[..., imap.Mailbox]
 
 
 def state_name(account: str) -> str:
@@ -152,14 +157,17 @@ def _summarise_with_claude(session: Session, box: imap.Mailbox, account: MailAcc
 
 
 def sync_account(
-    session: Session, account: MailAccount, mailbox: MailboxFactory = imap.Mailbox
+    session: Session,
+    account: MailAccount,
+    mailbox: MailboxFactory = imap.Mailbox,
+    access_token: str | None = None,
 ) -> dict:
     state = session.get(IntegrationState, state_name(account.name))
     cursor: dict = dict((state.stats or {}).get("cursor", {})) if state else {}
     lookback = local_today() - timedelta(days=get_settings().mail_lookback_days)
 
     stats: dict = {"new": 0}
-    with mailbox(account) as box:
+    with mailbox(account, access_token=access_token) as box:
         for folder in account.folders:
             validity = box.examine(folder)
             known = cursor.get(folder)
@@ -188,16 +196,34 @@ def sync_account(
 
 def sync_all(session_factory, mailbox: MailboxFactory = imap.Mailbox) -> dict[str, dict | str]:
     """Sync every configured account in its own transaction; one failing account does not stop
-    the others. Errors never contain the password."""
+    the others. Errors never contain the password or a token."""
     try:
         accounts = get_settings().mail_accounts
     except ValueError as exc:
         return {"config": str(exc)}
     results: dict[str, dict | str] = {}
     for name, account in accounts.items():
+        token = None
+        if account.auth != "password":
+            with session_factory() as session:
+                try:
+                    token = mail_auth.access_token(session, account)
+                except Exception as exc:  # SignInError, database
+                    if isinstance(exc, SignInError):
+                        # Keep what access_token noted (a sign-in that has to be done again).
+                        error = str(exc)
+                    else:
+                        session.rollback()
+                        error = f"{type(exc).__name__}: {exc}"
+                    log.warning("mail sign-in %s failed: %s", name, error)
+                    integrations.record_failure(session, state_name(name), error[:500])
+                    session.commit()
+                    results[name] = error[:500]
+                    continue
+                session.commit()
         with session_factory() as session:
             try:
-                results[name] = sync_account(session, account, mailbox)
+                results[name] = sync_account(session, account, mailbox, token)
                 session.commit()
             except Exception as exc:  # IMAP, network, TLS, login
                 session.rollback()

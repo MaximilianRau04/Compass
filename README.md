@@ -47,7 +47,7 @@ The screenshots show made-up data.
 | Calendars | ICS links, added under Settings or in `.env` (`CALENDAR_ICS_FEEDS`, `ILIAS_ICS_URL`) | no links set |
 | Health, sleep, nutrition | a bridge on the phone: `android/` (Health Connect) or `ios/` (Apple Health, also via Health Auto Export), and `HEALTH_TOKEN` | no token set |
 | Training import | a CSV export of Gym Day, or Strong or Hevy (experimental), uploaded or shared from the phone | not used |
-| Mail | IMAP accounts (`MAIL_ACCOUNTS`); `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
+| Mail | IMAP accounts (`MAIL_ACCOUNTS`), Microsoft 365 and Outlook.com through a Microsoft sign-in; `ANTHROPIC_API_KEY` or a local Ollama for summaries | no account set |
 | News | RSS feeds, added under Settings or in `.env` (`NEWS_FEEDS`, a small default list otherwise) | no feeds left |
 | Finance | a bank in the EU or EEA and an Enable Banking application ([docs/finance.md](docs/finance.md)) | no app id set |
 | Push | a VAPID key pair (`make vapid-keys`) | no keys set |
@@ -218,6 +218,12 @@ reads the text itself and sends only the result), or nobody, the default. The Ma
 task with one click and hides mails from the list; the Today page shows the important ones. A mail that became a task
 leaves the list (if the task is discarded, the mail can become a task again), and a mail you delete or archive in the
 mailbox leaves it with the next sync, since every sync checks which recent mails are still in their folder.
+
+Microsoft 365 and Outlook.com accounts do not take a password over IMAP. With `MAIL_AUTH_<NAME>=microsoft` they
+sign in with Microsoft from the Mail tab instead: Compass shows a code to enter at Microsoft, keeps the tokens
+encrypted in its database and renews them itself. It needs an app registration of your own in Microsoft Entra, and
+work or university accounts may need their administrator's approval; [docs/deploy.md](docs/deploy.md#8-mails)
+has the steps and the limits.
 
 Mail content is untrusted: the model only returns fixed fields, links are stripped, and mails that try to
 instruct an AI are flagged by a pattern check and never ranked below normal. The MCP tool marks every

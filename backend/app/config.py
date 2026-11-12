@@ -17,11 +17,16 @@ class MailAccount:
     password: str = field(repr=False)
     folders: tuple[str, ...]
     triage: str
+    # "password" (IMAP login) or "microsoft" (OAuth sign-in in the app, tokens in the database).
+    auth: str = "password"
 
 
 ENV_FILES = ("../.env", ".env")
 # Hosts that are the same for everybody, so the variable can stay unset.
 KNOWN_IMAP_HOSTS = {"gmail": "imap.gmail.com"}
+# Logins other than a password, and the IMAP host each one uses unless <NAME>_IMAP_HOST is set.
+# Microsoft 365 and Outlook.com share one IMAP host.
+MAIL_AUTH_HOSTS = {"password": "", "microsoft": "outlook.office365.com"}
 
 
 def _pairs(value: str) -> dict[str, str]:
@@ -118,6 +123,14 @@ class Settings(BaseSettings):
     compass_url: str = ""
     # Bearer token of the local triage runner for /api/ingest/mail/*. Empty disables it.
     mail_triage_token: str = ""
+    # Microsoft 365 and Outlook.com mail (MAIL_AUTH_<NAME>=microsoft): the application id of your
+    # own app registration in Microsoft Entra, and its tenant ("common" takes work, school and
+    # personal accounts; a tenant id or "consumers" narrows it).
+    microsoft_client_id: str = ""
+    microsoft_tenant: str = "common"
+    # Encrypts what Compass has to store and use again, like the Microsoft sign-ins. Any long
+    # random string (openssl rand -hex 32). Changing it means signing in again.
+    compass_secret_key: str = ""
 
     # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
     # General items are shown as they come; personal ones are ranked by the interest profile.
@@ -197,9 +210,12 @@ class Settings(BaseSettings):
     @property
     def mail_accounts(self) -> dict[str, "MailAccount"]:
         """Configured accounts by name. Each name in MAIL_ACCOUNTS has <NAME>_IMAP_HOST, _PORT,
-        _USER and _PASSWORD, and MAIL_TRIAGE_<NAME>. Without that, an account gets priorities from
-        its headers only: its mails may hold personal data of others, so sending them to a model is
-        a choice to make per account."""
+        _USER and _PASSWORD, MAIL_TRIAGE_<NAME> and MAIL_AUTH_<NAME>. Without a triage setting, an
+        account gets priorities from its headers only: its mails may hold personal data of others,
+        so sending them to a model is a choice to make per account.
+
+        MAIL_AUTH_<NAME>=microsoft signs in with OAuth instead of a password (Microsoft 365,
+        Outlook.com); _USER is then the mail address and the host defaults to Microsoft's."""
         out = {}
         for name in re.split(r"[,\s]+", self.mail_account_names.strip().lower()):
             if not name:
@@ -207,13 +223,23 @@ class Settings(BaseSettings):
             if not re.fullmatch(r"[a-z0-9_]{1,20}", name):
                 raise ValueError(f"MAIL_ACCOUNTS: {name!r} is not a name (a-z, 0-9, _)")
             prefix = name.upper()
-            host = _variable(f"{prefix}_IMAP_HOST", KNOWN_IMAP_HOSTS.get(name, "")).strip()
+            auth = _variable(f"MAIL_AUTH_{prefix}", "password").strip().lower()
+            if auth not in MAIL_AUTH_HOSTS:
+                raise ValueError(f"MAIL_AUTH_{prefix}: use password or microsoft")
+            default_host = MAIL_AUTH_HOSTS[auth] or KNOWN_IMAP_HOSTS.get(name, "")
+            host = _variable(f"{prefix}_IMAP_HOST", default_host).strip()
             user = _variable(f"{prefix}_IMAP_USER").strip()
             if not host or not user:
                 continue
             triage = _variable(f"MAIL_TRIAGE_{prefix}", "rules").strip().lower()
             if triage not in ("claude", "local", "rules"):
                 raise ValueError(f"MAIL_TRIAGE_{prefix}: use claude, local or rules")
+            if triage == "local" and auth != "password":
+                # The laptop reads the mail text itself and has no access to the sign-in.
+                raise ValueError(
+                    f"MAIL_TRIAGE_{prefix}=local does not work with MAIL_AUTH_{prefix}={auth} "
+                    "yet: use claude or rules"
+                )
             if triage == "claude" and not self.anthropic_api_key:
                 triage = "rules"
             out[name] = MailAccount(
@@ -224,6 +250,7 @@ class Settings(BaseSettings):
                 password=_variable(f"{prefix}_IMAP_PASSWORD"),
                 folders=tuple(self.mail_folders.split()) or ("INBOX",),
                 triage=triage,
+                auth=auth,
             )
         return out
 

@@ -54,8 +54,9 @@ class FakeMailbox:
 
     folders: dict[str, dict] = {}
 
-    def __init__(self, account):
+    def __init__(self, account, access_token=None):
         self.account = account
+        self.access_token = access_token
         self.folder = None
         self.texts_read: list[int] = []
 
@@ -322,7 +323,9 @@ def test_overview_task_and_dismiss(client, session, accounts):
     overview = client.get("/api/mail/overview").json()
     assert overview["important"] == 2  # one by the model, one by its subject
     assert overview["unread_important"] == 2
-    assert overview["accounts"][0]["account"] == "uni"
+    # Configured accounts show up before their first sync too.
+    synced = {a["account"]: a["last_success_at"] is not None for a in overview["accounts"]}
+    assert synced == {"gmail": False, "uni": True}
 
     task = client.post(f"/api/mail/{first.id}/task").json()
     assert task["title"] == "Termin bei Prof. Müller bis Freitag zusagen"

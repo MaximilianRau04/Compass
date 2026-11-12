@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -32,6 +33,26 @@ class MailAccountRead(BaseModel):
     last_success_at: datetime | None
     last_error: str | None
     pending: int
+    auth: str = Field("password", description="password, or microsoft for an OAuth sign-in")
+    # Only for accounts with a sign-in: whether Compass holds a working one, and for whom.
+    signed_in: bool | None = None
+    signed_in_as: str | None = None
+    signin_error: str | None = None
+
+
+class SignInStart(BaseModel):
+    """What the user enters at Microsoft. The device code itself stays on the server."""
+
+    user_code: str
+    verification_uri: str
+    expires_at: datetime
+    interval: int
+
+
+class SignInPoll(BaseModel):
+    status: Literal["pending", "done", "failed"]
+    message: str | None = None
+    signed_in_as: str | None = None
 
 
 class MailOverview(BaseModel):

@@ -4,11 +4,21 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import SessionDep
+from app.config import MailAccount, get_settings
 from app.ingestion import mail as mail_sync
+from app.mail.microsoft import SignInError
 from app.models.mail import Email
-from app.schemas.mail import MailAccountRead, MailDismiss, MailOverview, MailRead
+from app.schemas.mail import (
+    MailAccountRead,
+    MailDismiss,
+    MailOverview,
+    MailRead,
+    SignInPoll,
+    SignInStart,
+)
 from app.schemas.tasks import TaskRead
 from app.services import mail as mail_service
+from app.services import mail_auth
 from app.services.mail import MailError
 
 router = APIRouter(prefix="/mail", tags=["mail"])
@@ -69,6 +79,46 @@ def overview(session: SessionDep):
 def sync(session: SessionDep) -> dict[str, dict | str]:
     """Fetch new mails of every account now (the worker does this every MAIL_SYNC_MINUTES)."""
     return mail_sync.sync_all(lambda: nullcontext(session))
+
+
+def _signin_account(name: str) -> MailAccount:
+    try:
+        accounts = get_settings().mail_accounts
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    account = accounts.get(name)
+    if account is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown mail account")
+    if account.auth == "password":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{name} signs in with a password")
+    return account
+
+
+@router.post("/accounts/{name}/signin", response_model=SignInStart)
+def start_signin(name: str, session: SessionDep):
+    """Start a Microsoft sign-in: the user enters the code at the address, then the app polls."""
+    account = _signin_account(name)
+    try:
+        pending = mail_auth.start(session, account)
+    except SignInError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    session.commit()
+    return SignInStart(**pending.__dict__)
+
+
+@router.post("/accounts/{name}/signin/poll", response_model=SignInPoll)
+def poll_signin(name: str, session: SessionDep):
+    result = mail_auth.poll(session, _signin_account(name))
+    session.commit()
+    return SignInPoll(**result.__dict__)
+
+
+@router.delete("/accounts/{name}/signin", status_code=status.HTTP_204_NO_CONTENT)
+def sign_out(name: str, session: SessionDep):
+    """Forget the tokens of this account. Its mails stay in Compass."""
+    _signin_account(name)
+    mail_auth.sign_out(session, name)
+    session.commit()
 
 
 @router.post("/{mail_id}/task", response_model=TaskRead)

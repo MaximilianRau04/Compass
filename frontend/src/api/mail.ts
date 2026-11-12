@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api, post } from './client'
-import type { Mail, MailOverview, Task } from './types'
+import { api, del, post } from './client'
+import type { Mail, MailOverview, SignInPoll, SignInStart, Task } from './types'
 
 export function useMails(params: { days: number; account?: string; dismissed?: boolean }) {
   const query = new URLSearchParams({ days: String(params.days) })
@@ -39,4 +39,17 @@ export function useDismissMail() {
 export function useSyncMail() {
   const invalidate = useInvalidateMail()
   return useMutation({ mutationFn: () => post<Record<string, unknown>>('/mail/sync'), onSuccess: invalidate })
+}
+
+/** Microsoft sign-in of a mail account: start gives the code to enter, poll asks once whether
+ * the user finished. The tokens stay on the server. */
+export function useStartSignIn() {
+  return useMutation({ mutationFn: (account: string) => post<SignInStart>(`/mail/accounts/${encodeURIComponent(account)}/signin`) })
+}
+
+export const pollSignIn = (account: string) => post<SignInPoll>(`/mail/accounts/${encodeURIComponent(account)}/signin/poll`)
+
+export function useSignOut() {
+  const invalidate = useInvalidateMail()
+  return useMutation({ mutationFn: (account: string) => del(`/mail/accounts/${encodeURIComponent(account)}/signin`), onSuccess: invalidate })
 }

@@ -241,23 +241,47 @@ def _quote(folder: str) -> str:
     return '"' + folder.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-class Mailbox:
-    """One IMAP connection, used as a context manager."""
+def xoauth2(user: str, access_token: str) -> bytes:
+    """The SASL XOAUTH2 initial response (Microsoft and Google use the same format)."""
+    return f"user={user}\x01auth=Bearer {access_token}\x01\x01".encode()
 
-    def __init__(self, account: MailAccount, timeout: int = 60):
+
+class Mailbox:
+    """One IMAP connection, used as a context manager. Accounts with an OAuth sign-in need the
+    current access token (app.services.mail_auth); the others log in with their password."""
+
+    def __init__(self, account: MailAccount, timeout: int = 60, access_token: str | None = None):
         self.account = account
         self.timeout = timeout
+        self.access_token = access_token
         self.conn: imaplib.IMAP4_SSL | None = None
         self.folder: str | None = None
 
     def __enter__(self) -> "Mailbox":
+        if self.account.auth != "password" and not self.access_token:
+            # The local tools read accounts from their own .env and have no sign-in.
+            raise imaplib.IMAP4.error(
+                f"{self.account.name} signs in with {self.account.auth.capitalize()}: only the "
+                "Compass server can read it so far"
+            )
         self.conn = imaplib.IMAP4_SSL(
             self.account.host,
             self.account.port,
             ssl_context=ssl.create_default_context(),
             timeout=self.timeout,
         )
-        self.conn.login(self.account.user, self.account.password)
+        if self.access_token:
+            token = xoauth2(self.account.user, self.access_token)
+            try:
+                self.conn.authenticate("XOAUTH2", lambda _: token)
+            except imaplib.IMAP4.error as exc:
+                self.__exit__()
+                raise imaplib.IMAP4.error(
+                    f"{exc} (the mailbox refused the sign-in: is {self.account.user} the "
+                    "address you signed in with, and is IMAP turned on for it?)"
+                ) from None
+        else:
+            self.conn.login(self.account.user, self.account.password)
         return self
 
     def __exit__(self, *exc) -> None:

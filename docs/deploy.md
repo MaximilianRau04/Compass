@@ -416,10 +416,55 @@ The worker reads the configured mailboxes every `MAIL_SYNC_MINUTES` over IMAP, r
 | `MAIL_ACCOUNT_AREAS` | area of tasks made from a mail, as `account=area` pairs |
 | `ANTHROPIC_API_KEY` | for `claude`, model `MAIL_CLAUDE_MODEL` (default `claude-haiku-4-5`). Without a key these accounts get rule priorities only |
 | `MAIL_TRIAGE_TOKEN` | for `local`: output of `openssl rand -hex 32`, the same value goes into the `.env` of the machine with Ollama |
+| `MAIL_AUTH_<NAME>` | `password` (the default) or `microsoft` for Microsoft 365 and Outlook.com, see below |
 
 After `make deploy`, "Fetch now" in the Mail tab runs the first sync (the last `MAIL_LOOKBACK_DAYS` days).
 Accounts with `claude` are summarised right away, up to 40 mails per run; `local` accounts show "waiting
 for the local model" until the local triage ran.
+
+**Microsoft 365 and Outlook.com** reject IMAP with a password. These accounts sign in with Microsoft
+instead (OAuth), and Compass keeps the tokens, encrypted, in its database. You need an app
+registration of your own once; Compass uses no shared client.
+
+1. In the [Microsoft Entra admin center](https://entra.microsoft.com), App registrations, New
+   registration: any name, supported account types "Accounts in any organizational directory and
+   personal Microsoft accounts" (or only your organisation), no redirect URI. Registering needs an
+   Entra directory; with only a personal Microsoft account, create one first (a free Azure account
+   comes with one).
+2. Authentication, Advanced settings: "Allow public client flows" on. Compass signs in with a code
+   (device sign-in), so it needs no redirect URL and works when the server is only in your VPN.
+3. API permissions, Add a permission, APIs my organization uses, "Office 365 Exchange Online",
+   Delegated: `IMAP.AccessAsUser.All`. `offline_access`, `openid` and `profile` are requested
+   during the sign-in and need no entry.
+4. Copy the Application (client) ID. In `.env`:
+
+   ```bash
+   MICROSOFT_CLIENT_ID=<application id>
+   MICROSOFT_TENANT=common        # or your tenant id, if the app only accepts your organisation
+   COMPASS_SECRET_KEY=<openssl rand -hex 32>
+   MAIL_ACCOUNTS=outlook
+   MAIL_AUTH_OUTLOOK=microsoft
+   OUTLOOK_IMAP_USER=you@outlook.com   # the mail address; host and password stay unset
+   ```
+
+5. After `make deploy`, the Mail tab shows the account with "Sign in with Microsoft". It gives a code
+   to enter at microsoft.com/devicelogin; sign in there with the account of the mailbox. The first
+   sync starts right after.
+
+What to know:
+
+- The permission is IMAP for the whole mailbox; that Compass only reads is ensured by its code
+  (`EXAMINE`, `BODY.PEEK`) and tested, not by the token.
+- Keep `COMPASS_SECRET_KEY`: without it, or with another value, the stored sign-ins cannot be read and
+  each account has to sign in again. A database backup contains the tokens only in encrypted form.
+- Work and university accounts: the organisation can require an administrator to approve the app
+  first ("Need admin approval"), turn IMAP off for mailboxes, or block it with conditional access.
+  Compass cannot get around that; the Mail tab shows Microsoft's reason. Some organisations also make
+  you sign in again every few days or weeks.
+- A sign-in that expired or was revoked (password change, access removed at account.microsoft.com)
+  shows up in the Mail tab with "Sign in again". "sign out" there makes Compass forget the tokens.
+- `MAIL_TRIAGE_<NAME>=local` and the read-only mail MCP do not work for these accounts yet: they run on
+  another machine without access to the sign-in. Use `claude` or `rules`.
 
 **Local triage on a machine with Ollama** (the mail text stays on that machine, e.g. your laptop):
 
