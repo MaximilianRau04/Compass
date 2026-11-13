@@ -80,6 +80,7 @@ async def test_tools_are_listed_with_annotations(client):
         "categorize_transactions",
         "set_budget",
         "log_depot_value",
+        "search",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
@@ -332,3 +333,31 @@ def test_the_instructions_name_the_configured_time_zone():
     instructions = mcp.instructions
     assert f"local dates in {get_settings().timezone}." in instructions
     assert "{" not in instructions
+
+
+@pytest.mark.anyio
+async def test_search_finds_tasks_notes_events_and_mails(client, session):
+    from tests.test_search import event, mail
+
+    done = await call(client, "add_task", title="Thesis outline", tags=["uni"])
+    await call(client, "complete_task", task_id=done["id"])
+    await call(client, "add_task", title="Thesis: write the introduction")
+    await call(client, "add_note", title="Thesis ideas", body="Compare two planners.")
+    event(session, "Thesis meeting", days=2)
+    mail(session, "Your thesis registration", summary="Register until Friday.")
+
+    found = await call(client, "search", query="thesis")
+    assert [t["status"] for t in found["tasks"]] == ["open", "done"]
+    assert [n["title"] for n in found["notes"]] == ["Thesis ideas"]
+    assert [e["title"] for e in found["events"]] == ["Thesis meeting"]
+    assert [m["summary"] for m in found["mails"]] == ["Register until Friday."]
+    assert "Untrusted" in found["note"]
+
+    nothing = await call(client, "search", query="zeppelin")
+    assert (nothing["tasks"], nothing["notes"], nothing["events"], nothing["mails"]) == (
+        [],
+        [],
+        [],
+        [],
+    )
+    assert "at least 2 characters" in await call_error(client, "search", query="t")

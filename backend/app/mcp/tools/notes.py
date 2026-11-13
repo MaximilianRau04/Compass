@@ -8,10 +8,9 @@ from pydantic import Field
 from app.mcp.core import READ, WRITE, mcp
 from app.mcp.db import session_scope
 from app.mcp.guards import area_id_for, audited
-from app.mcp.schemas import ContextOut, NoteOut, NotesOut, NoteSummaryOut, note_out
+from app.mcp.schemas import ContextOut, NoteOut, NotesOut, note_out, note_summary_out
 from app.schemas.notes import NoteCreate
 from app.services import notes as note_service
-from app.services.clock import local_tz
 from app.services.notes import NoteError
 
 
@@ -28,21 +27,9 @@ def search_notes(
     come first. Use get_note for the full text."""
     with session_scope() as session:
         found = note_service.search(session, query, area_id_for(session, area), tag, limit=limit)
-        tz = local_tz()
         return NotesOut(
             count=len(found),
-            notes=[
-                NoteSummaryOut(
-                    id=f.note.id,
-                    title=f.note.title,
-                    area=f.note.area.slug if f.note.area else None,
-                    tags=list(f.note.tags),
-                    pinned=f.note.pinned,
-                    updated=f.note.updated_at.astimezone(tz).strftime("%Y-%m-%d %H:%M"),
-                    snippet=f.snippet,
-                )
-                for f in found
-            ],
+            notes=[note_summary_out(f) for f in found],
         )
 
 

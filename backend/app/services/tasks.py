@@ -78,6 +78,12 @@ def area_lookup(session: Session) -> dict[str, str]:
     return lookup
 
 
+def contains(text: str) -> str:
+    """A LIKE pattern for "contains this text"; % and _ in it are meant literally. Use it with
+    escape="\\"."""
+    return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
 # --- Queries -------------------------------------------------------------------------------
 
 
@@ -95,8 +101,10 @@ def list_tasks(
     if area_id is not None:
         stmt = stmt.where(Task.area_id == area_id)
     if query:
-        like = f"%{query}%"
-        stmt = stmt.where(or_(Task.title.ilike(like), Task.notes.ilike(like)))
+        like = contains(query)
+        stmt = stmt.where(
+            or_(Task.title.ilike(like, escape="\\"), Task.notes.ilike(like, escape="\\"))
+        )
     if due_before is not None:
         stmt = stmt.where(Task.due_date <= due_before)
     stmt = stmt.order_by(Task.updated_at.desc()).limit(limit)

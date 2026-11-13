@@ -266,6 +266,7 @@ in developer mode, should work the same way.
 | News | `get_news_digest`, `feedback_news` |
 | Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `set_budget`, `log_depot_value` |
 | Dashboard | `save_brief`, `get_brief`, `send_notification` |
+| Everything | `search` (tasks, notes, calendar events and mails at once) |
 
 Prompts: `daily_brief`, `news_report`, `sort_mails`, `weekly_review`, `health_analysis` (patterns across sleep, training, nutrition and weight).
 
