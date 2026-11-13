@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 
@@ -7,6 +7,7 @@ import { useNotes } from '../api/notes'
 import { useAreas, useTaskEvents, useTodayDate, useUpdateTask } from '../api/tasks'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../api/types'
 import { useI18n } from '../i18n/context'
+import { checklist, toggled, withNewItem } from '../lib/checklist'
 import { recurrenceLabel } from '../lib/format'
 import { button, overlay } from '../lib/ui'
 import { MoveTask } from './MoveTask'
@@ -100,6 +101,18 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const pending = changes(task, draft)
   const dirty = Object.keys(pending).length > 0
+  const items = checklist(draft.notes)
+  const notesField = useRef<HTMLTextAreaElement>(null)
+  const addItem = () => {
+    const next = withNewItem(draft.notes)
+    set('notes', next)
+    // After the render that puts the new line into the field: type right behind "- [ ] ".
+    requestAnimationFrame(() => {
+      notesField.current?.focus()
+      notesField.current?.setSelectionRange(next.length, next.length)
+      notesField.current?.scrollTo({ top: notesField.current.scrollHeight })
+    })
+  }
 
   const save = (data: TaskUpdate, message: string, undo?: TaskUpdate) =>
     update.mutate(
@@ -237,7 +250,23 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
         <label className={label} htmlFor="notes">
           {t('sheet.notes')}
         </label>
-        <textarea id="notes" value={draft.notes} onChange={(e) => set('notes', e.target.value)} rows={3} maxLength={20_000} className={field} />
+        {/* Lines like "- [ ] rent a van" can be ticked here; ticking edits the text below. */}
+        {items.length > 0 && (
+          <ul className="mb-2" aria-label={t('sheet.checklist')}>
+            {items.map((item) => (
+              <li key={item.line}>
+                <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+                  <input type="checkbox" checked={item.done} onChange={() => set('notes', toggled(draft.notes, item.line))} className="mt-1 h-4 w-4 shrink-0 accent-brass" />
+                  <span className={['min-w-0 break-words leading-snug', item.done ? 'text-muted line-through' : ''].join(' ')}>{item.text}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        <textarea ref={notesField} id="notes" value={draft.notes} onChange={(e) => set('notes', e.target.value)} rows={3} maxLength={20_000} className={field} />
+        <button type="button" onClick={addItem} className="-mb-1.5 py-1.5 font-mono text-2xs text-brass hover:underline">
+          + {t('sheet.checklistAdd')}
+        </button>
       </div>
 
       {notes.data && notes.data.length > 0 && (

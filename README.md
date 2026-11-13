@@ -18,7 +18,8 @@ The screenshots show made-up data.
 ## Features
 
 - **Tasks:** one-line quick add in German or English (dates, planned days, times, areas, priorities,
-  recurrence), list and board view, areas and tags.
+  recurrence), list and board view, areas and tags. Lines like `- [ ] rent a van` in the notes of a
+  task are a checklist to tick off.
 - **Calendar:** read-only ICS feeds (Google, Outlook, university calendars) in a week, month and agenda
   view. Deadlines from a learning platform's calendar become tasks.
 - **Today:** the day as a course line from waking up to the evening, events, due and planned tasks,

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useToggleDone } from '../api/tasks'
 import type { Task } from '../api/types'
 import { useI18n } from '../i18n/context'
+import { checklist } from '../lib/checklist'
 import { AREA_BG, AREA_TEXT, isOverdue, recurrenceLabel, relativeDay, shortTime } from '../lib/format'
 
 export function TaskItem({
@@ -26,6 +27,8 @@ export function TaskItem({
   const ticked = click && click.from === task.status ? click.done : null
   const done = ticked ?? task.status === 'done'
   const overdue = isOverdue(task, today)
+  const steps = checklist(task.notes)
+  const stepsDone = steps.filter((step) => step.done).length
 
   const onToggle = () => {
     setClick({ from: task.status, done: !done })
@@ -95,6 +98,11 @@ export function TaskItem({
             <span>@{relativeDay(task.scheduled_date, today, t, locale)}</span>
           )}
           {task.recurrence && <span>↻ {recurrenceLabel(task.recurrence, t, locale)}</span>}
+          {steps.length > 0 && (
+            <span aria-label={t('task.checklist', { done: stepsDone, total: steps.length })}>
+              ✓ {stepsDone}/{steps.length}
+            </span>
+          )}
           {task.tags.map((tag) => (
             <span key={tag}>#{tag}</span>
           ))}
