@@ -107,7 +107,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
     const next = withNewItem(draft.notes)
     set('notes', next)
     // After the render that puts the new line into the field: type right behind "- [ ] ".
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       notesField.current?.focus()
       notesField.current?.setSelectionRange(next.length, next.length)
       notesField.current?.scrollTo({ top: notesField.current.scrollHeight })

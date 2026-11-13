@@ -333,9 +333,9 @@ export function MailPage() {
 
       {foundId !== null && (
         <section className="mb-8">
-          <div className="flex items-baseline justify-between gap-3">
+          <div className="relative">
             <SectionLabel>{t('mail.found')}</SectionLabel>
-            <button type="button" className="font-mono text-2xs text-muted hover:text-ink" onClick={() => setParams({}, { replace: true })}>
+            <button type="button" className="absolute top-0 right-0 font-mono text-2xs text-muted hover:text-ink" onClick={() => setParams({}, { replace: true })}>
               {t('mail.foundClose')}
             </button>
           </div>
