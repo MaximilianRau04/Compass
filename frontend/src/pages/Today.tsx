@@ -15,6 +15,7 @@ import { CourseLine } from '../components/CourseLine'
 import { EventItem } from '../components/EventItem'
 import { SectionLabel } from '../components/Layout'
 import { Markdown } from '../components/Markdown'
+import { MoveTask } from '../components/MoveTask'
 import { QuickAdd } from '../components/QuickAdd'
 import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
@@ -258,7 +259,9 @@ export function TodayPage() {
               </SectionLabel>
               <ul className="divide-y divide-rule/60">
                 {section.tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} />
+                  <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
+                    {section.key === 'overdue' && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
+                  </TaskItem>
                 ))}
               </ul>
             </section>

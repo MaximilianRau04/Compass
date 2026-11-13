@@ -86,6 +86,10 @@ class TaskUpdate(_TaskFields):
     sort_order: int | None = None
 
 
+class TaskMove(BaseModel):
+    date: date
+
+
 class TaskRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useAreas, useTasks, useTodayDate, useUpdateTask } from '../api/tasks'
 import type { Task, TaskStatus } from '../api/types'
 import { SectionLabel } from '../components/Layout'
+import { MoveTask } from '../components/MoveTask'
 import { QuickAdd } from '../components/QuickAdd'
 import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
@@ -141,7 +142,9 @@ export function TasksPage() {
                 </SectionLabel>
                 <ul className="divide-y divide-rule/60">
                   {items.map((task) => (
-                    <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} />
+                    <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
+                      {name === 'overdue' && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
+                    </TaskItem>
                   ))}
                 </ul>
               </section>

@@ -201,3 +201,45 @@ def test_quick_add_with_a_too_long_tag_is_a_clear_error(client):
     response = client.post("/api/tasks/quick", json={"text": "Paper lesen #" + "x" * 61})
     assert response.status_code == 422
     assert "longer than 60" in response.json()["detail"]
+
+
+def move(client, task, day: str) -> dict:
+    response = client.post(f"/api/tasks/{task['id']}/move", json={"date": day})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_moving_a_task_with_only_a_deadline_moves_the_deadline(client):
+    task = create(client, due_date="2026-03-02", due_time="14:00")
+    moved = move(client, task, "2026-03-04")
+    assert (moved["due_date"], moved["scheduled_date"]) == ("2026-03-04", None)
+    assert moved["due_time"] == "14:00:00"
+
+    events = client.get(f"/api/tasks/{task['id']}/events").json()
+    assert events[-1]["type"] == "updated"
+    assert events[-1]["payload"] == {"due_date": {"from": "2026-03-02", "to": "2026-03-04"}}
+
+
+def test_moving_plans_the_day_and_keeps_a_later_deadline(client):
+    undated = create(client)
+    assert move(client, undated, "2026-03-04")["scheduled_date"] == "2026-03-04"
+
+    task = create(client, due_date="2026-03-10", scheduled_date="2026-03-02")
+    moved = move(client, task, "2026-03-04")
+    assert (moved["due_date"], moved["scheduled_date"]) == ("2026-03-10", "2026-03-04")
+
+    # Past its deadline, both dates move, so it is not overdue on its new day.
+    moved = move(client, task, "2026-03-12")
+    assert (moved["due_date"], moved["scheduled_date"]) == ("2026-03-12", "2026-03-12")
+
+
+def test_moving_a_feed_deadline_only_plans_it(client):
+    task = create(client, due_date="2026-03-02", source="ilias", external_id="ilias:1")
+    moved = move(client, task, "2026-03-04")
+    assert (moved["due_date"], moved["scheduled_date"]) == ("2026-03-02", "2026-03-04")
+
+
+def test_moving_an_unknown_task_or_without_a_date(client):
+    assert client.post("/api/tasks/999999/move", json={"date": "2026-03-04"}).status_code == 404
+    task = create(client)
+    assert client.post(f"/api/tasks/{task['id']}/move", json={}).status_code == 422

@@ -7,6 +7,11 @@ export function weekStart(day: string): string {
   return addDays(day, -offset)
 }
 
+/** Monday of the week after the day. */
+export function nextWeekStart(day: string): string {
+  return addDays(weekStart(day), 7)
+}
+
 export function monthStart(day: string): string {
   return `${day.slice(0, 7)}-01`
 }

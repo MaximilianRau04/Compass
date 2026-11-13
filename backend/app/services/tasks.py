@@ -205,6 +205,26 @@ def update_task(session: Session, task: Task, data: TaskUpdate, actor: str = "we
     return task
 
 
+# Their deadline belongs to the feed: a sync would set it back.
+FEED_SOURCES = (TaskSource.ilias, TaskSource.feed)
+
+
+def move_to(session: Session, task: Task, day: date, actor: str = "web") -> Task:
+    """Put a task on another day with one tap ("today", "tomorrow", "next week"). The planned
+    day moves there. A deadline that would lie before that day moves along, so the task is not
+    overdue on the day it was moved to; a task that only has a deadline keeps only a deadline.
+    Deadlines from a feed stay where they are."""
+    changes: dict[str, Any] = {}
+    moves_deadline = (
+        task.due_date is not None and task.due_date < day and task.source not in FEED_SOURCES
+    )
+    if moves_deadline:
+        changes["due_date"] = day
+    if not moves_deadline or task.scheduled_date is not None:
+        changes["scheduled_date"] = day
+    return update_task(session, task, TaskUpdate(**changes), actor)
+
+
 def sync_fields(session: Session, task: Task, fields: dict[str, Any], actor: str) -> bool:
     """Set fields owned by an external source (e.g. an ILIAS deadline). Records the changes as
     one "synced" event. Returns whether anything changed."""
