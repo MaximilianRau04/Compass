@@ -11,7 +11,7 @@ import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { AREA_BG, daysBetween, localDay, relativeDay } from '../lib/format'
+import { AREA_BG, daysBetween, isLeftBehind, localDay, relativeDay } from '../lib/format'
 import { pageTitle } from '../lib/ui'
 
 type View = 'list' | 'board'
@@ -35,11 +35,13 @@ const BOARD: { status: TaskStatus; next?: TaskStatus; nextLabel?: MessageKey }[]
 type Bucket = 'overdue' | 'today' | 'week' | 'later' | 'none'
 
 function bucket(task: Task, today: string): Bucket {
-  // The earlier of deadline and planned day decides where a task shows up.
-  const date = [task.due_date, task.scheduled_date].filter(Boolean).sort()[0]
+  // Overdue is a deadline that has passed. A planned day that has passed brings the task along
+  // to today, as on the Today page. Otherwise the earlier of the two decides.
+  if (task.due_date && task.due_date < today) return 'overdue'
+  const planned = task.scheduled_date && task.scheduled_date < today ? today : task.scheduled_date
+  const date = [task.due_date, planned].filter(Boolean).sort()[0]
   if (!date) return 'none'
   const diff = daysBetween(today, date)
-  if (diff < 0) return 'overdue'
   if (diff === 0) return 'today'
   if (diff <= 7) return 'week'
   return 'later'
@@ -154,7 +156,7 @@ export function TasksPage() {
                 <ul className="divide-y divide-rule/60">
                   {items.map((task) => (
                     <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
-                      {name === 'overdue' && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
+                      {isLeftBehind(task, today) && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
                     </TaskItem>
                   ))}
                 </ul>

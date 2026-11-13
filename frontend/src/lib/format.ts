@@ -73,6 +73,11 @@ export function isOverdue(task: Task, today: string): boolean {
   return task.status !== 'done' && task.status !== 'cancelled' && !!task.due_date && task.due_date < today
 }
 
+/** The deadline or the planned day has passed: the task waits for a new day. */
+export function isLeftBehind(task: Task, today: string): boolean {
+  return isOverdue(task, today) || (task.status !== 'done' && task.status !== 'cancelled' && !!task.scheduled_date && task.scheduled_date < today)
+}
+
 export const AREA_TEXT: Record<string, string> = {
   blue: 'text-area-blue',
   violet: 'text-area-violet',

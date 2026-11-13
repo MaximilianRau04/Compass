@@ -22,7 +22,7 @@ import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { shortPart } from '../lib/brief'
-import { addDays, clockTime, longDate, relativeDay, toIsoDate } from '../lib/format'
+import { addDays, clockTime, isLeftBehind, longDate, relativeDay, toIsoDate } from '../lib/format'
 import { pageTitle } from '../lib/ui'
 
 /** Important mails of the last two weeks: count and the newest three. */
@@ -260,7 +260,7 @@ export function TodayPage() {
               <ul className="divide-y divide-rule/60">
                 {section.tasks.map((task) => (
                   <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
-                    {section.key === 'overdue' && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
+                    {isLeftBehind(task, today) && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
                   </TaskItem>
                 ))}
               </ul>

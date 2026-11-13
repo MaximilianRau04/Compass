@@ -4,11 +4,12 @@ from types import SimpleNamespace
 import pytest
 from py_vapid import Vapid
 from pywebpush import WebPushException
+from sqlalchemy import select
 
 from app.config import get_settings
 from app.ingestion import calendar
 from app.models.push import PushSubscription
-from app.models.tasks import Task
+from app.models.tasks import Task, TaskStatus
 from app.services import notify, push
 from app.services.clock import local_today
 from tests.test_analysis import sleep
@@ -128,6 +129,58 @@ def test_deadlines_within_24_hours_in_one_notification(session, sent):
     assert notify.check_deadlines(session, now + timedelta(hours=2)) == 1
     assert sent[-1][1].title == "Due tomorrow 12:00"
     assert sent[-1][1].body == "Später"
+
+
+def test_a_task_with_a_time_is_announced_shortly_before_it(session, sent, monkeypatch):
+    device(session)
+    session.add_all(
+        [
+            Task(title="Anmeldung", due_date=TODAY, due_time=time(14, 0)),
+            Task(title="Erledigt", due_date=TODAY, due_time=time(14, 0), status=TaskStatus.done),
+            Task(title="Ohne Zeit", due_date=TODAY),
+        ]
+    )
+    session.flush()
+    assert notify.check_soon(session, at(TODAY, "13:25")) == 0
+    assert notify.check_soon(session, at(TODAY, "13:30")) == 1
+    [(_, message)] = sent
+    assert (message.title, message.body) == ("Due at 14:00", "Anmeldung")
+    assert message.ttl == 30 * 60
+    assert notify.check_soon(session, at(TODAY, "13:35")) == 0
+    assert notify.check_soon(session, at(TODAY, "14:05")) == 0
+
+    # Moved to a later time, it is announced again; with the lead set to 0, nothing is.
+    task = session.scalars(select(Task).where(Task.title == "Anmeldung")).one()
+    task.due_time = time(16, 0)
+    session.flush()
+    assert notify.check_soon(session, at(TODAY, "15:40")) == 1
+    task.due_time = time(18, 0)
+    session.flush()
+    monkeypatch.setattr(get_settings(), "push_task_lead_minutes", 0)
+    assert notify.check_soon(session, at(TODAY, "17:40")) == 0
+
+
+def test_a_task_announced_shortly_before_is_not_a_deadline_again(session, sent):
+    device(session)
+    session.add_all(
+        [
+            Task(title="Gleich", due_date=TODAY, due_time=time(14, 0)),
+            Task(title="Abends", due_date=TODAY, due_time=time(20, 0)),
+        ]
+    )
+    session.commit()
+    assert notify.check_all(session, at(TODAY, "13:45"))["soon"] == 1
+    assert [(m.title, m.body) for _, m in sent] == [
+        ("Due at 14:00", "Gleich"),
+        ("Due today 20:00", "Abends"),
+    ]
+
+
+def test_no_announcement_of_a_time_in_the_quiet_hours(session, sent):
+    device(session)
+    session.add(Task(title="Früh", due_date=TOMORROW, due_time=time(7, 30)))
+    session.flush()
+    assert notify.check_soon(session, at(TOMORROW, "07:10")) == 0
 
 
 def test_no_deadline_notifications_in_the_quiet_hours(session, sent):

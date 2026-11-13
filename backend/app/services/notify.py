@@ -5,6 +5,8 @@
   14 nights); otherwise you would be in bed by then anyway.
 - deadlines: open tasks due within 24 hours, one notification for all new ones. A task without
   a time is due at the end of its day.
+- soon: a task with a time once more, PUSH_TASK_LEAD_MINUTES before it (0 turns this off), each
+  in its own notification. It belongs to the topic "deadlines".
 - resting: the resting heart rate alert (7-day mean at least 5 bpm above the median), at most
   every 3 days.
 - weekly: the weekly review, sent by the worker right after saving it (see weekly_review).
@@ -141,6 +143,44 @@ def check_deadlines(session: Session, now: datetime) -> int:
     return sent
 
 
+def check_soon(session: Session, now: datetime) -> int:
+    """Shortly before the time of a task. Runs before check_deadlines: a task that was only just
+    given a time this close is announced once, here, and not again as a deadline within 24 h."""
+    lead = timedelta(minutes=get_settings().push_task_lead_minutes)
+    if not lead or quiet(now):
+        return 0
+    now = now.astimezone(local_tz())
+    until = now + lead
+    tasks = session.scalars(
+        select(Task).where(
+            Task.status.in_((TaskStatus.open, TaskStatus.in_progress)),
+            Task.due_time.is_not(None),
+            Task.due_date >= now.date(),
+            Task.due_date <= until.date(),
+        )
+    ).unique()
+    sent = 0
+    for task in sorted((task for task in tasks if now <= _due_at(task) <= until), key=_due_at):
+        at = _due_at(task)
+        delivered = push.send(
+            session,
+            "deadlines",
+            # With the time in the key, a task moved to a later time is announced again.
+            f"soon:{task.id}:{at:%Y-%m-%dT%H:%M}",
+            push.Message(
+                title=t("push.soon", time=f"{at:%H:%M}")[:200],
+                body=task.title[:500],
+                tag=f"task-{task.id}",
+                # Later than its time it is of no use to a phone that was offline.
+                ttl=max(60, int((at - now).total_seconds())),
+            ),
+        )
+        if delivered:
+            push.mark_sent(session, "deadlines", f"deadline:{task.id}:{task.due_date}", task.title)
+        sent += delivered
+    return sent
+
+
 def check_resting(session: Session, now: datetime) -> int:
     if quiet(now):
         return 0
@@ -201,6 +241,7 @@ def check_all(session: Session, now: datetime) -> dict[str, int]:
     out = {}
     for name, check in (
         ("bedtime", check_bedtime),
+        ("soon", check_soon),
         ("deadlines", check_deadlines),
         ("resting", check_resting),
         ("finance", check_consent),

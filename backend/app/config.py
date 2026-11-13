@@ -162,6 +162,8 @@ class Settings(BaseSettings):
     push_quiet_end: int = 8
     # The bedtime reminder comes this long before the latest bedtime.
     push_bedtime_lead_minutes: int = 30
+    # A task with a time is announced this long before it; 0 turns that off.
+    push_task_lead_minutes: int = 30
 
     # The latest bedtime: up this long before the first appointment, before that this much sleep
     # and this long to fall asleep.

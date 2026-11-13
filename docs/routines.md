@@ -89,7 +89,7 @@ With the tool `send_notification`, a routine can send a short push message to th
 Finally, send me a message with send_notification: title "Daily brief", body the most important point of the day in one sentence, path "/".
 ```
 
-Compass sends the bedtime reminder, deadlines within 24 h, resting heart rate alerts and the weekly review by itself; those need no routine.
+Compass sends the bedtime reminder, deadlines within 24 h and shortly before their time, resting heart rate alerts and the weekly review by itself; those need no routine.
 
 ## Showing your own routines
 

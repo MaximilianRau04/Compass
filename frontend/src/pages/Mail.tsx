@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
-import { pollSignIn, useDismissMail, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
+import { pollSignIn, useDismissMail, useMail, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
 import { useTodayDate } from '../api/tasks'
 import type { Mail, MailAccount, MailOverview, SignInStart } from '../api/types'
 import { SectionLabel } from '../components/Layout'
@@ -257,6 +258,10 @@ export function MailPage() {
   const overview = useMailOverview()
   const mails = useMails({ days: DAYS, account, dismissed })
   const sync = useSyncMail()
+  // A hit of the search arrives as ?id=: that mail stands on top, whatever its age or the filters.
+  const [params, setParams] = useSearchParams()
+  const foundId = Number(params.get('id')) || null
+  const found = useMail(foundId)
 
   const header = (
     <header className="mb-2 flex flex-wrap items-end justify-between gap-3">
@@ -298,6 +303,7 @@ export function MailPage() {
 
   const list = mails.data
   const shown = dismissed ? list : list.filter(FILTERS.find((f) => f.key === filter)!.test)
+  const rest = shown.filter((m) => m.id !== found.data?.id)
 
   return (
     <>
@@ -325,9 +331,27 @@ export function MailPage() {
         ))}
       </div>
 
-      {shown.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
+      {foundId !== null && (
+        <section className="mb-8">
+          <div className="relative">
+            <SectionLabel>{t('mail.found')}</SectionLabel>
+            <button type="button" className="absolute top-0 right-0 font-mono text-2xs text-muted hover:text-ink" onClick={() => setParams({}, { replace: true })}>
+              {t('mail.foundClose')}
+            </button>
+          </div>
+          {found.data && (
+            <ul>
+              <MailItem mail={found.data} today={today} local={local.has(found.data.account)} />
+            </ul>
+          )}
+          {found.isPending && <p className="font-mono text-sm text-muted">{t('common.loading')}</p>}
+          {found.error && <p className="text-muted">{t('mail.foundGone')}</p>}
+        </section>
+      )}
+
+      {rest.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
       <div className="space-y-8">
-        <ByDay mails={shown} today={today} local={local} />
+        <ByDay mails={rest} today={today} local={local} />
         <p className="max-w-xl text-sm text-muted">{t('mail.hint')}</p>
       </div>
     </>

@@ -19,6 +19,8 @@ nutrition data.
 - There is no delete. To undo or drop a task, set its status to "cancelled".
 - To record progress on a task (where it stands, what is next), use add_task_note: it adds a
   dated paragraph, while update_task replaces the notes. completed_tasks lists what got done.
+- Lines like "- [ ] rent a van" in the notes of a task are its checklist: the user ticks them
+  in the app, which turns them into "- [x] rent a van". Write the steps of a task that way.
 - quick_add understands the user's own shorthand in German or English, e.g.
   "morgen 14 Uhr Blatt 3 abgeben #study !hoch" or "tomorrow 2pm hand in sheet 3 #study !high".
 - Tasks with source "ilias" or "feed" are deadlines synced from a calendar feed (a learning
