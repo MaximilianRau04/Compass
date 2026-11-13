@@ -11,7 +11,7 @@ import { TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { AREA_BG, daysBetween } from '../lib/format'
+import { AREA_BG, daysBetween, localDay, relativeDay } from '../lib/format'
 import { pageTitle } from '../lib/ui'
 
 type View = 'list' | 'board'
@@ -46,6 +46,17 @@ function bucket(task: Task, today: string): Bucket {
 }
 const BUCKET_ORDER: Bucket[] = ['overdue', 'today', 'week', 'later', 'none']
 
+/** Done tasks by the day they were completed, the last one first. */
+function byCompletionDay(tasks: Task[]): [string, Task[]][] {
+  const at = (task: Task) => task.completed_at ?? task.updated_at
+  const days = new Map<string, Task[]>()
+  for (const task of [...tasks].sort((a, b) => at(b).localeCompare(at(a)))) {
+    const day = localDay(at(task))
+    days.set(day, [...(days.get(day) ?? []), task])
+  }
+  return [...days]
+}
+
 const toggle = (active: boolean) =>
   [
     'rounded-full border px-3 py-1 text-sm transition-colors',
@@ -53,7 +64,7 @@ const toggle = (active: boolean) =>
   ].join(' ')
 
 export function TasksPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [params, setParams] = useSearchParams()
   const view = (Object.keys(VIEW_PARAM) as View[]).find((v) => VIEW_PARAM[v] === params.get('view')) ?? 'list'
   const setView = (next: View) => setParams(next === 'list' ? {} : { view: VIEW_PARAM[next] }, { replace: true })
@@ -153,9 +164,25 @@ export function TasksPage() {
         </div>
       )}
 
-      {view === 'list' && scope !== 'active' && (
+      {view === 'list' && scope === 'done' && (
+        <div className="space-y-8">
+          {byCompletionDay(list).map(([day, items]) => (
+            <section key={day}>
+              <SectionLabel count={items.length}>{relativeDay(day, today, t, locale)}</SectionLabel>
+              <ul className="divide-y divide-rule/60">
+                {items.map((task) => (
+                  <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {view === 'list' && scope === 'cancelled' && (
         <ul className="divide-y divide-rule/60">
-          {list.map((task) => (
+          {/* What was discarded last comes first. */}
+          {[...list].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).map((task) => (
             <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} />
           ))}
         </ul>
