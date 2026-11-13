@@ -1,5 +1,5 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-import { QueryClient } from '@tanstack/react-query'
+import { defaultShouldDehydrateQuery, QueryClient } from '@tanstack/react-query'
 import type { PersistQueryClientOptions } from '@tanstack/react-query-persist-client'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -31,4 +31,6 @@ export const persistOptions: Omit<PersistQueryClientOptions, 'queryClient'> = {
   persister: createSyncStoragePersister({ storage: storage(), key: 'compass-cache', throttleTime: 2000 }),
   maxAge: DAY,
   buster: __APP_BUILD__,
+  // Search answers are not kept: every query typed would stay in the storage for a day.
+  dehydrateOptions: { shouldDehydrateQuery: (query) => defaultShouldDehydrateQuery(query) && query.queryKey[0] !== 'search' },
 }

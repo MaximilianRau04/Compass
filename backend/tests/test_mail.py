@@ -696,3 +696,26 @@ def test_a_mail_made_a_task_leaves_the_list_and_a_discarded_task_frees_it(
     assert hidden["task_id"] is None
     again = client.post(f"/api/mail/{mail.id}/task").json()
     assert again["id"] == task["id"] and again["status"] == "open"
+
+
+def test_the_note_of_a_task_from_a_mail_follows_the_server_language(
+    client, session, accounts, monkeypatch
+):
+    first, second = stored(
+        session,
+        accounts,
+        {1: (raw_mail(), False), 2: (raw_mail(subject="Frist: Abgabe morgen"), False)},
+    )
+    # Late in the evening in UTC is already the next day at home.
+    first.received_at = second.received_at = datetime(2026, 10, 19, 22, 30, tzinfo=UTC)
+    session.flush()
+    monkeypatch.setattr(get_settings(), "compass_language", "en")
+    task = client.post(f"/api/mail/{first.id}/task").json()
+    assert task["notes"] == (
+        "Mail from Prof. Müller <mueller@uni.example>, 20 Oct 2026: Termin Besprechung"
+    )
+    monkeypatch.setattr(get_settings(), "compass_language", "de")
+    task = client.post(f"/api/mail/{second.id}/task").json()
+    assert task["notes"] == (
+        "Mail von Prof. Müller <mueller@uni.example>, 20.10.2026: Frist: Abgabe morgen"
+    )

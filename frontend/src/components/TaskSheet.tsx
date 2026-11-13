@@ -4,11 +4,12 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 
 import { useNotes } from '../api/notes'
-import { useAreas, useTaskEvents, useUpdateTask } from '../api/tasks'
+import { useAreas, useTaskEvents, useTodayDate, useUpdateTask } from '../api/tasks'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { recurrenceLabel } from '../lib/format'
 import { button, overlay } from '../lib/ui'
+import { MoveTask } from './MoveTask'
 
 const RECURRENCE_PRESETS = [
   '',
@@ -95,6 +96,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const events = useTaskEvents(task.id)
   const notes = useNotes({ taskId: task.id })
   const update = useUpdateTask()
+  const today = useTodayDate()
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const pending = changes(task, draft)
   const dirty = Object.keys(pending).length > 0
@@ -135,6 +137,14 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
         aria-label={t('sheet.titleField')}
         className="w-full resize-none rounded-md bg-transparent font-display text-2xl leading-tight font-semibold focus-visible:outline-none"
       />
+
+      {(task.status === 'open' || task.status === 'in_progress') && (
+        <div>
+          <span className={label}>{t('move.title')}</span>
+          {/* Moving saves at once, so it waits until the edits in the form are saved or undone. */}
+          <MoveTask task={task} today={today} variant="pills" disabled={dirty} onMoved={onClose} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>

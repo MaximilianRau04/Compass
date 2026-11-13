@@ -80,6 +80,10 @@ async def test_tools_are_listed_with_annotations(client):
         "categorize_transactions",
         "set_budget",
         "log_depot_value",
+        "search",
+        "completed_tasks",
+        "add_task_note",
+        "mail_to_task",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
@@ -332,3 +336,112 @@ def test_the_instructions_name_the_configured_time_zone():
     instructions = mcp.instructions
     assert f"local dates in {get_settings().timezone}." in instructions
     assert "{" not in instructions
+
+
+@pytest.mark.anyio
+async def test_search_finds_tasks_notes_events_and_mails(client, session):
+    from tests.test_search import event, mail
+
+    done = await call(client, "add_task", title="Thesis outline", tags=["uni"])
+    await call(client, "complete_task", task_id=done["id"])
+    await call(client, "add_task", title="Thesis: write the introduction")
+    await call(client, "add_note", title="Thesis ideas", body="Compare two planners.")
+    event(session, "Thesis meeting", days=2)
+    mail(session, "Your thesis registration", summary="Register until Friday.")
+
+    found = await call(client, "search", query="thesis")
+    assert [t["status"] for t in found["tasks"]] == ["open", "done"]
+    assert [n["title"] for n in found["notes"]] == ["Thesis ideas"]
+    assert [e["title"] for e in found["events"]] == ["Thesis meeting"]
+    assert [m["summary"] for m in found["mails"]] == ["Register until Friday."]
+    assert "Untrusted" in found["note"]
+
+    nothing = await call(client, "search", query="zeppelin")
+    assert (nothing["tasks"], nothing["notes"], nothing["events"], nothing["mails"]) == (
+        [],
+        [],
+        [],
+        [],
+    )
+    assert "at least 2 characters" in await call_error(client, "search", query="t")
+
+
+@pytest.mark.anyio
+async def test_add_task_note_appends_a_dated_paragraph(client):
+    today = local_today().isoformat()
+    task = await call(client, "add_task", title="Exposé", notes="Outline agreed with the chair.")
+
+    noted = await call(client, "add_task_note", task_id=task["id"], text="  Chapter 1 drafted. ")
+    assert noted["notes"] == f"Outline agreed with the chair.\n\n{today}: Chapter 1 drafted."
+    noted = await call(client, "add_task_note", task_id=task["id"], text="Next: related work.")
+    assert noted["notes"].endswith(f"{today}: Chapter 1 drafted.\n\n{today}: Next: related work.")
+
+    empty = await call(client, "add_task", title="No notes yet")
+    noted = await call(client, "add_task_note", task_id=empty["id"], text="Started.")
+    assert noted["notes"] == f"{today}: Started."
+
+    detail = await call(client, "get_task", task_id=task["id"])
+    assert [e["type"] for e in detail["history"]] == ["created", "updated", "updated"]
+    assert "No task with id" in await call_error(client, "add_task_note", task_id=0, text="x")
+    full = await call(client, "add_task", title="Full", notes="x" * 19_990)
+    error = await call_error(client, "add_task_note", task_id=full["id"], text="one more line")
+    assert "longer than 20000" in error
+
+
+@pytest.mark.anyio
+async def test_completed_tasks_lists_what_got_done(client, session):
+    from app.models.tasks import Task
+
+    today = local_today()
+    first = await call(client, "add_task", title="Sheet 3", area="study")
+    second = await call(client, "add_task", title="Call the bank", area="personal")
+    old = await call(client, "add_task", title="Long ago")
+    await call(client, "add_task", title="Still open")
+    for task in (first, second, old):
+        await call(client, "complete_task", task_id=task["id"])
+    noon = datetime.combine(today, datetime.min.time(), tzinfo=local_tz()) + timedelta(hours=12)
+    session.get(Task, first["id"]).completed_at = noon - timedelta(days=1)
+    session.get(Task, second["id"]).completed_at = noon
+    session.get(Task, old["id"]).completed_at = noon - timedelta(days=7)
+    session.flush()
+
+    done = await call(client, "completed_tasks")
+    assert (done["since"], done["until"]) == (
+        (today - timedelta(days=6)).isoformat(),
+        today.isoformat(),
+    )
+    assert [t["title"] for t in done["tasks"]] == ["Call the bank", "Sheet 3"]
+    assert done["tasks"][0]["completed"] == f"{today.isoformat()} 12:00"
+    assert done["by_day"] == {
+        today.isoformat(): 1,
+        (today - timedelta(days=1)).isoformat(): 1,
+    }
+
+    assert (await call(client, "completed_tasks", days=8))["count"] == 3
+    study = await call(client, "completed_tasks", area="study")
+    assert [t["title"] for t in study["tasks"]] == ["Sheet 3"]
+    assert (await call(client, "completed_tasks", days=1))["count"] == 1
+
+
+@pytest.mark.anyio
+async def test_mail_to_task_creates_one_task_and_handles_the_mail(client, session):
+    from tests.test_search import mail
+
+    e = mail(
+        session,
+        "Registration for the exam",
+        summary="Register until Friday.",
+        task_title="Register for the exam",
+        priority="high",
+    )
+    task = await call(client, "mail_to_task", mail_id=e.id)
+    assert (task["title"], task["source"]) == ("Register for the exam", "email")
+    assert "Register until Friday." in task["notes"]
+
+    again = await call(client, "mail_to_task", mail_id=e.id)
+    assert again["id"] == task["id"]
+    assert (await call(client, "list_important_mails"))["mails"] == []
+    detail = await call(client, "get_task", task_id=task["id"])
+    assert [(h["type"], h["actor"]) for h in detail["history"]] == [("created", "claude")]
+
+    assert "No mail with id" in await call_error(client, "mail_to_task", mail_id=0)

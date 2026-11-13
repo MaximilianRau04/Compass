@@ -9,6 +9,7 @@ from app.schemas.tasks import (
     QuickAddRequest,
     TaskCreate,
     TaskEventRead,
+    TaskMove,
     TaskRead,
     TaskUpdate,
     TodayOverview,
@@ -87,6 +88,14 @@ def update_task(task_id: int, data: TaskUpdate, session: SessionDep):
         task_service.update_task(session, task, data)
     except TaskError as exc:
         raise _bad_request(exc) from exc
+    session.commit()
+    return task
+
+
+@router.post("/tasks/{task_id}/move", response_model=TaskRead)
+def move_task(task_id: int, data: TaskMove, session: SessionDep):
+    """Plan the task for another day; an earlier deadline of your own moves along."""
+    task = task_service.move_to(session, _get(session, task_id), data.date)
     session.commit()
     return task
 

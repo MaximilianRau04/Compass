@@ -29,6 +29,21 @@ def read(note: Note) -> NoteRead:
     )
 
 
+def list_item(f: note_service.Found) -> NoteListItem:
+    return NoteListItem(
+        id=f.note.id,
+        title=f.note.title,
+        snippet=f.snippet,
+        area=AreaRead.model_validate(f.note.area) if f.note.area else None,
+        tags=list(f.note.tags),
+        pinned=f.note.pinned,
+        archived=f.note.archived_at is not None,
+        source=f.note.source,
+        task_id=f.note.task_id,
+        updated_at=f.note.updated_at,
+    )
+
+
 def _get(session, note_id: int) -> Note:
     try:
         return note_service.get_note(session, note_id)
@@ -47,21 +62,7 @@ def list_notes(
     limit: Annotated[int, Query(ge=1, le=500)] = 200,
 ):
     found = note_service.search(session, q, area_id, tag, archived, task_id, limit)
-    return [
-        NoteListItem(
-            id=f.note.id,
-            title=f.note.title,
-            snippet=f.snippet,
-            area=AreaRead.model_validate(f.note.area) if f.note.area else None,
-            tags=list(f.note.tags),
-            pinned=f.note.pinned,
-            archived=f.note.archived_at is not None,
-            source=f.note.source,
-            task_id=f.note.task_id,
-            updated_at=f.note.updated_at,
-        )
-        for f in found
-    ]
+    return [list_item(f) for f in found]
 
 
 @router.get("/tags", response_model=list[TagCount])

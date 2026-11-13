@@ -14,6 +14,8 @@ from app.mcp.guards import area_id_for, audited, require_task
 from app.mcp.schemas import (
     AreaOut,
     ClearableField,
+    CompletedOut,
+    CompletedTaskOut,
     CompleteOut,
     DeadlinesOut,
     EventOut,
@@ -30,7 +32,7 @@ from app.models.tasks import Task, TaskPriority, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate, TaskUpdate
 from app.services import analysis
 from app.services import tasks as task_service
-from app.services.clock import local_today
+from app.services.clock import local_today, local_tz
 
 
 @mcp.tool(title="Today", annotations=READ)
@@ -96,6 +98,32 @@ def get_deadlines(
             overdue=[task_out(t) for t in with_deadline if t.due_date < today],
             upcoming=[task_out(t) for t in with_deadline if t.due_date >= today],
         )
+
+
+@mcp.tool(title="Completed tasks", annotations=READ)
+def completed_tasks(
+    days: Annotated[int, Field(ge=1, le=90, description="How many days back, today included")] = 7,
+    area: Annotated[str | None, Field(description="Area slug, see list_areas")] = None,
+) -> CompletedOut:
+    """What the user got done: tasks completed in the last `days` days with the time of
+    completion, the last one first, and the count per day. Use it for a weekly review or when
+    the user asks what they did."""
+    today = local_today()
+    since = today - timedelta(days=days - 1)
+    tz = local_tz()
+    with session_scope() as session:
+        found = task_service.completed_since(session, since, area_id_for(session, area))
+        by_day: dict[str, int] = {}
+        tasks = []
+        for t in found:
+            at = t.completed_at.astimezone(tz)
+            by_day[at.date().isoformat()] = by_day.get(at.date().isoformat(), 0) + 1
+            tasks.append(
+                CompletedTaskOut(
+                    **task_out(t).model_dump(), completed=at.strftime("%Y-%m-%d %H:%M")
+                )
+            )
+        return CompletedOut(since=since, until=today, count=len(tasks), by_day=by_day, tasks=tasks)
 
 
 @mcp.tool(title="Task details", annotations=READ)
@@ -218,6 +246,25 @@ def update_task(
         if not changes:
             raise ToolError("Nothing to change. Pass at least one field or `clear`.")
         task_service.update_task(session, task, TaskUpdate(**changes), actor="claude")
+        return task_out(task)
+
+
+@mcp.tool(title="Add task note", annotations=WRITE)
+def add_task_note(
+    task_id: int,
+    text: Annotated[
+        str,
+        Field(
+            min_length=1, max_length=4000, description="e.g. where the work stands, what is next"
+        ),
+    ],
+) -> TaskOut:
+    """Add a paragraph with today's date at the end of a task's notes, without changing what
+    is already there. Prefer this over update_task(notes=...) for progress, decisions and next
+    steps: update_task replaces the notes."""
+    with audited("add_task_note", {"task_id": task_id, "chars": len(text)}) as session:
+        task = require_task(session, task_id)
+        task_service.append_note(session, task, text, actor="claude")
         return task_out(task)
 
 

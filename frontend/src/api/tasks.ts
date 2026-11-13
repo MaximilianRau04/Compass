@@ -104,6 +104,15 @@ export function useUpdateTask() {
   })
 }
 
+/** Plan a task for another day; the server moves an earlier deadline of your own along. */
+export function useMoveTask() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: ({ id, date }: { id: number; date: string }) => post<Task>(`/tasks/${id}/move`, { date }),
+    onSuccess: invalidate,
+  })
+}
+
 export function useToggleDone() {
   const invalidate = useInvalidateTasks()
   return useMutation({

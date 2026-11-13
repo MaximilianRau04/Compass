@@ -19,6 +19,7 @@ from app.mcp.tools import (  # noqa: F401  (each module registers its tools)
     news,
     notes,
     nutrition,
+    search,
     tasks,
     training,
 )
