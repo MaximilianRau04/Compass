@@ -132,7 +132,7 @@ function SearchBody({
       group: 'nav.mail' as const,
       title: mail.subject,
       detail: [mail.from_name ?? mail.from_addr, relativeDay(localDay(mail.received_at), today, t, locale)].join(' · '),
-      run: go('/mail'),
+      run: go(`/mail?id=${mail.id}`),
     })),
   ]
   const active = Math.min(picked, hits.length - 1)

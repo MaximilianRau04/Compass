@@ -121,6 +121,12 @@ def sign_out(name: str, session: SessionDep):
     session.commit()
 
 
+@router.get("/{mail_id}", response_model=MailRead)
+def get_mail(mail_id: int, session: SessionDep):
+    """One mail, whatever its age: the search links to mails the list no longer shows."""
+    return read(_get(session, mail_id))
+
+
 @router.post("/{mail_id}/task", response_model=TaskRead)
 def to_task(mail_id: int, session: SessionDep):
     task = mail_service.create_task(session, _get(session, mail_id))

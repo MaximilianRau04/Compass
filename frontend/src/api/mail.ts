@@ -10,6 +10,11 @@ export function useMails(params: { days: number; account?: string; dismissed?: b
   return useQuery({ queryKey: ['mail', 'list', params], queryFn: () => api<Mail[]>(`/mail?${query}`) })
 }
 
+/** One mail by its id, for a link from the search: the list only reaches back some days. */
+export function useMail(id: number | null) {
+  return useQuery({ queryKey: ['mail', 'one', id], queryFn: () => api<Mail>(`/mail/${id}`), enabled: id !== null, retry: false })
+}
+
 export function useMailOverview() {
   return useQuery({ queryKey: ['mail', 'overview'], queryFn: () => api<MailOverview>('/mail/overview') })
 }

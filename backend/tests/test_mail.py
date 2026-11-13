@@ -344,6 +344,10 @@ def test_overview_task_and_dismiss(client, session, accounts):
     )
     assert client.post("/api/mail/999999/task").status_code == 404
 
+    # One mail by its id, also when the list hides it (here: it became a task).
+    assert client.get(f"/api/mail/{first.id}").json()["task_id"] == task["id"]
+    assert client.get("/api/mail/999999").status_code == 404
+
 
 def test_local_triage_endpoints(client, session, accounts):
     (uni,) = stored(session, accounts, {1: (raw_mail(), False)})
