@@ -11,7 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.i18n import t
+from app.i18n import full_date, t
 from app.mail.triage import TriageResult
 from app.models.integrations import IntegrationState
 from app.models.mail import Email
@@ -19,7 +19,7 @@ from app.models.tasks import Task, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate, TaskUpdate
 from app.services import mail_auth
 from app.services import tasks as task_service
-from app.services.clock import utc_now
+from app.services.clock import local_tz, utc_now
 
 
 class MailError(ValueError):
@@ -149,7 +149,12 @@ def create_task(session: Session, e: Email, actor: str = "web") -> Task:
         part
         for part in (
             e.summary,
-            f"Mail von {sender(e)}, {e.received_at:%d.%m.%Y}: {e.subject}",
+            t(
+                "mail.task_note",
+                sender=sender(e),
+                date=full_date(e.received_at.astimezone(local_tz()).date()),
+                subject=e.subject,
+            ),
         )
         if part
     )

@@ -31,6 +31,7 @@ TEXT: dict[str, dict[str, str]] = {
         "news.short": "Short",
         "mail.no_subject": "(no subject)",
         "mail.ai_warning": "Warning: this mail contains instructions to AI assistants.",
+        "mail.task_note": "Mail from {sender}, {date}: {subject}",
         # Weekly review
         "review.title": "Weekly review {since}–{until}",
         "review.ready": "Weekly review is ready",
@@ -81,6 +82,7 @@ TEXT: dict[str, dict[str, str]] = {
         "news.short": "Kurz",
         "mail.no_subject": "(kein Betreff)",
         "mail.ai_warning": "Achtung: Die Mail enthält Anweisungen an KI-Assistenten.",
+        "mail.task_note": "Mail von {sender}, {date}: {subject}",
         "review.title": "Wochenreview {since}–{until}",
         "review.ready": "Wochenreview ist da",
         "review.headline.none": "Deine Woche in Zahlen.",
@@ -206,6 +208,13 @@ def short_date(day: date) -> str:
     if lang() == "de":
         return f"{day:%d.%m.}"
     return f"{day.day} {TEXT['en']['months'].split()[day.month - 1]}"
+
+
+def full_date(day: date) -> str:
+    """ "26.10.2026" in German, "26 Oct 2026" in English."""
+    if lang() == "de":
+        return f"{day:%d.%m.%Y}"
+    return f"{short_date(day)} {day.year}"
 
 
 def weekday(day: date) -> str:
