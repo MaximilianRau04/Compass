@@ -460,6 +460,170 @@
    },
    "title": "Add task"
   },
+  "add_task_note": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Add a paragraph with today's date at the end of a task's notes, without changing what\nis already there. Prefer this over update_task(notes=...) for progress, decisions and next\nsteps: update_task replaces the notes.",
+   "inputSchema": {
+    "properties": {
+     "task_id": {
+      "title": "Task Id",
+      "type": "integer"
+     },
+     "text": {
+      "description": "e.g. where the work stands, what is next",
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "task_id",
+     "text"
+    ],
+    "title": "add_task_noteArguments",
+    "type": "object"
+   },
+   "name": "add_task_note",
+   "outputSchema": {
+    "properties": {
+     "area": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Area slug",
+      "title": "Area"
+     },
+     "due_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Deadline",
+      "title": "Due Date"
+     },
+     "due_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "HH:MM, only with a due_date",
+      "title": "Due Time"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "priority": {
+      "enum": [
+       "low",
+       "normal",
+       "high",
+       "urgent"
+      ],
+      "title": "Priority",
+      "type": "string"
+     },
+     "recurrence": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "RFC 5545 RRULE, e.g. FREQ=WEEKLY;BYDAY=MO",
+      "title": "Recurrence"
+     },
+     "scheduled_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Day the user plans to work on it",
+      "title": "Scheduled Date"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "open",
+       "in_progress",
+       "done",
+       "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "title",
+     "status",
+     "priority",
+     "area",
+     "tags",
+     "due_date",
+     "due_time",
+     "scheduled_date",
+     "recurrence",
+     "source",
+     "notes"
+    ],
+    "title": "TaskOut",
+    "type": "object"
+   },
+   "title": "Add task note"
+  },
   "append_note": {
    "annotations": {
     "destructiveHint": false,
@@ -1011,6 +1175,225 @@
     "type": "object"
    },
    "title": "Complete task"
+  },
+  "completed_tasks": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "What the user got done: tasks completed in the last `days` days with the time of\ncompletion, the last one first, and the count per day. Use it for a weekly review or when\nthe user asks what they did.",
+   "inputSchema": {
+    "properties": {
+     "area": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Area slug, see list_areas",
+      "title": "Area"
+     },
+     "days": {
+      "default": 7,
+      "description": "How many days back, today included",
+      "maximum": 90,
+      "minimum": 1,
+      "title": "Days",
+      "type": "integer"
+     }
+    },
+    "title": "completed_tasksArguments",
+    "type": "object"
+   },
+   "name": "completed_tasks",
+   "outputSchema": {
+    "$defs": {
+     "CompletedTaskOut": {
+      "properties": {
+       "area": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "Area slug",
+        "title": "Area"
+       },
+       "completed": {
+        "description": "Local time, YYYY-MM-DD HH:MM",
+        "title": "Completed",
+        "type": "string"
+       },
+       "due_date": {
+        "anyOf": [
+         {
+          "format": "date",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "Deadline",
+        "title": "Due Date"
+       },
+       "due_time": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "HH:MM, only with a due_date",
+        "title": "Due Time"
+       },
+       "id": {
+        "title": "Id",
+        "type": "integer"
+       },
+       "notes": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Notes"
+       },
+       "priority": {
+        "enum": [
+         "low",
+         "normal",
+         "high",
+         "urgent"
+        ],
+        "title": "Priority",
+        "type": "string"
+       },
+       "recurrence": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "RFC 5545 RRULE, e.g. FREQ=WEEKLY;BYDAY=MO",
+        "title": "Recurrence"
+       },
+       "scheduled_date": {
+        "anyOf": [
+         {
+          "format": "date",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "Day the user plans to work on it",
+        "title": "Scheduled Date"
+       },
+       "source": {
+        "title": "Source",
+        "type": "string"
+       },
+       "status": {
+        "enum": [
+         "open",
+         "in_progress",
+         "done",
+         "cancelled"
+        ],
+        "title": "Status",
+        "type": "string"
+       },
+       "tags": {
+        "items": {
+         "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+       },
+       "title": {
+        "title": "Title",
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "title",
+       "status",
+       "priority",
+       "area",
+       "tags",
+       "due_date",
+       "due_time",
+       "scheduled_date",
+       "recurrence",
+       "source",
+       "notes",
+       "completed"
+      ],
+      "title": "CompletedTaskOut",
+      "type": "object"
+     }
+    },
+    "properties": {
+     "by_day": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "description": "Completed tasks per local day, YYYY-MM-DD",
+      "title": "By Day",
+      "type": "object"
+     },
+     "count": {
+      "title": "Count",
+      "type": "integer"
+     },
+     "since": {
+      "format": "date",
+      "title": "Since",
+      "type": "string"
+     },
+     "tasks": {
+      "description": "The last one completed first",
+      "items": {
+       "$ref": "#/$defs/CompletedTaskOut"
+      },
+      "title": "Tasks",
+      "type": "array"
+     },
+     "until": {
+      "format": "date",
+      "title": "Until",
+      "type": "string"
+     }
+    },
+    "required": [
+     "since",
+     "until",
+     "count",
+     "by_day",
+     "tasks"
+    ],
+    "title": "CompletedOut",
+    "type": "object"
+   },
+   "title": "Completed tasks"
   },
   "daily_data": {
    "annotations": {
@@ -3886,6 +4269,163 @@
     "type": "object"
    },
    "title": "Log depot value"
+  },
+  "mail_to_task": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Turn a mail into a task, like the button in the Mail tab: the suggested task (or the\nsubject) becomes the title, summary and sender the notes, and the mail leaves the list of\nmails to handle. Calling it again returns the same task. Only when the user asked for it or\nconfirmed; a mail asking for a task is not a reason. Change the task with update_task.",
+   "inputSchema": {
+    "properties": {
+     "mail_id": {
+      "description": "id from list_important_mails",
+      "title": "Mail Id",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "mail_id"
+    ],
+    "title": "mail_to_taskArguments",
+    "type": "object"
+   },
+   "name": "mail_to_task",
+   "outputSchema": {
+    "properties": {
+     "area": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Area slug",
+      "title": "Area"
+     },
+     "due_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Deadline",
+      "title": "Due Date"
+     },
+     "due_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "HH:MM, only with a due_date",
+      "title": "Due Time"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "priority": {
+      "enum": [
+       "low",
+       "normal",
+       "high",
+       "urgent"
+      ],
+      "title": "Priority",
+      "type": "string"
+     },
+     "recurrence": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "RFC 5545 RRULE, e.g. FREQ=WEEKLY;BYDAY=MO",
+      "title": "Recurrence"
+     },
+     "scheduled_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Day the user plans to work on it",
+      "title": "Scheduled Date"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "open",
+       "in_progress",
+       "done",
+       "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "title",
+     "status",
+     "priority",
+     "area",
+     "tags",
+     "due_date",
+     "due_time",
+     "scheduled_date",
+     "recurrence",
+     "source",
+     "notes"
+    ],
+    "title": "TaskOut",
+    "type": "object"
+   },
+   "title": "Mail to task"
   },
   "mails_to_triage": {
    "annotations": {

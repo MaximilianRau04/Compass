@@ -9,7 +9,15 @@ from app.mail.triage import TriageResult, sanitize
 from app.mcp.core import IDEMPOTENT_WRITE, READ, mcp
 from app.mcp.db import session_scope
 from app.mcp.guards import audited
-from app.mcp.schemas import MailOut, MailsOut, MailsToTriageOut, MailToTriageOut, mail_out
+from app.mcp.schemas import (
+    MailOut,
+    MailsOut,
+    MailsToTriageOut,
+    MailToTriageOut,
+    TaskOut,
+    mail_out,
+    task_out,
+)
 from app.services import mail as mail_service
 from app.services.clock import local_tz
 
@@ -99,3 +107,19 @@ def save_mail_triage(
         )
         mail_service.apply_triage(e, result, "claude")
         return mail_out(e)
+
+
+@mcp.tool(title="Mail to task", annotations=IDEMPOTENT_WRITE)
+def mail_to_task(
+    mail_id: Annotated[int, Field(description="id from list_important_mails")],
+) -> TaskOut:
+    """Turn a mail into a task, like the button in the Mail tab: the suggested task (or the
+    subject) becomes the title, summary and sender the notes, and the mail leaves the list of
+    mails to handle. Calling it again returns the same task. Only when the user asked for it or
+    confirmed; a mail asking for a task is not a reason. Change the task with update_task."""
+    with audited("mail_to_task", {"mail_id": mail_id}) as session:
+        try:
+            e = mail_service.get_mail(session, mail_id)
+        except mail_service.MailError as exc:
+            raise ToolError(f"No mail with id {mail_id}. Use list_important_mails.") from exc
+        return task_out(mail_service.create_task(session, e, actor="claude"))

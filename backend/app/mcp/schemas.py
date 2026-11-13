@@ -50,6 +50,18 @@ class TaskList(BaseModel):
     tasks: list[TaskOut]
 
 
+class CompletedTaskOut(TaskOut):
+    completed: str = Field(description="Local time, YYYY-MM-DD HH:MM")
+
+
+class CompletedOut(BaseModel):
+    since: date
+    until: date
+    count: int
+    by_day: dict[str, int] = Field(description="Completed tasks per local day, YYYY-MM-DD")
+    tasks: list[CompletedTaskOut] = Field(description="The last one completed first")
+
+
 class EventItem(BaseModel):
     title: str
     start: str = Field(description="Local date and time, or only the date for all-day events")

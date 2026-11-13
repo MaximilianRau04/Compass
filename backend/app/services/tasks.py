@@ -9,7 +9,7 @@ from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.tasks import Area, Task, TaskEvent, TaskPriority, TaskSource, TaskStatus
-from app.schemas.tasks import QuickAddPreview, TaskCreate, TaskUpdate, TodayOverview
+from app.schemas.tasks import MAX_NOTES, QuickAddPreview, TaskCreate, TaskUpdate, TodayOverview
 from app.services.calendar import events_between
 from app.services.clock import local_today, local_tz, utc_now
 from app.services.quick_add import parse_quick_add
@@ -165,6 +165,15 @@ def today_overview(session: Session, today: date | None = None) -> TodayOverview
     )
 
 
+def completed_since(session: Session, since: date, area_id: int | None = None) -> list[Task]:
+    """Tasks completed on or after the local day `since`, the last one first."""
+    start = datetime.combine(since, time.min, tzinfo=local_tz())
+    stmt = select(Task).where(Task.status == TaskStatus.done, Task.completed_at >= start)
+    if area_id is not None:
+        stmt = stmt.where(Task.area_id == area_id)
+    return list(session.scalars(stmt.order_by(Task.completed_at.desc(), Task.id.desc())).unique())
+
+
 def get_task(session: Session, task_id: int) -> Task | None:
     return session.get(Task, task_id)
 
@@ -211,6 +220,21 @@ def update_task(session: Session, task: Task, data: TaskUpdate, actor: str = "we
         set_status(session, task, new_status, actor)
     session.flush()
     return task
+
+
+def append_note(
+    session: Session, task: Task, text: str, actor: str = "web", today: date | None = None
+) -> Task:
+    """Add a dated paragraph at the end of the notes, e.g. where the work stands. Nothing
+    already in them changes."""
+    text = text.replace("\r\n", "\n").strip()
+    if not text:
+        raise TaskError("nothing to add")
+    entry = f"{(today or local_today()).isoformat()}: {text}"
+    notes = f"{task.notes.rstrip()}\n\n{entry}" if (task.notes or "").strip() else entry
+    if len(notes) > MAX_NOTES:
+        raise TaskError(f"the notes would be longer than {MAX_NOTES} characters")
+    return update_task(session, task, TaskUpdate(notes=notes), actor)
 
 
 # Their deadline belongs to the feed: a sync would set it back.
