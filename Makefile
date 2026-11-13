@@ -31,8 +31,9 @@ mcp: db        ## Run the MCP server locally with reload (port 8001)
 web:           ## Run the frontend locally with Vite (port 5173, proxies /api to 8000)
 	cd frontend && pnpm dev
 
-test: db       ## Backend tests against the local database
+test: db       ## Backend tests against the local database, then the frontend tests
 	cd backend && uv run pytest
+	cd frontend && pnpm test
 
 lint:
 	cd backend && uv run ruff check . && uv run ruff format --check .
