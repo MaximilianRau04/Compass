@@ -7,7 +7,7 @@ import { useTodayDate } from '../api/tasks'
 import type { Task } from '../api/types'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
-import { eventTime, localDay, relativeDay } from '../lib/format'
+import { eventTime, localDay, relativeDay, shortTime } from '../lib/format'
 import { overlay } from '../lib/ui'
 import { TaskSheet } from './TaskSheet'
 
@@ -98,7 +98,8 @@ function SearchBody({
       detail: [
         task.status === 'done' || task.status === 'cancelled' ? t(`status.${task.status}`) : null,
         task.area?.name,
-        task.due_date && t('task.due', { date: relativeDay(task.due_date, today, t, locale) }),
+        task.due_date &&
+          `${t('task.due', { date: relativeDay(task.due_date, today, t, locale) })}${task.due_time ? ` ${shortTime(task.due_time)}` : ''}`,
         !task.due_date && task.scheduled_date && `@${relativeDay(task.scheduled_date, today, t, locale)}`,
       ]
         .filter(Boolean)
@@ -142,7 +143,9 @@ function SearchBody({
       if (hits.length === 0) return
       const next = (active + (e.key === 'ArrowDown' ? 1 : -1) + hits.length) % hits.length
       setPicked(next)
-      document.getElementById(`search-hit-${next}`)?.scrollIntoView({ block: 'nearest' })
+      // The first hit takes its heading along, which scrollIntoView would leave above the edge.
+      if (next === 0) document.getElementById('search-hits')?.scrollTo({ top: 0 })
+      else document.getElementById(`search-hit-${next}`)?.scrollIntoView({ block: 'nearest' })
     } else if (e.key === 'Enter') {
       e.preventDefault()
       hits[active]?.run()
@@ -154,6 +157,7 @@ function SearchBody({
       <Dialog.Title className="sr-only">{t('search.title')}</Dialog.Title>
       <div className="flex items-center gap-3 border-b border-rule px-4">
         <SearchIcon className="h-5 w-5 shrink-0 text-muted" />
+        {/* Without the browser's own clear button: closing does the same, every opening starts empty. */}
         <input
           type="search"
           value={text}
@@ -170,9 +174,14 @@ function SearchBody({
           aria-expanded={hits.length > 0}
           aria-controls="search-hits"
           aria-activedescendant={hits.length > 0 ? `search-hit-${active}` : undefined}
-          className="min-w-0 flex-1 bg-transparent py-3.5 text-lg focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent py-3.5 text-lg focus:outline-none [&::-webkit-search-cancel-button]:hidden"
         />
-        <Dialog.Close className="shrink-0 rounded border border-rule px-1.5 py-0.5 font-mono text-2xs text-muted hover:border-ink hover:text-ink">
+        {/* A key to press where there is a keyboard, a word to tap on the phone. */}
+        <Dialog.Close className="-mr-2 shrink-0 px-2 py-2 text-sm text-muted hover:text-ink sm:hidden">{t('sheet.close')}</Dialog.Close>
+        <Dialog.Close
+          aria-label={t('sheet.close')}
+          className="hidden shrink-0 rounded border border-rule px-1.5 py-0.5 font-mono text-2xs text-muted hover:border-ink hover:text-ink sm:block"
+        >
           Esc
         </Dialog.Close>
       </div>
