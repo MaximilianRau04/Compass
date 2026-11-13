@@ -21,6 +21,7 @@ TEXT: dict[str, dict[str, str]] = {
         "push.bedtime.body_capped": "Your fixed limit. {when} {event}, get up by {wake}.",
         "push.deadline.one": "Due {when}",
         "push.deadline.many": "{n} deadlines within 24 h",
+        "push.soon": "Due at {time}",
         "push.resting.title": "Resting heart rate up",
         "push.resting.body": "7-day mean {mean} bpm, usually {median}. Often an infection, stress "
         "or too little recovery: take it easy today.",
@@ -73,6 +74,7 @@ TEXT: dict[str, dict[str, str]] = {
         "push.bedtime.body_capped": "Deine feste Grenze. {when} {event}, aufstehen bis {wake}.",
         "push.deadline.one": "Fällig {when}",
         "push.deadline.many": "{n} Abgaben in 24 h",
+        "push.soon": "Fällig um {time}",
         "push.resting.title": "Ruhepuls erhöht",
         "push.resting.body": "7-Tage-Mittel {mean} bpm, sonst {median}. Oft Infekt, Stress oder zu "
         "wenig Erholung: heute lieber locker.",
