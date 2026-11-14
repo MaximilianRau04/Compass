@@ -8,6 +8,7 @@ from app.api import (
     finance,
     health,
     ingest,
+    journal,
     mail,
     news,
     notes,
@@ -35,6 +36,7 @@ router.include_router(finance.router)
 router.include_router(mail.router)
 router.include_router(news.router)
 router.include_router(notes.router)
+router.include_router(journal.router)
 router.include_router(search.router)
 router.include_router(push.router)
 router.include_router(ingest.router)

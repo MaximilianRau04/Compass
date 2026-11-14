@@ -1,6 +1,7 @@
 import { type CSSProperties, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 
+import { useJournalDay } from '../api/journal'
 import { useMailOverview } from '../api/mail'
 import { useBriefs, useNewsOverview, useTodayBrief } from '../api/news'
 import { useNutritionSummary } from '../api/nutrition'
@@ -101,6 +102,23 @@ function PlannedWorkouts() {
         </Link>
       )}
     </section>
+  )
+}
+
+/** In the evening: a link to today's journal entry, or its mood and energy once written. */
+function JournalPrompt({ today }: { today: string }) {
+  const { t } = useI18n()
+  const [evening] = useState(() => new Date().getHours() >= 18)
+  const day = useJournalDay(today, evening)
+  if (!evening || !day.data) return null
+  const entry = day.data.entry
+  return (
+    <Link to="/journal" className="rise flex items-baseline gap-3 rounded-lg border border-rule px-4 py-3 hover:border-ink" style={{ '--i': 2 } as CSSProperties}>
+      <span aria-hidden className="text-brass">✎</span>
+      <span className={entry ? 'text-muted' : 'font-medium'}>
+        {entry ? t('today.journalDone', { mood: entry.mood ?? '–', energy: entry.energy ?? '–' }) : t('today.journal')}
+      </span>
+    </Link>
   )
 }
 
@@ -257,6 +275,7 @@ export function TodayPage() {
 
           <Bedtime />
           <PlannedWorkouts />
+          <JournalPrompt today={today} />
           <DailyBrief brief={brief.data} />
           <OtherBriefs briefs={briefs.data} weekly={weekly.data?.[0]} today={today} />
 

@@ -31,6 +31,7 @@ export const PAGES = {
   '/sleep': 'nav.sleep',
   '/nutrition': 'nav.nutrition',
   '/notes': 'nav.notes',
+  '/journal': 'nav.journal',
   '/news': 'nav.news',
   '/finance': 'nav.finance',
 } satisfies Record<string, MessageKey>

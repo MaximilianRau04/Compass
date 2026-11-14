@@ -26,6 +26,8 @@ The screenshots show made-up data.
   important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
+- **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
+  steps, food, training, completed tasks and briefs.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
   Connect, plus the latest bedtime before the next day's first appointment.
 - **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy
@@ -265,6 +267,7 @@ in developer mode, should work the same way.
 | Tasks | `get_today`, `get_deadlines`, `list_tasks`, `completed_tasks`, `get_task`, `list_areas`, `add_task`, `quick_add`, `update_task`, `add_task_note` (a dated paragraph in the notes), `complete_task` |
 | Calendar | `get_calendar` |
 | Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
+| Journal | `get_journal`, `write_journal` (appends to the day's text) |
 | Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
 | Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `daily_data` (one row per day across all areas) |
 | Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage`, `mail_to_task` |

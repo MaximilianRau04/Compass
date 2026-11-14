@@ -15,6 +15,7 @@ import { registerServiceWorker } from './lib/pwa'
 import { persistOptions, queryClient } from './lib/queryCache'
 import { CalendarPage } from './pages/Calendar'
 import { FinancePage } from './pages/Finance'
+import { JournalPage } from './pages/Journal'
 import { MailPage } from './pages/Mail'
 import { NewsPage } from './pages/News'
 import { NotesPage } from './pages/Notes'
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="mail" element={<MailPage />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="notes" element={<NotesPage />} />
+            <Route path="journal" element={<JournalPage />} />
             <Route path="training" element={<TrainingPage />} />
             <Route path="training/log" element={<WorkoutLogPage />} />
             <Route path="sleep" element={<SleepPage />} />
