@@ -10,6 +10,7 @@ from app.models.finance import (
     FinanceBudget,
     FinanceRule,
 )
+from app.models.habits import Habit, HabitCheck
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.integrations import IntegrationState
 from app.models.journal import JournalEntry
@@ -52,6 +53,8 @@ __all__ = [
     "Goal",
     "HealthRecord",
     "HeartRateSample",
+    "Habit",
+    "HabitCheck",
     "IntegrationState",
     "JournalEntry",
     "NewsInterest",

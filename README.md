@@ -29,6 +29,8 @@ The screenshots show made-up data.
 - **Readiness:** a score from 0 to 100 on the Today page and in `get_today`, by fixed rules from last
   night's sleep, the resting heart rate and HRV against their usual, and the training of the last two
   days, with the reasons that took points off.
+- **Habits:** daily checks with a streak and the last two weeks on the Today page, ticked by hand
+  or by Compass from the data (steps goal, protein goal, enough sleep, a journal entry).
 - **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
   steps, food, training, completed tasks and briefs.
 - **Relations:** how closely two daily values go together (sleep and mood, training volume and the

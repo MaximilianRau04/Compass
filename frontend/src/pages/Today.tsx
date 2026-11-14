@@ -14,6 +14,7 @@ import { BodyTiles } from '../components/BodyTiles'
 import { CompassDial } from '../components/CompassDial'
 import { CourseLine } from '../components/CourseLine'
 import { EventItem } from '../components/EventItem'
+import { Habits } from '../components/Habits'
 import { SectionLabel } from '../components/Layout'
 import { Markdown } from '../components/Markdown'
 import { MoveTask } from '../components/MoveTask'
@@ -346,6 +347,7 @@ export function TodayPage() {
         </div>
 
         <div className="space-y-8 lg:col-start-2 lg:row-start-2">
+          <Habits today={today} />
           <ImportantMail overview={mail.data} />
           <TopNews overview={news.data} today={today} />
         </div>
