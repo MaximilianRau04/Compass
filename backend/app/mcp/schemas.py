@@ -88,6 +88,10 @@ class TodayOut(BaseModel):
         False,
         description="The bedtime is the user's fixed latest bedtime, earlier than the calculation",
     )
+    planned_workouts: list[str] = Field(
+        default_factory=list,
+        description='Workouts planned for today\'s weekday, " (done)" once a session ran',
+    )
 
 
 class CalendarOut(BaseModel):

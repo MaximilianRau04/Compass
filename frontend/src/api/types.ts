@@ -513,7 +513,15 @@ export interface WorkoutTemplate {
   id: number
   name: string
   exercises: WorkoutTemplateItem[]
+  /** Days it is planned on, 0 = Monday */
+  weekdays: number[]
   last_at: string | null
+}
+
+export interface PlannedWorkout {
+  id: number
+  name: string
+  done: boolean
 }
 
 export interface BodyTrend {

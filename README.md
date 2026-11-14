@@ -141,6 +141,9 @@ The Strong and Hevy importers are experimental: they follow the known column lay
 have not been tested with real files yet. If your export fails, please open an issue with its header row
 and a few lines of made-up data.
 
+A template can be planned on days of the week; on those days it shows up on the Today page and in
+`get_today`, struck through once a session with its name ran.
+
 The logger starts from a template you build yourself (exercises in order, sets and rest per exercise),
 from the last session with the same name, or empty. While it runs, a clock shows the duration, the screen
 stays on, and every set marked done starts the rest timer, which vibrates and beeps when the rest is over.

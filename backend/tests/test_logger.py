@@ -222,6 +222,29 @@ def test_templates_plan_the_workout(client, session):
     assert len(session.scalars(select(TrainingSession)).all()) == 1
 
 
+def test_workouts_planned_on_weekdays(client, session):
+    today = local_today().weekday()
+    other = (today + 1) % 7
+    body = {"exercises": [{"name": "Kniebeugen"}]}
+    leg = client.post(
+        "/api/training/templates", json={**body, "name": "Leg", "weekdays": [other, today, today]}
+    ).json()
+    assert leg["weekdays"] == sorted({other, today})
+    client.post("/api/training/templates", json={**body, "name": "Pull", "weekdays": [other]})
+    assert (
+        client.post(
+            "/api/training/templates", json={**body, "name": "Push", "weekdays": [7]}
+        ).status_code
+        == 422
+    )
+    assert client.get("/api/training/planned").json() == [
+        {"id": leg["id"], "name": "Leg", "done": False}
+    ]
+    workout_log.save(session, logged("leg"))
+    session.commit()
+    assert client.get("/api/training/planned").json()[0]["done"] is True
+
+
 def test_only_logged_sessions_can_be_deleted(client, session):
     mine = workout_log.save(session, logged())
     imported = TrainingSession(started_at=at(5), workout_name="Gym Day", source="gymday")

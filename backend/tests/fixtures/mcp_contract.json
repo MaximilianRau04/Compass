@@ -3151,7 +3151,7 @@
     "openWorldHint": false,
     "readOnlyHint": true
    },
-   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, and tomorrow's first\nevent with the latest bedtime tonight.",
+   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, and the workouts planned for today.",
    "inputSchema": {
     "properties": {},
     "title": "get_todayArguments",
@@ -3374,6 +3374,14 @@
        "$ref": "#/$defs/TaskOut"
       },
       "title": "Overdue",
+      "type": "array"
+     },
+     "planned_workouts": {
+      "description": "Workouts planned for today's weekday, \" (done)\" once a session ran",
+      "items": {
+       "type": "string"
+      },
+      "title": "Planned Workouts",
       "type": "array"
      },
      "scheduled": {

@@ -7,10 +7,11 @@ and its progression target. The template is the workout built in Compass with th
 the last session with that name.
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from typing import Annotated
 
 from pydantic import AwareDatetime, BaseModel, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import any_, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.training import (
@@ -192,6 +193,9 @@ class TemplateItem(BaseModel):
 class TemplateData(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     exercises: list[TemplateItem] = Field(default_factory=list, max_length=40)
+    weekdays: list[Annotated[int, Field(ge=0, le=6)]] = Field(
+        default_factory=list, max_length=7, description="Days it is planned on, 0 = Monday"
+    )
 
 
 def saved_template(session: Session, name: str) -> WorkoutTemplate | None:
@@ -239,8 +243,35 @@ def save_template(
         session.add(template)
     template.name = name
     template.exercises = items
+    template.weekdays = sorted(set(data.weekdays))
     session.flush()
     return template
+
+
+def planned_for(session: Session, day: date) -> list[WorkoutTemplate]:
+    """The workouts planned on the weekday of `day`, by name."""
+    return list(
+        session.scalars(
+            select(WorkoutTemplate)
+            .where(any_(WorkoutTemplate.weekdays) == day.weekday())
+            .order_by(WorkoutTemplate.name)
+        )
+    )
+
+
+def trained_on(session: Session, day: date) -> set[str]:
+    """Lower-case workout names of the sessions started on `day` (local)."""
+    start = datetime.combine(day, datetime.min.time(), tzinfo=local_tz())
+    return {
+        name.lower()
+        for name in session.scalars(
+            select(TrainingSession.workout_name).where(
+                TrainingSession.started_at >= start,
+                TrainingSession.started_at < start + timedelta(days=1),
+            )
+        )
+        if name
+    }
 
 
 def template_items(

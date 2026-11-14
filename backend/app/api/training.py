@@ -13,6 +13,7 @@ from app.schemas.training import (
     ExerciseUpdate,
     ImportResult,
     MergeRequest,
+    PlannedWorkout,
     ProgressionRead,
     ProgressPointRead,
     SessionBrief,
@@ -318,6 +319,7 @@ def template_read(t: WorkoutTemplate, last_at=None) -> WorkoutTemplateRead:
         id=t.id,
         name=t.name,
         exercises=[WorkoutTemplateItem(**item) for item in t.exercises],
+        weekdays=list(t.weekdays or []),
         last_at=last_at,
     )
 
@@ -327,6 +329,17 @@ def _template(session, template_id: int) -> WorkoutTemplate:
     if t is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "template not found")
     return t
+
+
+@router.get("/planned", response_model=list[PlannedWorkout])
+def planned_today(session: SessionDep):
+    """Workouts planned on today's weekday, each marked done once a session with its name ran."""
+    today = local_today()
+    done = workout_log.trained_on(session, today)
+    return [
+        PlannedWorkout(id=t.id, name=t.name, done=t.name.lower() in done)
+        for t in workout_log.planned_for(session, today)
+    ]
 
 
 @router.get("/templates", response_model=list[WorkoutTemplateRead])

@@ -7,7 +7,7 @@ import { useNutritionSummary } from '../api/nutrition'
 import { useSetup } from '../api/setup'
 import { useBedtime, useDayHeartRate, useHealthSummary } from '../api/sleep'
 import { useToday } from '../api/tasks'
-import { useTrainingSummary } from '../api/training'
+import { usePlannedWorkouts, useTrainingSummary } from '../api/training'
 import type { Brief, MailOverview, NewsOverview, Task } from '../api/types'
 import { BodyTiles } from '../components/BodyTiles'
 import { CompassDial } from '../components/CompassDial'
@@ -74,6 +74,32 @@ function Bedtime() {
           })}
         </span>
       </p>
+    </section>
+  )
+}
+
+/** Workouts planned on today's weekday (Training, template editor), struck through once done. */
+function PlannedWorkouts() {
+  const { t } = useI18n()
+  const planned = usePlannedWorkouts()
+  if (!planned.data?.length) return null
+  return (
+    <section className="rise flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 2 } as CSSProperties}>
+      <span aria-hidden className="text-brass">◆</span>
+      <p className="min-w-0 flex-1">
+        <span className="font-medium">{t('today.plannedWorkout')} </span>
+        {planned.data.map((w, i) => (
+          <span key={w.id} className={w.done ? 'text-muted line-through' : ''}>
+            {i > 0 && ', '}
+            {w.name}
+          </span>
+        ))}
+      </p>
+      {planned.data.some((w) => !w.done) && (
+        <Link to="/training/log" className="font-mono text-2xs text-brass hover:underline">
+          {t('today.startWorkout')} →
+        </Link>
+      )}
     </section>
   )
 }
@@ -230,6 +256,7 @@ export function TodayPage() {
           </div>
 
           <Bedtime />
+          <PlannedWorkouts />
           <DailyBrief brief={brief.data} />
           <OtherBriefs briefs={briefs.data} weekly={weekly.data?.[0]} today={today} />
 

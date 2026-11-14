@@ -149,7 +149,14 @@ class WorkoutTemplateRead(BaseModel):
     id: int
     name: str
     exercises: list[WorkoutTemplateItem]
+    weekdays: list[int] = Field(default_factory=list, description="Planned days, 0 = Monday")
     last_at: datetime | None = Field(description="Last session with this name")
+
+
+class PlannedWorkout(BaseModel):
+    id: int
+    name: str
+    done: bool = Field(description="A session with this name was started today")
 
 
 class MergeRequest(BaseModel):
