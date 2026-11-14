@@ -37,7 +37,8 @@ The screenshots show made-up data.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
 - **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
   banks in the EU and EEA, see the [note below](#finance).
-- **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access.
+- **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access,
+  and sources that keep failing or a health bridge that went silent.
 - **MCP server** for AI assistants, with OAuth: your assistant can read everything above, plan your week
   and write briefs that show up on the dashboard.
 

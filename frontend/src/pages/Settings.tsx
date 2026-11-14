@@ -37,6 +37,7 @@ const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
   { topic: 'resting', label: 'push.topic.resting', hint: 'push.topic.restingHint' },
   { topic: 'weekly', label: 'push.topic.weekly', hint: 'push.topic.weeklyHint' },
   { topic: 'finance', label: 'push.topic.finance', hint: 'push.topic.financeHint' },
+  { topic: 'sync', label: 'push.topic.sync', hint: 'push.topic.syncHint' },
   { topic: 'claude', label: 'push.topic.claude', hint: 'push.topic.claudeHint' },
 ]
 

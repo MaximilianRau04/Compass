@@ -27,6 +27,11 @@ TEXT: dict[str, dict[str, str]] = {
         "or too little recovery: take it easy today.",
         "push.consent.title": "Bank access expires",
         "push.consent.body": "{bank}: access ends on {date}. Reconnect it under Finance.",
+        "push.sync.failed.title": "{source} is not syncing",
+        "push.sync.failed.body": "Failing for over {hours} h: {error}",
+        "push.sync.silent.title": "No health data",
+        "push.sync.silent.body": "The phone has sent nothing for {hours} h. Check the bridge app "
+        "and its battery settings.",
         "push.test": "Notifications work.",
         # Mail
         "news.short": "Short",
@@ -80,6 +85,11 @@ TEXT: dict[str, dict[str, str]] = {
         "wenig Erholung: heute lieber locker.",
         "push.consent.title": "Bankfreigabe läuft ab",
         "push.consent.body": "{bank}: Freigabe endet am {date}. Unter Finanzen neu verbinden.",
+        "push.sync.failed.title": "{source} synchronisiert nicht",
+        "push.sync.failed.body": "Seit über {hours} h fehlerhaft: {error}",
+        "push.sync.silent.title": "Keine Gesundheitsdaten",
+        "push.sync.silent.body": "Das Handy hat seit {hours} h nichts geschickt. Bridge-App und "
+        "Akku-Einstellungen prüfen.",
         "push.test": "Benachrichtigungen funktionieren.",
         "news.short": "Kurz",
         "mail.no_subject": "(kein Betreff)",
