@@ -620,6 +620,50 @@ def overview(session: Session, n: int = 6, today: date | None = None) -> Overvie
     )
 
 
+@dataclass
+class Forecast:
+    month: str  # YYYY-MM
+    days_left: int
+    spent: float  # so far this month
+    recurring_due: float  # recurring payments still expected before the month ends
+    variable_per_day: float  # other spending per day, mean of the last three full months
+    projected_spending: float
+    cash: float  # account balances now
+    projected_cash: float  # at the end of the month, without income still to come
+    due: list[Recurring] = field(default_factory=list)
+
+
+def forecast(session: Session, today: date | None = None) -> Forecast:
+    """The end of this month: what was spent so far, the recurring payments still due, and the
+    other spending at the pace of the last three full months. Income still to come is left out,
+    so the balance is the lower bound."""
+    today = today or local_today()
+    first = today.replace(day=1)
+    last = (first + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    days_left = (last - today).days
+    rec = recurring(session, today)
+    due = [r for r in rec if today < r.next_date <= last]
+    *full, now = months(session, 4, today)
+    # Recurring payments recur in every month; what is left is the variable part.
+    monthly_recurring = sum(r.monthly_cost for r in rec)
+    variable = [max(0.0, m.spending - monthly_recurring) for m in full if m.spending]
+    per_day = round(sum(variable) / len(variable) / 30.4, 2) if variable else 0.0
+    recurring_due = round(sum(r.amount for r in due), 2)
+    projected = round(now.spending + recurring_due + per_day * days_left, 2)
+    cash = float(sum(a.balance or 0 for a in session.scalars(select(BankAccount))))
+    return Forecast(
+        month=_month_key(today),
+        days_left=days_left,
+        spent=now.spending,
+        recurring_due=recurring_due,
+        variable_per_day=per_day,
+        projected_spending=projected,
+        cash=round(cash, 2),
+        projected_cash=round(cash - recurring_due - per_day * days_left, 2),
+        due=due,
+    )
+
+
 def currency(session: Session) -> str:
     """The currency amounts are shown in. Totals assume all accounts share one."""
     return session.scalar(select(BankAccount.currency).order_by(BankAccount.id)) or "EUR"

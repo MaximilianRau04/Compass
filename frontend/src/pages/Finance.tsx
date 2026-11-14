@@ -11,6 +11,7 @@ import {
   startConnect,
   useBanks,
   useCategorize,
+  useFinanceForecast,
   useFinanceOverview,
   useFinanceStatus,
   useLogDepot,
@@ -247,6 +248,24 @@ function Categories({ data }: { data: FinanceOverview }) {
   )
 }
 
+/** The end of this month: spending so far plus what is still due, and the balance left. */
+function Forecast() {
+  const { t } = useI18n()
+  const money = useMoney()
+  const f = useFinanceForecast().data
+  if (!f) return null
+  return (
+    <section>
+      <SectionLabel>{t('fin.forecast')}</SectionLabel>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <Stat label={t('fin.forecastSpending')} value={money(f.projected_spending)} note={t('fin.forecastSpent', { spent: money(f.spent) })} />
+        <Stat label={t('fin.forecastDue')} value={money(f.recurring_due, 2)} note={f.due.map((r) => r.name).join(', ') || undefined} />
+        <Stat label={t('fin.forecastCash')} value={money(f.projected_cash)} note={t('fin.forecastCashHint', { n: f.days_left, perDay: money(f.variable_per_day) })} />
+      </div>
+    </section>
+  )
+}
+
 function Recurring({ data }: { data: FinanceOverview }) {
   const { t, locale } = useI18n()
   const today = useTodayDate()
@@ -465,6 +484,7 @@ export function FinancePage() {
             note={previous ? t('fin.previousMonth', { value: money(previous.spending) }) : undefined}
           />
         </div>
+        {data.accounts.length > 0 && <Forecast />}
         {data.accounts.length > 0 && <Months data={data} />}
         {data.accounts.length > 0 && <Categories data={data} />}
         {data.accounts.length > 0 && <Recurring data={data} />}

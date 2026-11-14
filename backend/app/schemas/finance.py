@@ -70,6 +70,18 @@ class RecurringRead(BaseModel):
     count: int
 
 
+class ForecastRead(BaseModel):
+    month: str
+    days_left: int
+    spent: float = Field(description="Spent so far this month")
+    recurring_due: float = Field(description="Recurring payments still due this month")
+    variable_per_day: float = Field(description="Other spending per day, last 3 full months")
+    projected_spending: float
+    cash: float
+    projected_cash: float = Field(description="At the month's end, without income to come")
+    due: list[RecurringRead]
+
+
 class DepotRead(BaseModel):
     date: date
     value: float

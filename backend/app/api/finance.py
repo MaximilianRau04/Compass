@@ -17,6 +17,7 @@ from app.schemas.finance import (
     DepotRead,
     FinanceOverview,
     FinanceStatus,
+    ForecastRead,
     MonthRead,
     RecurringRead,
     SyncResult,
@@ -157,6 +158,17 @@ def overview(session: SessionDep, months: Annotated[int, Query(ge=1, le=24)] = 6
         recurring=[RecurringRead(**r.__dict__) for r in o.recurring],
         categories=list(finance.CATEGORIES),
         spending_categories=list(finance.SPENDING),
+    )
+
+
+@router.get("/forecast", response_model=ForecastRead)
+def forecast(session: SessionDep):
+    """The end of this month: spent so far, recurring payments still due, other spending at the
+    pace of the last three full months, and the balance left without income still to come."""
+    f = finance.forecast(session)
+    return ForecastRead(
+        **{k: v for k, v in f.__dict__.items() if k != "due"},
+        due=[RecurringRead(**r.__dict__) for r in f.due],
     )
 
 

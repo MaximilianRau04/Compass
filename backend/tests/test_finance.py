@@ -227,6 +227,26 @@ def test_months_budgets_and_recurring(client, session, bank):
     assert o["cash"] == 1234.56
 
 
+def test_forecast_of_the_month_end(client, session, bank):
+    bank.data = [
+        tx("s1", 62, 10.99, "Spotify AB", "Abo"),
+        tx("s2", 31, 10.99, "Spotify AB", "Abo"),
+        tx("s3", 1, 10.99, "Spotify AB", "Abo"),
+        tx("e", 0, 30.00, "Lieferando", None),
+    ]
+    connect(session, bank)
+    finance.sync(session)
+    f = finance.forecast(session, TODAY)
+    assert f.month == f"{TODAY:%Y-%m}"
+    assert f.cash == 1234.56
+    # Only payments due before the month ends count, and the balance never gains income.
+    assert all(r.next_date > TODAY for r in f.due)
+    assert f.projected_spending >= f.spent
+    assert f.projected_cash <= f.cash
+    got = client.get("/api/finance/forecast").json()
+    assert got["cash"] == 1234.56 and got["days_left"] == f.days_left
+
+
 def test_depot_value_and_net_worth(client, session, bank):
     connect(session, bank)
     finance.sync(session)
