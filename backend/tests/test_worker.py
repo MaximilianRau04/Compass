@@ -28,11 +28,14 @@ def test_main_schedules_every_job(monkeypatch):
         "mail",
         "news",
         "weekly-review",
+        "monthly-review",
         "finance",
         "notifications",
     }
     review = str(jobs["weekly-review"].trigger)
     assert "day_of_week='sun'" in review and "hour='20'" in review
+    monthly = str(jobs["monthly-review"].trigger)
+    assert "day='1'" in monthly and "hour='7'" in monthly
 
 
 def test_jobs_run_against_the_database(monkeypatch, session, engine):
@@ -55,6 +58,8 @@ def test_jobs_run_against_the_database(monkeypatch, session, engine):
     worker.sync_finance()
     worker.notifications()  # no device subscribed: nothing is sent
     worker.weekly_review()
+    worker.monthly_review()
 
     assert factories == [worker.SessionLocal, worker.SessionLocal]
     assert session.query(Brief).filter(Brief.kind == "weekly").count() == 1
+    assert session.query(Brief).filter(Brief.kind == "monthly").count() == 1

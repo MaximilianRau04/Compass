@@ -64,6 +64,15 @@ def weekly_review() -> None:
     log.info("weekly review saved")
 
 
+def monthly_review() -> None:
+    from app.services import monthly
+
+    with SessionLocal() as session:
+        r = monthly.save_monthly(session)
+        session.commit()
+    log.info("monthly review %s saved", r.month)
+
+
 def sync_finance() -> None:
     from app.services import enablebanking, finance
 
@@ -144,6 +153,17 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=6 * 3600,
+    )
+    # The 1st in the morning: last month is over, the review lands on the dashboard as a brief.
+    scheduler.add_job(
+        monthly_review,
+        "cron",
+        day=1,
+        hour=7,
+        id="monthly-review",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=12 * 3600,
     )
     scheduler.add_job(
         sync_finance,

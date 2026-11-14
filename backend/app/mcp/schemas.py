@@ -459,6 +459,15 @@ class WeeklyReviewOut(BaseModel):
     markdown: str = Field(description="The same as a brief, ready for save_brief")
 
 
+class MonthlyReviewOut(BaseModel):
+    month: str = Field(description="YYYY-MM")
+    since: date
+    until: date
+    this_month: dict[str, Any] = Field(description="Averages and totals of the month")
+    month_before: dict[str, Any] = Field(description="The same for the month before")
+    markdown: str = Field(description="The review as a brief, with strength and money")
+
+
 class DeadlinesOut(BaseModel):
     today: date
     overdue: list[TaskOut]

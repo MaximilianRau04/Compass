@@ -4676,6 +4676,66 @@
    },
    "title": "Mails to sort"
   },
+  "monthly_review": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "The last full calendar month in numbers against the month before: sleep, resting heart\nrate, steps, training sessions and volume, the exercises that got stronger, calories and\nprotein (valid days only), weight, tasks done, mood and energy from the journal, and money\n(income, spending, saved, top categories). No recommendation. Compass saves it itself on\nthe 1st as the brief of kind \"monthly\".",
+   "inputSchema": {
+    "properties": {},
+    "title": "monthly_reviewArguments",
+    "type": "object"
+   },
+   "name": "monthly_review",
+   "outputSchema": {
+    "properties": {
+     "markdown": {
+      "description": "The review as a brief, with strength and money",
+      "title": "Markdown",
+      "type": "string"
+     },
+     "month": {
+      "description": "YYYY-MM",
+      "title": "Month",
+      "type": "string"
+     },
+     "month_before": {
+      "additionalProperties": true,
+      "description": "The same for the month before",
+      "title": "Month Before",
+      "type": "object"
+     },
+     "since": {
+      "format": "date",
+      "title": "Since",
+      "type": "string"
+     },
+     "this_month": {
+      "additionalProperties": true,
+      "description": "Averages and totals of the month",
+      "title": "This Month",
+      "type": "object"
+     },
+     "until": {
+      "format": "date",
+      "title": "Until",
+      "type": "string"
+     }
+    },
+    "required": [
+     "month",
+     "since",
+     "until",
+     "this_month",
+     "month_before",
+     "markdown"
+    ],
+    "title": "MonthlyReviewOut",
+    "type": "object"
+   },
+   "title": "Monthly review"
+  },
   "nutrition_summary": {
    "annotations": {
     "openWorldHint": false,
