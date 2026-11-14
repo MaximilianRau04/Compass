@@ -752,6 +752,8 @@ class DayRowOut(BaseModel):
     weight_kg: float | None = Field(description="Morning weigh-in, if any")
     first_event: str | None = Field(description='First appointment, e.g. "08:00 Vorlesung"')
     tasks_done: int
+    mood: int | None = Field(None, description="Journal, 1 (bad) to 5 (great)")
+    energy: int | None = Field(None, description="Journal, 1 (drained) to 5 (full of energy)")
 
 
 class DailyDataOut(BaseModel):

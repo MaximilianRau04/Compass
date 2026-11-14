@@ -28,6 +28,9 @@ The screenshots show made-up data.
   from the phone.
 - **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
   steps, food, training, completed tasks and briefs.
+- **Relations:** how closely two daily values go together (sleep and mood, training volume and the
+  resting heart rate the day after, calories and weight …), as Pearson's r over the days with both
+  values and a scatter chart; below 10 days there is no r.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
   Connect, plus the latest bedtime before the next day's first appointment.
 - **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy

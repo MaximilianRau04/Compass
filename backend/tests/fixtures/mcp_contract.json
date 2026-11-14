@@ -1471,6 +1471,19 @@
         ],
         "title": "Deep Minutes"
        },
+       "energy": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Journal, 1 (drained) to 5 (full of energy)",
+        "title": "Energy"
+       },
        "first_event": {
         "anyOf": [
          {
@@ -1505,6 +1518,19 @@
          }
         ],
         "title": "Kcal Burned"
+       },
+       "mood": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Journal, 1 (bad) to 5 (great)",
+        "title": "Mood"
        },
        "nutrition_flags": {
         "description": "incomplete or same_as_previous_day: probably not what was eaten",

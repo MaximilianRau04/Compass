@@ -32,6 +32,7 @@ export const PAGES = {
   '/nutrition': 'nav.nutrition',
   '/notes': 'nav.notes',
   '/journal': 'nav.journal',
+  '/correlations': 'nav.correlations',
   '/news': 'nav.news',
   '/finance': 'nav.finance',
 } satisfies Record<string, MessageKey>
