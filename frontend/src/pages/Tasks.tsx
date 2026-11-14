@@ -7,7 +7,7 @@ import type { Task, TaskStatus } from '../api/types'
 import { SectionLabel } from '../components/Layout'
 import { MoveTask } from '../components/MoveTask'
 import { QuickAdd } from '../components/QuickAdd'
-import { TaskItem } from '../components/TaskItem'
+import { DRAG_TYPE, TaskItem } from '../components/TaskItem'
 import { TaskSheet } from '../components/TaskSheet'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
@@ -74,6 +74,7 @@ export function TasksPage() {
   const [areaId, setAreaId] = useState<number | null>(null)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<Task | null>(null)
+  const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
 
   const status = view === 'board' ? (['open', 'in_progress', 'done'] as TaskStatus[]) : SCOPES[scope].status
   const tasks = useTasks({ status, areaId, q: q.trim() || undefined })
@@ -195,11 +196,30 @@ export function TasksPage() {
           {BOARD.map((column) => {
             const items = list.filter((t) => t.status === column.status)
             return (
-              <section key={column.status} className="w-[82%] shrink-0 snap-start sm:w-auto">
+              <section
+                key={column.status}
+                className={['w-[82%] shrink-0 snap-start rounded-md transition-colors sm:w-auto', dragOver === column.status ? 'bg-brass/10 outline-1 outline-brass outline-dashed' : ''].join(' ')}
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  if (dragOver !== column.status) setDragOver(column.status)
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(null)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDragOver(null)
+                  const task = list.find((x) => String(x.id) === e.dataTransfer.getData(DRAG_TYPE))
+                  if (!task || task.status === column.status) return
+                  update.mutate({ id: task.id, data: { status: column.status } }, { onError: (error) => toast.error(error.message) })
+                }}
+              >
                 <SectionLabel count={items.length}>{t(`status.${column.status}`)}</SectionLabel>
                 <ul className="divide-y divide-rule/60">
                   {items.map((task) => (
-                    <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
+                    <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} draggable>
                       {column.next && (
                         <button
                           type="button"

@@ -7,15 +7,20 @@ import { useI18n } from '../i18n/context'
 import { checklist } from '../lib/checklist'
 import { AREA_BG, AREA_TEXT, isOverdue, recurrenceLabel, relativeDay, shortTime } from '../lib/format'
 
+export const DRAG_TYPE = 'application/x-compass-task'
+
 export function TaskItem({
   task,
   today,
   onOpen,
+  draggable = false,
   children,
 }: {
   task: Task
   today: string
   onOpen: (task: Task) => void
+  /** Can be dragged onto a board column; the task id travels as DRAG_TYPE. */
+  draggable?: boolean
   children?: React.ReactNode
 }) {
   const toggle = useToggleDone()
@@ -48,7 +53,18 @@ export function TaskItem({
   }
 
   return (
-    <li className="group flex items-start gap-3 py-2.5">
+    <li
+      className={['group flex items-start gap-3 py-2.5', draggable ? 'cursor-grab active:cursor-grabbing' : ''].join(' ')}
+      draggable={draggable || undefined}
+      onDragStart={
+        draggable
+          ? (e) => {
+              e.dataTransfer.setData(DRAG_TYPE, String(task.id))
+              e.dataTransfer.effectAllowed = 'move'
+            }
+          : undefined
+      }
+    >
       <button
         type="button"
         onClick={onToggle}
