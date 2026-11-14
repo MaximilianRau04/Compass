@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.i18n import number, t
 from app.services import briefs, daily, finance
 from app.services.clock import local_today
-from app.services.review import _best_e1rm, _hours, _num
+from app.services.review import best_e1rm, fmt_hours, fmt_number
 
 
 @dataclass
@@ -64,6 +64,7 @@ def numbers(session: Session, first: date, last: date) -> MonthNumbers:
     resting = [r.resting_hr for r in rows if r.resting_hr is not None]
     steps = [r.steps for r in rows if r.steps is not None]
     food = [r for r in rows if r.kcal is not None and not r.nutrition_flags]
+    protein = [r.protein_g for r in food if r.protein_g is not None]
     weights = [r.weight_kg for r in rows if r.weight_kg is not None]
     moods = [r.mood for r in rows if r.mood is not None]
     energies = [r.energy for r in rows if r.energy is not None]
@@ -76,7 +77,8 @@ def numbers(session: Session, first: date, last: date) -> MonthNumbers:
         sessions=sum(len(r.training) for r in rows),
         volume_kg=round(sum(r.volume_kg for r in rows)),
         kcal=round(mean(r.kcal for r in food)) if food else None,
-        protein_g=round(mean(r.protein_g or 0 for r in food)) if food else None,
+        # Days with calories but no protein value are left out, not counted as 0 g.
+        protein_g=round(mean(protein)) if protein else None,
         nutrition_days=len(food),
         weight_first=weights[0] if weights else None,
         weight_last=weights[-1] if weights else None,
@@ -99,8 +101,8 @@ def monthly_review(session: Session, today: date | None = None) -> MonthlyReview
         now=numbers(session, since, until),
         before=numbers(session, prev_since, prev_until),
     )
-    best_now = _best_e1rm(session, since, until)
-    best_before = _best_e1rm(session, prev_since, prev_until)
+    best_now = best_e1rm(session, since, until)
+    best_before = best_e1rm(session, prev_since, prev_until)
     changes = [
         (name, round((value / best_before[name] - 1) * 100, 1))
         for name, value in best_now.items()
@@ -116,17 +118,17 @@ def monthly_review(session: Session, today: date | None = None) -> MonthlyReview
 
 def _vs(now: float | None, before: float | None, unit: str = "", digits: int = 0) -> str:
     """The value of this month with the one of the month before in brackets."""
-    text = _num(now, unit, digits)
+    text = fmt_number(now, unit, digits)
     if now is not None and before is not None:
-        text += t("monthly.before", value=_num(before, unit, digits))
+        text += t("monthly.before", value=fmt_number(before, unit, digits))
     return text
 
 
 def markdown(r: MonthlyReview) -> str:
     n, b = r.now, r.before
-    sleep = _hours(n.sleep_avg_minutes)
+    sleep = fmt_hours(n.sleep_avg_minutes)
     if b.sleep_avg_minutes is not None and n.sleep_avg_minutes is not None:
-        sleep += t("monthly.before", value=_hours(b.sleep_avg_minutes))
+        sleep += t("monthly.before", value=fmt_hours(b.sleep_avg_minutes))
     lines = [
         t("review.sleep"),
         t("monthly.sleep", avg=sleep, n=n.nights),
@@ -149,12 +151,12 @@ def markdown(r: MonthlyReview) -> str:
         t(
             "monthly.food",
             kcal=_vs(n.kcal, b.kcal, "kcal"),
-            protein=_num(n.protein_g, "g"),
+            protein=fmt_number(n.protein_g, "g"),
             days=n.nutrition_days,
         ),
     ]
     if n.weight_first is not None and n.weight_last is not None:
-        first, last = _num(n.weight_first, "kg", 1), _num(n.weight_last, "kg", 1)
+        first, last = fmt_number(n.weight_first, "kg", 1), fmt_number(n.weight_last, "kg", 1)
         lines.append(t("monthly.weight", first=first, last=last))
     lines += ["", t("monthly.days"), t("monthly.tasks", n=_vs(n.tasks_done, b.tasks_done))]
     if n.journal_days:
@@ -172,9 +174,9 @@ def markdown(r: MonthlyReview) -> str:
             t("monthly.money"),
             t(
                 "monthly.cash",
-                income=_num(r.income),
-                spending=_num(r.spending),
-                saved=_num(r.saved),
+                income=fmt_number(r.income),
+                spending=fmt_number(r.spending),
+                saved=fmt_number(r.saved),
             ),
         ]
         if r.top_categories:

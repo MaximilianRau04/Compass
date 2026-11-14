@@ -14,7 +14,8 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models.habits import Habit, HabitCheck
 from app.models.journal import JournalEntry
-from app.services import daily, nutrition
+from app.models.nutrition import Goal
+from app.services import daily
 from app.services.clock import local_today
 
 RULES = ("steps_goal", "protein_goal", "sleep_need", "journal")
@@ -35,8 +36,30 @@ class HabitStatus:
     days: list[bool] = field(default_factory=list)
 
 
-def _rule_met(session: Session, rule: str, row: daily.DayRow, journal_days: set[date]) -> bool:
-    goals = nutrition.goals_on(session, row.date)
+GOAL_RULES = {"steps_goal": "steps", "protein_goal": "protein_g"}
+
+
+def _goals_by_day(session: Session, days: list[date]) -> dict[date, dict[str, float]]:
+    """The goals valid on each day, read in one query (like nutrition.goals_on per day)."""
+    rows = list(
+        session.scalars(
+            select(Goal)
+            .where(Goal.metric.in_(GOAL_RULES.values()), Goal.valid_from <= max(days))
+            .order_by(Goal.valid_from)
+        )
+    )
+    out, current, i = {}, {}, 0
+    for day in sorted(days):
+        while i < len(rows) and rows[i].valid_from <= day:
+            current[rows[i].metric] = float(rows[i].value)
+            i += 1
+        out[day] = dict(current)
+    return out
+
+
+def _rule_met(
+    rule: str, row: daily.DayRow, goals: dict[str, float], journal_days: set[date]
+) -> bool:
     if rule == "steps_goal":
         return "steps" in goals and row.steps is not None and row.steps >= goals["steps"]
     if rule == "protein_goal":
@@ -111,10 +134,15 @@ def statuses(session: Session, today: date | None = None) -> list[HabitStatus]:
             )
         )
     )
+    goals = (
+        _goals_by_day(session, [r.date for r in rows])
+        if any(h.rule in GOAL_RULES for h in habits)
+        else {}
+    )
     out = []
     for h in habits:
         if h.rule:
-            days = [_rule_met(session, h.rule, r, journal_days) for r in rows]
+            days = [_rule_met(h.rule, r, goals.get(r.date, {}), journal_days) for r in rows]
         else:
             days = [(h.id, since + timedelta(days=i)) in checks for i in range(WINDOW)]
         streak = 0

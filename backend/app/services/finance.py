@@ -633,6 +633,10 @@ class Forecast:
     due: list[Recurring] = field(default_factory=list)
 
 
+# How long a recurring payment may be late and still count as coming.
+LATE_DAYS = 5
+
+
 def forecast(session: Session, today: date | None = None) -> Forecast:
     """The end of this month: what was spent so far, the recurring payments still due, and the
     other spending at the pace of the last three full months. Income still to come is left out,
@@ -642,7 +646,9 @@ def forecast(session: Session, today: date | None = None) -> Forecast:
     last = (first + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     days_left = (last - today).days
     rec = recurring(session, today)
-    due = [r for r in rec if today < r.next_date <= last]
+    # A payment expected a few days ago but not booked yet (rent due on the 1st, booked on the
+    # 3rd) is still to come: it is neither in the spending so far nor ahead of today.
+    due = [r for r in rec if today - timedelta(days=LATE_DAYS) <= r.next_date <= last]
     *full, now = months(session, 4, today)
     # Recurring payments recur in every month; what is left is the variable part.
     monthly_recurring = sum(r.monthly_cost for r in rec)

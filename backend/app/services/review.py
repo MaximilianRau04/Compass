@@ -80,7 +80,7 @@ class Review:
     recommendation: Recommendation
 
 
-def _best_e1rm(session: Session, first: date, last: date) -> dict[str, float]:
+def best_e1rm(session: Session, first: date, last: date) -> dict[str, float]:
     tz = local_tz()
     start = datetime.combine(first, time.min, tzinfo=tz)
     end = datetime.combine(last + timedelta(days=1), time.min, tzinfo=tz)
@@ -99,8 +99,8 @@ def _best_e1rm(session: Session, first: date, last: date) -> dict[str, float]:
 def strength_trend(session: Session, today: date) -> tuple[float | None, list[str], list[str]]:
     """Average % change of the best estimated 1RM per exercise, last 2 weeks against the 2
     before."""
-    now = _best_e1rm(session, today - timedelta(days=13), today)
-    before = _best_e1rm(session, today - timedelta(days=27), today - timedelta(days=14))
+    now = best_e1rm(session, today - timedelta(days=13), today)
+    before = best_e1rm(session, today - timedelta(days=27), today - timedelta(days=14))
     common = sorted(set(now) & set(before))
     if not common:
         return None, [], []
@@ -252,13 +252,13 @@ def _action(rec: Recommendation) -> str:
     return t(f"review.action.{rec.action}", n=abs(rec.kcal_delta))
 
 
-def _num(value: float | None, unit: str = "", digits: int = 0) -> str:
+def fmt_number(value: float | None, unit: str = "", digits: int = 0) -> str:
     if value is None:
         return "–"
     return f"{number(value, digits)} {unit}".strip()
 
 
-def _hours(minutes: int | None) -> str:
+def fmt_hours(minutes: int | None) -> str:
     return "–" if minutes is None else f"{minutes // 60}:{minutes % 60:02d} h"
 
 
@@ -281,9 +281,9 @@ def markdown(r: Review) -> str:
         t("review.nutrition"),
         t(
             "review.food",
-            kcal=_num(r.kcal, "kcal"),
-            protein=_num(r.protein_g, "g"),
-            fat=_num(r.fat_g, "g"),
+            kcal=fmt_number(r.kcal, "kcal"),
+            protein=fmt_number(r.protein_g, "g"),
+            fat=fmt_number(r.fat_g, "g"),
             days=r.nutrition_valid_days,
         )
         + (t("review.left_out", n=r.nutrition_left_out) if r.nutrition_left_out else ""),
@@ -291,16 +291,16 @@ def markdown(r: Review) -> str:
         t("review.body"),
         t(
             "review.weight",
-            mean=_num(r.weight_mean7, "kg", 1),
-            change=_num(r.weight_change_kg, "kg", 2),
-            pct=_num(r.weight_change_pct, "%", 1),
+            mean=fmt_number(r.weight_mean7, "kg", 1),
+            change=fmt_number(r.weight_change_kg, "kg", 2),
+            pct=fmt_number(r.weight_change_pct, "%", 1),
         ),
-        t("review.waist", cm=_num(r.waist_cm, "cm", 1)) + waist,
-        t("review.steps", n=_num(r.steps_median)),
+        t("review.waist", cm=fmt_number(r.waist_cm, "cm", 1)) + waist,
+        t("review.steps", n=fmt_number(r.steps_median)),
         "",
         t("review.training"),
         t("review.sessions", n=r.sessions) + split,
-        t("review.strength", pct=_num(r.strength_change_pct, "%", 1)),
+        t("review.strength", pct=fmt_number(r.strength_change_pct, "%", 1)),
     ]
     if r.ready_to_increase:
         lines.append(t("review.increase", names=", ".join(r.ready_to_increase)))
@@ -312,16 +312,16 @@ def markdown(r: Review) -> str:
         t("review.sleep"),
         t(
             "review.nights",
-            avg=_hours(r.sleep_avg_minutes),
+            avg=fmt_hours(r.sleep_avg_minutes),
             n=r.sleep_nights,
             short=r.short_nights,
         ),
         t(
             "review.bedtime",
             median=r.median_bedtime or "–",
-            sd=_num(r.bedtime_sd_minutes, "min"),
+            sd=fmt_number(r.bedtime_sd_minutes, "min"),
         ),
-        t("review.resting", bpm=_num(r.resting_hr, "bpm", 1))
+        t("review.resting", bpm=fmt_number(r.resting_hr, "bpm", 1))
         + (t("review.resting.alert") if r.resting_alert else ""),
     ]
     return "\n".join(lines)
