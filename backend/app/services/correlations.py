@@ -1,7 +1,8 @@
 """Relations between two daily values, e.g. sleep against mood the same day or training volume
 against the resting heart rate the day after. Built on the rows of app.services.daily: a day
-without a value is left out, never counted as zero. Pearson's r with the number of days it rests
-on; below MIN_DAYS there is no r, since a handful of days shows nothing but chance."""
+without a value is left out, never counted as zero. The one exception is tasks_done: a day without
+a completed task is a real 0, so it always has a value. Pearson's r with the number of days it
+rests on; below MIN_DAYS there is no r, since a handful of days shows nothing but chance."""
 
 import math
 from dataclasses import dataclass

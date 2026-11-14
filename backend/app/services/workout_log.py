@@ -260,7 +260,9 @@ def planned_for(session: Session, day: date) -> list[WorkoutTemplate]:
 
 
 def trained_on(session: Session, day: date) -> set[str]:
-    """Lower-case workout names of the sessions started on `day` (local)."""
+    """Lower-case workout names of the sessions started on `day` (local). A planned template
+    counts as done when a session has its name, compared without case like saved_template does:
+    the logger starts a template under its name, and an import may write it in other case."""
     start = datetime.combine(day, datetime.min.time(), tzinfo=local_tz())
     return {
         name.lower()

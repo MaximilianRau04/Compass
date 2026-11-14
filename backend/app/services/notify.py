@@ -252,9 +252,8 @@ def _sync_failures(session: Session, now: datetime, after: timedelta) -> list[tu
         )
     ):
         since = conn.last_sync_at or conn.created_at
-        if since is None or now - since < bank_after:
+        if since is None or not conn.last_error or now - since < bank_after:
             continue
-        assert conn.last_error is not None
         out.append((f"sync:bank:{conn.id}:{since.isoformat()}", conn.aspsp_name, conn.last_error))
     return out
 
