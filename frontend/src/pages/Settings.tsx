@@ -319,6 +319,13 @@ export function SettingsPage() {
       <div className="mt-10">
         <FeedSettings />
       </div>
+      <section className="mt-10">
+        <SectionLabel>{t('settings.export')}</SectionLabel>
+        <p className="mt-2 max-w-lg text-sm text-muted">{t('settings.exportHint')}</p>
+        <a href="/api/export" download className={`${BUTTON} mt-3 inline-block`}>
+          {t('settings.exportButton')}
+        </a>
+      </section>
     </>
   )
 }

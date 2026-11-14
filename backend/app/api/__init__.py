@@ -5,6 +5,7 @@ from app.api import (
     body,
     calendar,
     correlations,
+    export,
     feeds,
     finance,
     habits,
@@ -40,6 +41,7 @@ router.include_router(news.router)
 router.include_router(notes.router)
 router.include_router(journal.router)
 router.include_router(habits.router)
+router.include_router(export.router)
 router.include_router(correlations.router)
 router.include_router(search.router)
 router.include_router(push.router)
