@@ -3269,7 +3269,7 @@
     "openWorldHint": false,
     "readOnlyHint": true
    },
-   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, and the workouts planned for today.",
+   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, today's readiness and the workouts planned for today.",
    "inputSchema": {
     "properties": {},
     "title": "get_todayArguments",
@@ -3501,6 +3501,19 @@
       },
       "title": "Planned Workouts",
       "type": "array"
+     },
+     "readiness": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Readiness by fixed rules, e.g. \"62 moderate: short_sleep, resting_up\"; null without last night or a resting heart rate",
+      "title": "Readiness"
      },
      "scheduled": {
       "description": "Planned for today, incl. carried over",

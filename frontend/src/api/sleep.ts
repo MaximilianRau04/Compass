@@ -3,6 +3,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, del, post } from './client'
 import type { DayHeartRate, HealthAnalysis, HealthSummary, SleepNight } from './types'
 
+export type ReadinessReason = 'short_sleep' | 'resting_up' | 'hrv_down' | 'high_load'
+
+export interface Readiness {
+  date: string
+  /** 0 to 100, null without last night or a resting heart rate */
+  score: number | null
+  level: 'good' | 'moderate' | 'low' | null
+  reasons: ReadinessReason[]
+  asleep_minutes: number | null
+  resting_hr: number | null
+  resting_median: number | null
+  hrv: number | null
+  hrv_median: number | null
+}
+
+export function useReadiness() {
+  return useQuery({ queryKey: ['sleep', 'readiness'], queryFn: () => api<Readiness>('/sleep/readiness') })
+}
+
 export function useHealthSummary(days = 30) {
   return useQuery({
     queryKey: ['sleep', 'summary', days],

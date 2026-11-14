@@ -26,7 +26,8 @@ from app.schemas.health import (
     WorkoutRead,
     Zone2WeekRead,
 )
-from app.services import analysis, health, sleep_log
+from app.schemas.readiness import ReadinessRead
+from app.services import analysis, health, readiness, sleep_log
 from app.services.clock import local_today
 from app.services.sleep_log import ManualNight, SleepLogError
 
@@ -182,6 +183,12 @@ def bedtime(session: SessionDep, day: date | None = None) -> dict:
 
 
 # --- Nights entered by hand ------------------------------------------------------------------
+
+
+@router.get("/readiness", response_model=ReadinessRead)
+def get_readiness(session: SessionDep):
+    """Today's readiness by fixed rules: sleep, resting heart rate, HRV and recent load."""
+    return readiness.readiness(session)
 
 
 @router.get("/manual", response_model=list[SleepNightRead])

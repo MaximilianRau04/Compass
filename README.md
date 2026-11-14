@@ -26,6 +26,9 @@ The screenshots show made-up data.
   important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
+- **Readiness:** a score from 0 to 100 on the Today page and in `get_today`, by fixed rules from last
+  night's sleep, the resting heart rate and HRV against their usual, and the training of the last two
+  days, with the reasons that took points off.
 - **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
   steps, food, training, completed tasks and briefs.
 - **Relations:** how closely two daily values go together (sleep and mood, training volume and the

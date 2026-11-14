@@ -6,7 +6,7 @@ import { useMailOverview } from '../api/mail'
 import { useBriefs, useNewsOverview, useTodayBrief } from '../api/news'
 import { useNutritionSummary } from '../api/nutrition'
 import { useSetup } from '../api/setup'
-import { useBedtime, useDayHeartRate, useHealthSummary } from '../api/sleep'
+import { useBedtime, useDayHeartRate, useHealthSummary, useReadiness } from '../api/sleep'
 import { useToday } from '../api/tasks'
 import { usePlannedWorkouts, useTrainingSummary } from '../api/training'
 import type { Brief, MailOverview, NewsOverview, Task } from '../api/types'
@@ -74,6 +74,23 @@ function Bedtime() {
             fall: b.fall_asleep_minutes ?? 0,
           })}
         </span>
+      </p>
+    </section>
+  )
+}
+
+/** Today's readiness by fixed rules, with what took points off. Hidden without a score. */
+function ReadinessCard() {
+  const { t } = useI18n()
+  const r = useReadiness().data
+  if (!r || r.score === null || !r.level) return null
+  const tone = r.level === 'good' ? 'text-sea' : r.level === 'low' ? 'text-signal' : 'text-brass'
+  return (
+    <section className="rise flex items-baseline gap-3 rounded-lg border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 2 } as CSSProperties}>
+      <span aria-hidden className={tone}>●</span>
+      <p>
+        <span className="font-medium">{t('readiness.title', { score: r.score })}</span> <span>{t(`readiness.${r.level}`)}</span>
+        {r.reasons.length > 0 && <span className="block font-mono text-2xs text-muted">{r.reasons.map((reason) => t(`readiness.${reason}`)).join(' · ')}</span>}
       </p>
     </section>
   )
@@ -274,6 +291,7 @@ export function TodayPage() {
           </div>
 
           <Bedtime />
+          <ReadinessCard />
           <PlannedWorkouts />
           <JournalPrompt today={today} />
           <DailyBrief brief={brief.data} />

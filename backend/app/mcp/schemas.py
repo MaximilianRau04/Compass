@@ -88,6 +88,11 @@ class TodayOut(BaseModel):
         False,
         description="The bedtime is the user's fixed latest bedtime, earlier than the calculation",
     )
+    readiness: str | None = Field(
+        None,
+        description='Readiness by fixed rules, e.g. "62 moderate: short_sleep, resting_up"; '
+        "null without last night or a resting heart rate",
+    )
     planned_workouts: list[str] = Field(
         default_factory=list,
         description='Workouts planned for today\'s weekday, " (done)" once a session ran',
