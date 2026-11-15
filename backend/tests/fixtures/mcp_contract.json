@@ -3269,7 +3269,7 @@
     "openWorldHint": false,
     "readOnlyHint": true
    },
-   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, and the workouts planned for today.",
+   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, today's readiness and the workouts planned for today.",
    "inputSchema": {
     "properties": {},
     "title": "get_todayArguments",
@@ -3501,6 +3501,19 @@
       },
       "title": "Planned Workouts",
       "type": "array"
+     },
+     "readiness": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Readiness by fixed rules, e.g. \"62 moderate: short_sleep, resting_up\"; null without last night or a resting heart rate",
+      "title": "Readiness"
      },
      "scheduled": {
       "description": "Planned for today, incl. carried over",
@@ -4662,6 +4675,66 @@
     "type": "object"
    },
    "title": "Mails to sort"
+  },
+  "monthly_review": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "The last full calendar month in numbers against the month before: sleep, resting heart\nrate, steps, training sessions and volume, the exercises that got stronger, calories and\nprotein (valid days only), weight, tasks done, mood and energy from the journal, and money\n(income, spending, saved, top categories). No recommendation. Compass saves it itself on\nthe 1st as the brief of kind \"monthly\".",
+   "inputSchema": {
+    "properties": {},
+    "title": "monthly_reviewArguments",
+    "type": "object"
+   },
+   "name": "monthly_review",
+   "outputSchema": {
+    "properties": {
+     "markdown": {
+      "description": "The review as a brief, with strength and money",
+      "title": "Markdown",
+      "type": "string"
+     },
+     "month": {
+      "description": "YYYY-MM",
+      "title": "Month",
+      "type": "string"
+     },
+     "month_before": {
+      "additionalProperties": true,
+      "description": "The same for the month before",
+      "title": "Month Before",
+      "type": "object"
+     },
+     "since": {
+      "format": "date",
+      "title": "Since",
+      "type": "string"
+     },
+     "this_month": {
+      "additionalProperties": true,
+      "description": "Averages and totals of the month",
+      "title": "This Month",
+      "type": "object"
+     },
+     "until": {
+      "format": "date",
+      "title": "Until",
+      "type": "string"
+     }
+    },
+    "required": [
+     "month",
+     "since",
+     "until",
+     "this_month",
+     "month_before",
+     "markdown"
+    ],
+    "title": "MonthlyReviewOut",
+    "type": "object"
+   },
+   "title": "Monthly review"
   },
   "nutrition_summary": {
    "annotations": {

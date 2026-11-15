@@ -78,6 +78,26 @@ export function useFinanceOverview(months = 6) {
   return useQuery({ queryKey: ['finance', 'overview', months], queryFn: () => api<FinanceOverview>(`/finance/overview?months=${months}`) })
 }
 
+export interface FinanceForecast {
+  month: string
+  days_left: number
+  /** Spent so far this month */
+  spent: number
+  /** Recurring payments still due this month */
+  recurring_due: number
+  /** Other spending per day, last 3 full months */
+  variable_per_day: number
+  projected_spending: number
+  cash: number
+  /** At the month's end, without income still to come */
+  projected_cash: number
+  due: FinanceOverview['recurring']
+}
+
+export function useFinanceForecast(enabled = true) {
+  return useQuery({ queryKey: ['finance', 'forecast'], queryFn: () => api<FinanceForecast>('/finance/forecast'), enabled })
+}
+
 export function useBanks(q: string) {
   return useQuery({
     queryKey: ['finance', 'banks', q],

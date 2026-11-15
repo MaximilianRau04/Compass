@@ -26,6 +26,11 @@ The screenshots show made-up data.
   important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
+- **Readiness:** a score from 0 to 100 on the Today page and in `get_today`, by fixed rules from last
+  night's sleep, the resting heart rate and HRV against their usual, and the training of the last two
+  days, with the reasons that took points off.
+- **Habits:** daily checks with a streak and the last two weeks on the Today page, ticked by hand
+  or by Compass from the data (steps goal, protein goal, enough sleep, a journal entry).
 - **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
   steps, food, training, completed tasks and briefs.
 - **Relations:** how closely two daily values go together (sleep and mood, training volume and the
@@ -42,6 +47,8 @@ The screenshots show made-up data.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
 - **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
   banks in the EU and EEA, see the [note below](#finance).
+- **Export:** everything Compass stores as a zip with one JSON file per table, under Settings or
+  `/api/export`; sign-ins, tokens and raw health records stay out.
 - **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access,
   and sources that keep failing or a health bridge that went silent.
 - **MCP server** for AI assistants, with OAuth: your assistant can read everything above, plan your week
@@ -272,7 +279,7 @@ in developer mode, should work the same way.
 | Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
 | Journal | `get_journal`, `write_journal` (appends to the day's text) |
 | Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
-| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `daily_data` (one row per day across all areas) |
+| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `monthly_review`, `daily_data` (one row per day across all areas) |
 | Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage`, `mail_to_task` |
 | News | `get_news_digest`, `feedback_news` |
 | Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `set_budget`, `log_depot_value` |

@@ -227,6 +227,42 @@ def test_months_budgets_and_recurring(client, session, bank):
     assert o["cash"] == 1234.56
 
 
+def test_forecast_of_the_month_end(client, session, bank):
+    bank.data = [
+        tx("s1", 62, 10.99, "Spotify AB", "Abo"),
+        tx("s2", 31, 10.99, "Spotify AB", "Abo"),
+        tx("s3", 1, 10.99, "Spotify AB", "Abo"),
+        tx("e", 0, 30.00, "Lieferando", None),
+    ]
+    connect(session, bank)
+    finance.sync(session)
+    f = finance.forecast(session, TODAY)
+    assert f.month == f"{TODAY:%Y-%m}"
+    assert f.cash == 1234.56
+    # Only payments due before the month ends count, and the balance never gains income.
+    assert all(r.next_date >= TODAY - timedelta(days=finance.LATE_DAYS) for r in f.due)
+    assert f.projected_spending >= f.spent
+    assert f.projected_cash <= f.cash
+    got = client.get("/api/finance/forecast").json()
+    assert got["cash"] == 1234.56 and got["days_left"] == f.days_left
+
+
+def test_a_late_recurring_payment_still_counts_as_due(session, bank):
+    # Rent every ~30 days, last 32 days ago: expected two days ago, not booked yet.
+    bank.data = [
+        tx("r1", 92, 700.00, "Vermieter", "Miete"),
+        tx("r2", 62, 700.00, "Vermieter", "Miete"),
+        tx("r3", 32, 700.00, "Vermieter", "Miete"),
+    ]
+    connect(session, bank)
+    finance.sync(session)
+    [rent] = finance.recurring(session, TODAY)
+    assert rent.next_date < TODAY
+    f = finance.forecast(session, TODAY)
+    assert [r.name for r in f.due] == ["Vermieter"]
+    assert f.recurring_due == 700.0
+
+
 def test_depot_value_and_net_worth(client, session, bank):
     connect(session, bank)
     finance.sync(session)

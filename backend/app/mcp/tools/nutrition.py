@@ -12,6 +12,7 @@ from app.mcp.guards import audited
 from app.mcp.schemas import (
     BodyTrendOut,
     GoalOut,
+    MonthlyReviewOut,
     NutritionDayOut,
     NutritionQualityOut,
     NutritionSummaryOut,
@@ -19,7 +20,7 @@ from app.mcp.schemas import (
     WeeklyReviewOut,
     body_out,
 )
-from app.services import body, nutrition, review
+from app.services import body, monthly, nutrition, review
 
 
 @mcp.tool(title="Nutrition", annotations=READ)
@@ -123,6 +124,25 @@ def log_body_metric(
         except body.BodyError as exc:
             raise ToolError(str(exc)) from exc
         return body_out(body.trend(session))
+
+
+@mcp.tool(title="Monthly review", annotations=READ)
+def monthly_review() -> MonthlyReviewOut:
+    """The last full calendar month in numbers against the month before: sleep, resting heart
+    rate, steps, training sessions and volume, the exercises that got stronger, calories and
+    protein (valid days only), weight, tasks done, mood and energy from the journal, and money
+    (income, spending, saved, top categories). No recommendation. Compass saves it itself on
+    the 1st as the brief of kind "monthly"."""
+    with session_scope() as session:
+        r = monthly.monthly_review(session)
+        return MonthlyReviewOut(
+            month=r.month,
+            since=r.since,
+            until=r.until,
+            this_month=r.now.__dict__,
+            month_before=r.before.__dict__,
+            markdown=monthly.markdown(r),
+        )
 
 
 @mcp.tool(title="Weekly review", annotations=READ)
