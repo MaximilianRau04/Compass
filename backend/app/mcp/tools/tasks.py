@@ -30,7 +30,7 @@ from app.mcp.schemas import (
 )
 from app.models.tasks import Task, TaskPriority, TaskSource, TaskStatus
 from app.schemas.tasks import TaskCreate, TaskUpdate
-from app.services import analysis
+from app.services import analysis, workout_log
 from app.services import tasks as task_service
 from app.services.clock import local_today, local_tz
 
@@ -38,8 +38,8 @@ from app.services.clock import local_today, local_tz
 @mcp.tool(title="Today", annotations=READ)
 def get_today() -> TodayOut:
     """Get the user's day: overdue tasks, tasks due today, tasks planned for today,
-    deadlines in the next 7 days, what was completed today, today's events, and tomorrow's first
-    event with the latest bedtime tonight."""
+    deadlines in the next 7 days, what was completed today, today's events, tomorrow's first
+    event with the latest bedtime tonight, and the workouts planned for today."""
     with session_scope() as session:
         o = task_service.today_overview(session)
         return TodayOut(
@@ -57,7 +57,16 @@ def get_today() -> TodayOut:
             ),
             tomorrow_latest_bedtime=f"{bed.latest_bedtime:%H:%M}" if bed else None,
             tomorrow_bedtime_capped=bed.capped if bed else False,
+            planned_workouts=_planned_workouts(session, o.today),
         )
+
+
+def _planned_workouts(session, day: date) -> list[str]:
+    done = workout_log.trained_on(session, day)
+    return [
+        t.name + (" (done)" if t.name.lower() in done else "")
+        for t in workout_log.planned_for(session, day)
+    ]
 
 
 @mcp.tool(title="List tasks", annotations=READ)

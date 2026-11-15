@@ -84,6 +84,8 @@ async def test_tools_are_listed_with_annotations(client):
         "completed_tasks",
         "add_task_note",
         "mail_to_task",
+        "get_journal",
+        "write_journal",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False

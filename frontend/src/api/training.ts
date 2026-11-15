@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, del, patch, post, put } from './client'
-import type { Exercise, ImportResult, Progression, ProgressPoint, SessionBrief, SessionDetail, TemplateExercise, TrainingSummary, WorkoutTemplate, WorkoutTemplateItem } from './types'
+import type { Exercise, ImportResult, PlannedWorkout, Progression, ProgressPoint, SessionBrief, SessionDetail, TemplateExercise, TrainingSummary, WorkoutTemplate, WorkoutTemplateItem } from './types'
 
 const keys = {
   summary: (weeks: number) => ['training', 'summary', weeks] as const,
@@ -84,6 +84,10 @@ export const fetchTemplate = (workout: string) =>
 
 export const fetchExerciseTarget = (id: number) => api<TemplateExercise>(`/training/log/exercises/${id}`)
 
+export function usePlannedWorkouts() {
+  return useQuery({ queryKey: ['training', 'planned'], queryFn: () => api<PlannedWorkout[]>('/training/planned') })
+}
+
 export function useTemplates() {
   return useQuery({ queryKey: ['training', 'templates'], queryFn: () => api<WorkoutTemplate[]>('/training/templates') })
 }
@@ -92,7 +96,7 @@ export function useTemplates() {
 export function useSaveTemplate() {
   const invalidate = useInvalidateTraining()
   return useMutation({
-    mutationFn: ({ id, data }: { id?: number; data: { name: string; exercises: Partial<WorkoutTemplateItem>[] } }) =>
+    mutationFn: ({ id, data }: { id?: number; data: { name: string; exercises: Partial<WorkoutTemplateItem>[]; weekdays?: number[] } }) =>
       id ? put<WorkoutTemplate>(`/training/templates/${id}`, data) : post<WorkoutTemplate>('/training/templates', data),
     onSuccess: invalidate,
   })

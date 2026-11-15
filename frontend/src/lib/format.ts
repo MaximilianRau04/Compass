@@ -48,6 +48,11 @@ export function longDate(value: string, locale: string): { weekday: string; date
   }
 }
 
+/** Short name of a weekday, 0 = Monday (2023-01-02 was a Monday). */
+export function shortWeekday(index: number, locale: string): string {
+  return new Date(2023, 0, 2 + index).toLocaleDateString(locale, { weekday: 'short' })
+}
+
 function weekdayName(code: string, locale: string): string {
   // 2023-01-01 was a Sunday; offset from there to get the weekday's name.
   return new Date(2023, 0, 1 + RRULE_WEEKDAY[code]).toLocaleDateString(locale, { weekday: 'long' })

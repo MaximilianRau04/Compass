@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useDeleteTemplate, useExercises, useSaveTemplate } from '../api/training'
 import type { WorkoutTemplate, WorkoutTemplateItem } from '../api/types'
 import { useI18n } from '../i18n/context'
+import { shortWeekday } from '../lib/format'
 import { button, overlay } from '../lib/ui'
 import { newId, REST_DEFAULT, REST_OPTIONS, restLabel } from '../lib/workout'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -57,14 +58,16 @@ function ItemRow({ item, index, count, onChange, onMove, onRemove }: { item: Ite
 }
 
 function Editor({ template, onClose, onStart }: { template: WorkoutTemplate | null; onClose: () => void; onStart?: (name: string) => void }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const exercises = useExercises()
   const save = useSaveTemplate()
   const remove = useDeleteTemplate()
   const [name, setName] = useState(template?.name ?? '')
   const [items, setItems] = useState<Item[]>(() => (template?.exercises ?? []).map((e) => ({ ...e, key: newId() })))
+  const [weekdays, setWeekdays] = useState<number[]>(template?.weekdays ?? [])
   const [adding, setAdding] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const toggleDay = (day: number) => setWeekdays(weekdays.includes(day) ? weekdays.filter((d) => d !== day) : [...weekdays, day].sort())
 
   const add = () => {
     const title = adding.trim()
@@ -80,7 +83,7 @@ function Editor({ template, onClose, onStart }: { template: WorkoutTemplate | nu
     setItems(next)
   }
   const submit = (start: boolean) => {
-    const data = { name: name.trim(), exercises: items.map(({ key: _key, ...rest }) => rest) }
+    const data = { name: name.trim(), exercises: items.map(({ key: _key, ...rest }) => rest), weekdays }
     save.mutate(
       { id: template?.id, data },
       {
@@ -108,6 +111,24 @@ function Editor({ template, onClose, onStart }: { template: WorkoutTemplate | nu
         <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('editor.name')}</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('editor.namePlaceholder')} className={field} />
       </label>
+
+      <fieldset>
+        <legend className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('editor.weekdays')}</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+            <button
+              key={day}
+              type="button"
+              aria-pressed={weekdays.includes(day)}
+              onClick={() => toggleDay(day)}
+              className={`rounded-md border px-2.5 py-1 font-mono text-label ${weekdays.includes(day) ? 'border-brass bg-brass/15 text-ink' : 'border-rule text-muted hover:border-ink hover:text-ink'}`}
+            >
+              {shortWeekday(day, locale)}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">{t('editor.weekdaysHint')}</p>
+      </fieldset>
 
       <div>
         <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('editor.exercises')}</span>

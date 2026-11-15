@@ -11,6 +11,8 @@
   every 3 days.
 - weekly: the weekly review, sent by the worker right after saving it (see weekly_review).
 - finance: a bank consent ends within 7 days (approve it again on the finance page).
+- sync: a calendar, mailbox, news feed or bank that has failed for SYNC_ALERT_HOURS, once per
+  failure streak, and a health bridge that sent nothing for HEALTH_SILENT_HOURS.
 
 Nothing but the bedtime reminder goes out in the quiet hours (PUSH_QUIET_START to _END); the
 others wait until the quiet hours are over.
@@ -24,14 +26,18 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.i18n import number, number_trimmed, short_date, t, weekday
+from app.models.finance import BankConnection
+from app.models.integrations import IntegrationState
 from app.models.tasks import Task, TaskStatus
-from app.services import analysis, finance, push
+from app.services import analysis, finance, integrations, push
 from app.services.clock import local_tz
 
 log = logging.getLogger("compass.notify")
 
 DEADLINE_AHEAD = timedelta(hours=24)
 RESTING_EVERY = timedelta(days=3)
+# Sources the worker fetches by itself; uploads (training, nutrition exports) only run on demand.
+SYNC_SOURCES = ("calendar:", "mail:", "news:")
 
 
 def quiet(now: datetime) -> bool:
@@ -228,6 +234,72 @@ def check_consent(session: Session, now: datetime) -> int:
     return sent
 
 
+def _sync_failures(session: Session, now: datetime, after: timedelta) -> list[tuple[str, str, str]]:
+    """(key, source, error) for every source that failed for longer than `after`."""
+    out = []
+    for state in integrations.list_states(session):
+        if not state.last_error or not state.name.startswith(SYNC_SOURCES):
+            continue
+        since = state.last_success_at or state.created_at
+        if since is None or now - since < after:
+            continue
+        out.append((f"sync:{state.name}:{since.isoformat()}", state.name, state.last_error))
+    # A bank is fetched only every FINANCE_SYNC_HOURS; wait for a second failed try at least.
+    bank_after = max(after, 2 * timedelta(hours=get_settings().finance_sync_hours))
+    for conn in session.scalars(
+        select(BankConnection).where(
+            BankConnection.status == "active", BankConnection.last_error.is_not(None)
+        )
+    ):
+        since = conn.last_sync_at or conn.created_at
+        if since is None or not conn.last_error or now - since < bank_after:
+            continue
+        out.append((f"sync:bank:{conn.id}:{since.isoformat()}", conn.aspsp_name, conn.last_error))
+    return out
+
+
+def check_sync(session: Session, now: datetime) -> int:
+    """A source that keeps failing, and a health bridge that went silent: data gaps that would
+    otherwise only show up on the integrations page days later."""
+    s = get_settings()
+    if quiet(now):
+        return 0
+    sent = 0
+    if s.sync_alert_hours:
+        after = timedelta(hours=s.sync_alert_hours)
+        for key, source, error in _sync_failures(session, now, after):
+            sent += push.send(
+                session,
+                "sync",
+                key,
+                push.Message(
+                    title=t("push.sync.failed.title", source=source)[:200],
+                    body=t("push.sync.failed.body", hours=s.sync_alert_hours, error=error)[:500],
+                    url="/settings",
+                    tag=f"sync-{source}",
+                    ttl=12 * 3600,
+                ),
+            )
+    if s.health_silent_hours and s.ingest_health_token:
+        state = session.get(IntegrationState, "healthconnect")
+        last = state.last_success_at if state else None
+        if last is not None and now - last >= timedelta(hours=s.health_silent_hours):
+            hours = int((now - last).total_seconds() // 3600)
+            sent += push.send(
+                session,
+                "sync",
+                f"sync:health-silent:{last.isoformat()}",
+                push.Message(
+                    title=t("push.sync.silent.title"),
+                    body=t("push.sync.silent.body", hours=hours),
+                    url="/sleep",
+                    tag="sync-health",
+                    ttl=12 * 3600,
+                ),
+            )
+    return sent
+
+
 def weekly_review(session: Session, title: str, recommendation: str, day: date) -> int:
     return push.send(
         session,
@@ -245,6 +317,7 @@ def check_all(session: Session, now: datetime) -> dict[str, int]:
         ("deadlines", check_deadlines),
         ("resting", check_resting),
         ("finance", check_consent),
+        ("sync", check_sync),
     ):
         try:
             out[name] = check(session, now)

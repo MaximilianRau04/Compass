@@ -22,6 +22,8 @@ const NAV: NavItem[] = [
   { to: '/sleep', label: 'nav.sleep', icon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'},
   { to: '/nutrition', label: 'nav.nutrition', icon: 'M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 8h3'},
   { to: '/notes', label: 'nav.notes', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5'},
+  { to: '/journal', label: 'nav.journal', icon: 'M6 3h12v18H6zM9 3v18M12 8h4M12 12h4' },
+  { to: '/correlations', label: 'nav.correlations', icon: 'M4 20h16M4 20V4M8 15h.01M11 11h.01M14 13h.01M17 7h.01' },
   { to: '/news', label: 'nav.news', icon: 'M5 4h11v16H6a1 1 0 0 1-1-1zM16 8h3v11a1 1 0 0 1-1 1h-2M8 8h5M8 12h5M8 16h3'},
   { to: '/finance', label: 'nav.finance', icon: 'M3 7h18v12H3zM3 11h18M7 15h3M16 3l-4 4-4-4'},
   { to: '/settings', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1'},

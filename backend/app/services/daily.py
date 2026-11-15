@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.health import DailyMetrics, SleepSession
+from app.models.journal import JournalEntry
 from app.models.tasks import Task, TaskStatus
 from app.models.training import TrainingSession
 from app.services import analysis, health, nutrition, training
@@ -40,6 +41,8 @@ class DayRow:
     weight_kg: float | None = None
     first_event: str | None = None  # "08:00 Vorlesung"
     tasks_done: int = 0
+    mood: int | None = None  # journal, 1 to 5
+    energy: int | None = None
 
 
 def _round(value: float | None) -> int | None:
@@ -125,5 +128,13 @@ def daily_rows(session: Session, days: int, today: date | None = None) -> list[D
             done[day] += 1
     for day, count in done.items():
         rows[day].tasks_done = count
+
+    for entry in session.scalars(
+        select(JournalEntry).where(
+            JournalEntry.local_date >= since, JournalEntry.local_date <= until
+        )
+    ):
+        rows[entry.local_date].mood = entry.mood
+        rows[entry.local_date].energy = entry.energy
 
     return [rows[d] for d in sorted(rows)]

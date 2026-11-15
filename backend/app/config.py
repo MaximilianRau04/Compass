@@ -164,6 +164,10 @@ class Settings(BaseSettings):
     push_bedtime_lead_minutes: int = 30
     # A task with a time is announced this long before it; 0 turns that off.
     push_task_lead_minutes: int = 30
+    # A source that keeps failing this long is reported; 0 turns that off.
+    sync_alert_hours: int = 6
+    # The health bridge sent nothing for this long; 0 turns that off.
+    health_silent_hours: int = 12
 
     # The latest bedtime: up this long before the first appointment, before that this much sleep
     # and this long to fall asleep.

@@ -8,6 +8,8 @@ from sqlalchemy import select
 
 from app.config import get_settings
 from app.ingestion import calendar
+from app.models.finance import BankConnection
+from app.models.integrations import IntegrationState
 from app.models.push import PushSubscription
 from app.models.tasks import Task, TaskStatus
 from app.services import notify, push
@@ -220,6 +222,71 @@ def test_notifications_in_german(session, sent, monkeypatch):
     assert sent[-1][1].body == "Morgen 08:00 Vorlesung, aufstehen 06:00. Für 7,5 h Schlaf."
     assert notify.check_deadlines(session, at(TODAY, "21:41")) == 1
     assert sent[-1][1].title == "Fällig morgen 12:00"
+
+
+def failing_state(session, name, since, error="HTTP 503 Service Unavailable"):
+    session.add(IntegrationState(name=name, stats={}, last_success_at=since, last_error=error))
+    session.flush()
+
+
+def test_a_source_failing_for_hours_is_reported_once(session, sent):
+    device(session)
+    now = at(TODAY, "12:00")
+    failing_state(session, "calendar:uni", now - timedelta(hours=2))
+    assert notify.check_sync(session, now) == 0
+    now = at(TODAY, "18:30")
+    assert notify.check_sync(session, now) == 1
+    [(_, message)] = sent
+    assert message.title == "calendar:uni is not syncing"
+    assert "HTTP 503" in message.body
+    assert notify.check_sync(session, now + timedelta(minutes=5)) == 0
+
+
+def test_uploads_and_working_sources_are_not_reported(session, sent):
+    device(session)
+    now = at(TODAY, "12:00")
+    failing_state(session, "strong", now - timedelta(days=3))
+    failing_state(session, "news:hn", now - timedelta(days=3), error=None)
+    assert notify.check_sync(session, now) == 0
+
+
+def test_a_bank_is_reported_only_after_a_second_failed_sync(session, sent):
+    device(session)
+    now = at(TODAY, "12:00")
+    hours = get_settings().finance_sync_hours
+    session.add(
+        BankConnection(
+            aspsp_name="Sparkasse",
+            aspsp_country="DE",
+            status="active",
+            last_sync_at=now - timedelta(hours=hours, minutes=-10),
+            last_error="HTTP 500",
+        )
+    )
+    session.flush()
+    # One failed try after the last good one: not yet.
+    assert notify.check_sync(session, now) == 0
+    # The second try failed too: reported once two intervals have passed since the good one.
+    assert notify.check_sync(session, now + timedelta(hours=hours)) == 0
+    assert notify.check_sync(session, now + timedelta(hours=hours, minutes=10)) == 1
+    assert sent[-1][1].title == "Sparkasse is not syncing"
+
+
+def test_a_silent_health_bridge_is_reported(session, sent, monkeypatch):
+    monkeypatch.setattr(get_settings(), "health_token", "token")
+    device(session)
+    now = at(TODAY, "12:00")
+    failing_state(session, "healthconnect", now - timedelta(hours=13), error=None)
+    assert notify.check_sync(session, now) == 1
+    assert sent[-1][1].title == "No health data"
+    assert "13 h" in sent[-1][1].body
+
+
+def test_no_sync_alerts_in_the_quiet_hours(session, sent):
+    device(session)
+    now = at(TODAY, "23:30")
+    failing_state(session, "mail:uni", now - timedelta(days=1))
+    assert notify.check_sync(session, now) == 0
 
 
 def test_no_bedtime_reminder_when_usually_in_bed_earlier(session, sent):

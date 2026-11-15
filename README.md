@@ -26,6 +26,11 @@ The screenshots show made-up data.
   important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
   from the phone.
+- **Journal:** one page per day with mood and energy (1 to 5) and a text, next to the day's sleep,
+  steps, food, training, completed tasks and briefs.
+- **Relations:** how closely two daily values go together (sleep and mood, training volume and the
+  resting heart rate the day after, calories and weight …), as Pearson's r over the days with both
+  values and a scatter chart; below 10 days there is no r.
 - **Health:** sleep with stages, sleep rhythm, resting heart rate, steps and zone 2 minutes from Health
   Connect, plus the latest bedtime before the next day's first appointment.
 - **Training:** strength training log with double progression, imports from Gym Day (Strong and Hevy
@@ -37,7 +42,8 @@ The screenshots show made-up data.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
 - **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
   banks in the EU and EEA, see the [note below](#finance).
-- **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access.
+- **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access,
+  and sources that keep failing or a health bridge that went silent.
 - **MCP server** for AI assistants, with OAuth: your assistant can read everything above, plan your week
   and write briefs that show up on the dashboard.
 
@@ -139,6 +145,9 @@ nothing. Warm-up sets are left out. Another app is one small parser in `app/inge
 The Strong and Hevy importers are experimental: they follow the known column layout of these exports but
 have not been tested with real files yet. If your export fails, please open an issue with its header row
 and a few lines of made-up data.
+
+A template can be planned on days of the week; on those days it shows up on the Today page and in
+`get_today`, struck through once a session with its name ran.
 
 The logger starts from a template you build yourself (exercises in order, sets and rest per exercise),
 from the last session with the same name, or empty. While it runs, a clock shows the duration, the screen
@@ -261,6 +270,7 @@ in developer mode, should work the same way.
 | Tasks | `get_today`, `get_deadlines`, `list_tasks`, `completed_tasks`, `get_task`, `list_areas`, `add_task`, `quick_add`, `update_task`, `add_task_note` (a dated paragraph in the notes), `complete_task` |
 | Calendar | `get_calendar` |
 | Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
+| Journal | `get_journal`, `write_journal` (appends to the day's text) |
 | Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
 | Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `daily_data` (one row per day across all areas) |
 | Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage`, `mail_to_task` |

@@ -12,6 +12,7 @@ from app.models.finance import (
 )
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
 from app.models.integrations import IntegrationState
+from app.models.journal import JournalEntry
 from app.models.mail import Email
 from app.models.news import Brief, NewsInterest, NewsItem
 from app.models.notes import Note
@@ -52,6 +53,7 @@ __all__ = [
     "HealthRecord",
     "HeartRateSample",
     "IntegrationState",
+    "JournalEntry",
     "NewsInterest",
     "NewsItem",
     "Note",

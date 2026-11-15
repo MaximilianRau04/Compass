@@ -1471,6 +1471,19 @@
         ],
         "title": "Deep Minutes"
        },
+       "energy": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Journal, 1 (drained) to 5 (full of energy)",
+        "title": "Energy"
+       },
        "first_event": {
         "anyOf": [
          {
@@ -1505,6 +1518,19 @@
          }
         ],
         "title": "Kcal Burned"
+       },
+       "mood": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Journal, 1 (bad) to 5 (great)",
+        "title": "Mood"
        },
        "nutrition_flags": {
         "description": "incomplete or same_as_previous_day: probably not what was eaten",
@@ -2657,6 +2683,98 @@
    },
    "title": "Deadlines"
   },
+  "get_journal": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "The user's journal: per day mood and energy (1 to 5) and a free text. Days without an\nentry are missing. Combine it with daily_data to see what goes along with good or bad days.",
+   "inputSchema": {
+    "properties": {
+     "days": {
+      "default": 14,
+      "description": "How many days back",
+      "maximum": 366,
+      "minimum": 1,
+      "title": "Days",
+      "type": "integer"
+     }
+    },
+    "title": "get_journalArguments",
+    "type": "object"
+   },
+   "name": "get_journal",
+   "outputSchema": {
+    "$defs": {
+     "JournalEntryOut": {
+      "properties": {
+       "date": {
+        "format": "date",
+        "title": "Date",
+        "type": "string"
+       },
+       "energy": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "1 (drained) to 5 (full of energy)",
+        "title": "Energy"
+       },
+       "mood": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "description": "1 (bad) to 5 (great)",
+        "title": "Mood"
+       },
+       "text": {
+        "title": "Text",
+        "type": "string"
+       }
+      },
+      "required": [
+       "date",
+       "mood",
+       "energy",
+       "text"
+      ],
+      "title": "JournalEntryOut",
+      "type": "object"
+     }
+    },
+    "properties": {
+     "count": {
+      "title": "Count",
+      "type": "integer"
+     },
+     "entries": {
+      "description": "Newest first",
+      "items": {
+       "$ref": "#/$defs/JournalEntryOut"
+      },
+      "title": "Entries",
+      "type": "array"
+     }
+    },
+    "required": [
+     "count",
+     "entries"
+    ],
+    "title": "JournalOut",
+    "type": "object"
+   },
+   "title": "Journal"
+  },
   "get_news_digest": {
    "annotations": {
     "openWorldHint": false,
@@ -3151,7 +3269,7 @@
     "openWorldHint": false,
     "readOnlyHint": true
    },
-   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, and tomorrow's first\nevent with the latest bedtime tonight.",
+   "description": "Get the user's day: overdue tasks, tasks due today, tasks planned for today,\ndeadlines in the next 7 days, what was completed today, today's events, tomorrow's first\nevent with the latest bedtime tonight, and the workouts planned for today.",
    "inputSchema": {
     "properties": {},
     "title": "get_todayArguments",
@@ -3374,6 +3492,14 @@
        "$ref": "#/$defs/TaskOut"
       },
       "title": "Overdue",
+      "type": "array"
+     },
+     "planned_workouts": {
+      "description": "Workouts planned for today's weekday, \" (done)\" once a session ran",
+      "items": {
+       "type": "string"
+      },
+      "title": "Planned Workouts",
       "type": "array"
      },
      "scheduled": {
@@ -7391,6 +7517,124 @@
     "type": "object"
    },
    "title": "Weekly review"
+  },
+  "write_journal": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Record how the user's day went, as the user said: mood and energy only when the user\nrated them, the text in the user's words. The text is appended to the day's entry, never\nreplacing what is there.",
+   "inputSchema": {
+    "properties": {
+     "day": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "YYYY-MM-DD, default today",
+      "title": "Day"
+     },
+     "energy": {
+      "anyOf": [
+       {
+        "maximum": 5,
+        "minimum": 1,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Energy"
+     },
+     "mood": {
+      "anyOf": [
+       {
+        "maximum": 5,
+        "minimum": 1,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Mood"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "maxLength": 20000,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Added as a new paragraph",
+      "title": "Text"
+     }
+    },
+    "title": "write_journalArguments",
+    "type": "object"
+   },
+   "name": "write_journal",
+   "outputSchema": {
+    "properties": {
+     "date": {
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+     },
+     "energy": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "1 (drained) to 5 (full of energy)",
+      "title": "Energy"
+     },
+     "mood": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "1 (bad) to 5 (great)",
+      "title": "Mood"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "date",
+     "mood",
+     "energy",
+     "text"
+    ],
+    "title": "JournalEntryOut",
+    "type": "object"
+   },
+   "title": "Write journal"
   }
  }
 }

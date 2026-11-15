@@ -10,7 +10,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -120,3 +120,5 @@ class WorkoutTemplate(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(120), unique=True)
     # [{"exercise_id": int | None, "name": str, "sets": int, "rest_seconds": int}]
     exercises: Mapped[list] = mapped_column(JSONB, server_default="[]")
+    # Days of the week it is planned on, 0 = Monday.
+    weekdays: Mapped[list[int]] = mapped_column(ARRAY(SmallInteger), server_default="{}")
