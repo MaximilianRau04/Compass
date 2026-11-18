@@ -34,8 +34,10 @@ function PairLabel({ c }: { c: Pick<Correlation, 'x' | 'y' | 'lag'> }) {
 
 function Detail({ pair, days }: { pair: Correlation; days: number }) {
   const { t, locale } = useI18n()
-  const data = useCorrelation(pair.x, pair.y, pair.lag, days).data
-  if (!data) return null
+  const result = useCorrelation(pair.x, pair.y, pair.lag, days)
+  if (result.isPending) return <p className="text-sm text-muted" role="status">{t('common.loading')}</p>
+  if (result.isError) return <p className="text-sm text-signal" role="alert">{t('corr.loadError')}</p>
+  const data = result.data
   const points = data.points.map((p) => ({
     key: p.date,
     x: p.x,
@@ -61,7 +63,8 @@ export function CorrelationsPage() {
   const [days, setDays] = useState(90)
   const list = useCorrelations(days)
   const [chosen, setChosen] = useState<Correlation | null>(null)
-  const pair = chosen ?? list.data?.find((c) => c.r !== null) ?? list.data?.[0] ?? null
+  const pair = list.data?.find((c) => chosen && c.x === chosen.x && c.y === chosen.y && c.lag === chosen.lag)
+    ?? list.data?.find((c) => c.r !== null) ?? list.data?.[0] ?? null
   const same = (a: Correlation, b: Correlation | null) => !!b && a.x === b.x && a.y === b.y && a.lag === b.lag
 
   return (
@@ -80,7 +83,8 @@ export function CorrelationsPage() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <ul className="divide-y divide-rule/60">
-          {list.isPending && <li className="py-2 font-mono text-sm text-muted">{t('common.loading')}</li>}
+          {list.isPending && <li className="py-2 font-mono text-sm text-muted" role="status">{t('common.loading')}</li>}
+          {list.isError && <li className="py-2 text-sm text-signal" role="alert">{t('corr.loadError')}</li>}
           {list.data?.length === 0 && <li className="py-2 text-sm text-muted">{t('corr.empty')}</li>}
           {list.data?.map((c) => (
             <li key={`${c.x}-${c.y}-${c.lag}`}>
