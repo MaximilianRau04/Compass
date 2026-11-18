@@ -349,6 +349,40 @@ def test_overview_task_and_dismiss(client, session, accounts):
     assert client.get("/api/mail/999999").status_code == 404
 
 
+def test_mail_content_is_fetched_only_on_demand(client, session, accounts, monkeypatch):
+    raw = raw_mail(body='<script>alert(1)</script><b>Hello</b>', html=True)
+    [row] = stored(session, accounts, {1: (raw, False)})
+    class ContentBox(FakeMailbox):
+        def message(self, uid, limit=20_000):
+            if uid not in self._mails():
+                return None
+            raw, seen = self._mails()[uid]
+            return imap.parse_message(uid, raw, seen, limit)
+
+    monkeypatch.setattr(imap, "Mailbox", ContentBox)
+
+    listed = client.get("/api/mail").json()
+    assert "text" not in listed[0] and "content" not in listed[0]
+    response = client.get(f"/api/mail/{row.id}/content")
+    assert response.status_code == 200
+    assert response.json() == {"text": "Hello", "attachments": [], "truncated": False}
+    assert client.get(f"/api/mail/{row.id}").json().get("text") is None
+
+    # Never display another message when the mailbox is renumbered or this UID vanishes.
+    ContentBox.folders["INBOX"]["uidvalidity"] = 8
+    assert client.get(f"/api/mail/{row.id}/content").status_code == 404
+    ContentBox.folders["INBOX"]["uidvalidity"] = 7
+    del ContentBox.folders["INBOX"]["mails"][1]
+    assert client.get(f"/api/mail/{row.id}/content").status_code == 404
+    assert client.get("/api/mail/999999/content").status_code == 404
+
+
+def test_content_requires_configured_account(client, session, accounts, monkeypatch):
+    [row] = stored(session, accounts, {1: (raw_mail(), False)})
+    monkeypatch.setattr(get_settings(), "mail_account_names", "")
+    assert client.get(f"/api/mail/{row.id}/content").status_code == 503
+
+
 def test_local_triage_endpoints(client, session, accounts):
     (uni,) = stored(session, accounts, {1: (raw_mail(), False)})
     gmail_box = mailbox({5: (raw_mail(subject="Gmail"), False)})

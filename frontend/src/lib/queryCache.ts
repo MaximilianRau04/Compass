@@ -31,6 +31,11 @@ export const persistOptions: Omit<PersistQueryClientOptions, 'queryClient'> = {
   persister: createSyncStoragePersister({ storage: storage(), key: 'compass-cache', throttleTime: 2000 }),
   maxAge: DAY,
   buster: __APP_BUILD__,
-  // Search answers are not kept: every query typed would stay in the storage for a day.
-  dehydrateOptions: { shouldDehydrateQuery: (query) => defaultShouldDehydrateQuery(query) && query.queryKey[0] !== 'search' },
+  // Search answers and on-demand mail bodies are not kept in localStorage.
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query) =>
+      defaultShouldDehydrateQuery(query) &&
+      query.queryKey[0] !== 'search' &&
+      !(query.queryKey[0] === 'mail' && query.queryKey[1] === 'content'),
+  },
 }

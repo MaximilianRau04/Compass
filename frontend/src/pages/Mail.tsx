@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
-import { pollSignIn, useDismissMail, useMail, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
+import { pollSignIn, useDismissMail, useMail, useMailContent, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
 import { useTodayDate } from '../api/tasks'
 import type { Mail, MailAccount, MailOverview, SignInStart } from '../api/types'
 import { SectionLabel } from '../components/Layout'
@@ -21,6 +21,8 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
   const sender = mail.from_name ?? mail.from_addr
   const pending = mail.triage === 'pending'
   const important = isImportant(mail)
+  const [expanded, setExpanded] = useState(false)
+  const content = useMailContent(mail.id, expanded)
   return (
     <li className={['py-3', important ? '-ml-3 border-l-2 border-brass pl-2.5' : '', mail.priority === 'low' && !important ? 'opacity-60' : ''].join(' ')}>
       <div className="flex items-baseline justify-between gap-3">
@@ -42,6 +44,22 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
         <p className="mt-1 font-mono text-2xs text-muted">
           {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
         </p>
+      )}
+      <button type="button" aria-expanded={expanded} className="mt-2 text-sm text-brass underline" onClick={() => setExpanded(!expanded)}>
+        {expanded ? t('mail.hideContent') : t('mail.showContent')}
+      </button>
+      {expanded && (
+        <div className="mt-2 rounded border border-rule p-3 text-sm" aria-live="polite">
+          {content.isPending && <p className="text-muted">{t('common.loading')}</p>}
+          {content.error && <p className="text-signal">{t('mail.contentError', { message: content.error.message })}</p>}
+          {content.data && (
+            <>
+              <div className="whitespace-pre-wrap break-words">{content.data.text || t('mail.emptyContent')}</div>
+              {content.data.truncated && <p className="mt-2 text-muted">{t('mail.truncated')}</p>}
+              {content.data.attachments.length > 0 && <p className="mt-2 text-muted">{t('mail.attachments')}: {content.data.attachments.join(', ')}</p>}
+            </>
+          )}
+        </div>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         {mail.needs_action && <span className="rounded-full border border-brass px-2 py-0.5 text-2xs text-brass">{t('mail.needsAction')}</span>}

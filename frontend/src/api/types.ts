@@ -321,6 +321,12 @@ export interface Mail {
   dismissed: boolean
 }
 
+export interface MailContent {
+  text: string
+  truncated: boolean
+  attachments: string[]
+}
+
 export interface MailAccount {
   account: string
   triage: string
