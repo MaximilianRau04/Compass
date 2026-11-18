@@ -168,6 +168,7 @@ function Months({ data }: { data: FinanceOverview }) {
       <div className="mt-3">
         <ColumnChart
           data={bars}
+          color="var(--chart)"
           ariaLabel={t('fin.months')}
           format={(v) => money(v)}
           tooltip={(d) => {

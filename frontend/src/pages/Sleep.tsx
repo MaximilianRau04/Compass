@@ -206,6 +206,9 @@ function Extras({ extras: raw, longLabel, dayLabel }: { extras: ExtraDay[]; long
               <p className="mb-1 text-sm text-muted">{t(`extra.${key}`)}</p>
               <LineChart
                 data={points}
+                color={key === 'heart_rate_variability' || key === 'heart_rate_variability_sdnn'
+                  ? 'var(--m-heart)'
+                  : key === 'distance' ? 'var(--m-steps)' : 'var(--m-sleep)'}
                 format={format[key]}
                 ariaLabel={t(`extra.${key}`)}
                 dayLabel={dayLabel}

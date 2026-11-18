@@ -265,6 +265,7 @@ function Weight() {
       <LineChart
         data={points}
         gapDays={45}
+        color="var(--m-food)"
         format={(v) => `${decimal(v, locale)} ${u.weightUnit}`}
         ariaLabel={t('nutrition.weight')}
         tooltip={(p) => (
