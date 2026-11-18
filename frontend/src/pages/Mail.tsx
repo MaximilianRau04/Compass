@@ -1,3 +1,4 @@
+import * as Dialog from '@radix-ui/react-dialog'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -10,7 +11,7 @@ import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { clockTime, localDay, pill, relativeDay } from '../lib/format'
 import { accountName, isImportant } from '../lib/mail'
-import { button, pageTitle } from '../lib/ui'
+import { button, overlay, pageTitle } from '../lib/ui'
 
 const DAYS = 14
 
@@ -21,46 +22,62 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
   const sender = mail.from_name ?? mail.from_addr
   const pending = mail.triage === 'pending'
   const important = isImportant(mail)
-  const [expanded, setExpanded] = useState(false)
-  const content = useMailContent(mail.id, expanded)
+  const [open, setOpen] = useState(false)
+  const content = useMailContent(mail.id, open)
   return (
     <li className={['py-3', important ? '-ml-3 border-l-2 border-brass pl-2.5' : '', mail.priority === 'low' && !important ? 'opacity-60' : ''].join(' ')}>
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate">
-          {!mail.seen && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-brass align-middle" aria-label={t('mail.unread')} />}
-          <span className={mail.seen ? '' : 'font-semibold'} title={mail.from_addr}>
-            {sender}
-          </span>
-        </p>
-        <p className="shrink-0 font-mono text-2xs text-muted">
-          {accountName(mail.account)} · {relativeDay(localDay(mail.received_at), today, t, locale)}{' '}
-          {clockTime(mail.received_at, locale)}
-        </p>
-      </div>
-      <p className="mt-0.5 font-medium">{mail.subject}</p>
-      {mail.summary ? (
-        <p className="mt-1 text-sm text-muted">{mail.summary}</p>
-      ) : (
-        <p className="mt-1 font-mono text-2xs text-muted">
-          {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
-        </p>
-      )}
-      <button type="button" aria-expanded={expanded} className="mt-2 text-sm text-brass underline" onClick={() => setExpanded(!expanded)}>
-        {expanded ? t('mail.hideContent') : t('mail.showContent')}
-      </button>
-      {expanded && (
-        <div className="mt-2 rounded border border-rule p-3 text-sm" aria-live="polite">
-          {content.isPending && <p className="text-muted">{t('common.loading')}</p>}
-          {content.error && <p className="text-signal">{t('mail.contentError', { message: content.error.message })}</p>}
-          {content.data && (
-            <>
-              <div className="whitespace-pre-wrap break-words">{content.data.text || t('mail.emptyContent')}</div>
-              {content.data.truncated && <p className="mt-2 text-muted">{t('mail.truncated')}</p>}
-              {content.data.attachments.length > 0 && <p className="mt-2 text-muted">{t('mail.attachments')}: {content.data.attachments.join(', ')}</p>}
-            </>
-          )}
-        </div>
-      )}
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger asChild>
+          <button type="button" className="block w-full min-w-0 rounded-md px-2 py-1 text-left transition-colors hover:bg-paper-raised focus-visible:outline-2 focus-visible:outline-brass">
+            <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="min-w-0 truncate">
+                {!mail.seen && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-brass align-middle" aria-label={t('mail.unread')} />}
+                <span className={mail.seen ? '' : 'font-semibold'} title={mail.from_addr}>{sender}</span>
+              </span>
+              <span className="font-mono text-2xs text-muted">
+                {accountName(mail.account)} · {relativeDay(localDay(mail.received_at), today, t, locale)}{' '}
+                {clockTime(mail.received_at, locale)}
+              </span>
+            </span>
+            <span className="mt-0.5 block break-words font-medium">{mail.subject}</span>
+            {mail.summary ? (
+              <span className="mt-1 block text-sm text-muted">{mail.summary}</span>
+            ) : (
+              <span className="mt-1 block font-mono text-2xs text-muted">
+                {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
+              </span>
+            )}
+          </button>
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className={overlay} />
+          <Dialog.Content
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-xl border border-rule bg-paper-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[min(42rem,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+            aria-describedby={undefined}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <Dialog.Title className="min-w-0 break-words text-xl font-semibold leading-snug">{mail.subject}</Dialog.Title>
+              <Dialog.Close className={button('quiet', 'sm')} aria-label={t('mail.close')}>×</Dialog.Close>
+            </div>
+            <dl className="mt-4 space-y-1 break-words text-sm">
+              <div><dt className="inline font-semibold">{t('mail.from')}: </dt><dd className="inline">{mail.from_name ? `${mail.from_name} <${mail.from_addr}>` : mail.from_addr}</dd></div>
+              {mail.account && <div><dt className="inline font-semibold">{t('mail.mailbox')}: </dt><dd className="inline">{mail.account}</dd></div>}
+              <div><dt className="inline font-semibold">{t('mail.date')}: </dt><dd className="inline">{new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(new Date(mail.received_at))}</dd></div>
+            </dl>
+            <div className="mt-4 border-t border-rule pt-4 text-sm" aria-live="polite">
+              {content.isPending && <p className="text-muted">{t('common.loading')}</p>}
+              {content.error && <p role="alert" className="text-signal">{t('mail.contentError', { message: content.error.message })}</p>}
+              {content.data && (
+                <>
+                  <div className="whitespace-pre-wrap break-words">{content.data.text || t('mail.emptyContent')}</div>
+                  {content.data.truncated && <p className="mt-2 text-muted">{t('mail.truncated')}</p>}
+                  {content.data.attachments.length > 0 && <p className="mt-2 break-words text-muted">{t('mail.attachments')}: {content.data.attachments.join(', ')}</p>}
+                </>
+              )}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         {mail.needs_action && <span className="rounded-full border border-brass px-2 py-0.5 text-2xs text-brass">{t('mail.needsAction')}</span>}
         {mail.task_title && !mail.task_id && <span className="text-label">→ {mail.task_title}</span>}
