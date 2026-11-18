@@ -135,7 +135,7 @@ export function Layout() {
         aria-label={t('nav.main')}
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-rule bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:sticky sm:top-0 sm:h-dvh sm:w-52 sm:flex-col sm:border-t-0 sm:border-r sm:bg-transparent sm:px-4 sm:py-6 sm:pb-6"
       >
-        <span className="mb-8 hidden px-2 font-display text-lg font-semibold tracking-[0.35em] text-ink sm:block">
+        <span className="mb-8 hidden px-2 text-sm font-semibold tracking-[0.2em] text-ink sm:block">
           COMPASS
         </span>
         <button
@@ -185,7 +185,7 @@ export function SectionLabel({ children, count, tone }: { children: string; coun
   return (
     <h2
       className={[
-        'flex items-baseline gap-2 border-b border-rule pb-1 font-display text-label font-semibold tracking-[0.18em] uppercase',
+        'flex items-baseline gap-2 border-b border-rule pb-1 text-label font-semibold tracking-[0.08em] uppercase',
         tone === 'signal' ? 'text-signal' : 'text-muted',
       ].join(' ')}
     >

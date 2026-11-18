@@ -5,6 +5,7 @@ import { useQuickNote } from '../api/notes'
 import { useQuickAdd, useQuickAddPreview } from '../api/tasks'
 import { useI18n } from '../i18n/context'
 import { AREA_TEXT, recurrenceLabel, relativeDay, shortTime } from '../lib/format'
+import { button } from '../lib/ui'
 
 // "notiz: ..." or "note: ..." makes a note instead of a task.
 const NOTE_PREFIX = /^\s*(?:notiz|note)\s*:\s*/i
@@ -97,7 +98,7 @@ export function QuickAdd({
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-rule bg-paper-raised shadow-[0_8px_24px_-12px_rgb(0_0_0/0.35)] transition-colors focus-within:border-brass">
+    <form onSubmit={submit} className="rounded-md border border-rule bg-paper-raised transition-colors focus-within:border-brass">
       <label htmlFor="quick-add" className="sr-only">
         {t('quick.label')}
       </label>
@@ -118,7 +119,7 @@ export function QuickAdd({
         <button
           type="submit"
           disabled={!text.trim() || create.isPending || createNote.isPending}
-          className="rounded-md bg-brass px-3 py-1.5 font-display text-sm font-semibold tracking-wide text-brass-ink uppercase transition-opacity disabled:opacity-30"
+          className={button('primary', 'sm')}
         >
           {t('quick.submit')}
         </button>

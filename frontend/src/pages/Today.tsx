@@ -147,7 +147,7 @@ function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   return (
     <details className="border-t border-rule pt-3">
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
-        <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
+        <span className="text-label font-semibold tracking-[0.08em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
         <span className="font-mono text-2xs text-muted">{clockTime(brief.updated_at, locale)}</span>
       </summary>
       <Markdown text={brief.body} className="mt-2" />
@@ -169,7 +169,7 @@ function OtherBriefs({ briefs, weekly, today }: { briefs: Brief[] | undefined; w
       {others.map((brief) => (
         <details key={brief.id} className="border-t border-rule pt-3">
           <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
-            <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
+            <span className="text-label font-semibold tracking-[0.08em] text-muted uppercase">{brief.title ?? brief.kind}</span>
             <span className="font-mono text-2xs text-muted">
               {brief.local_date === today ? clockTime(brief.updated_at, locale) : relativeDay(brief.local_date, today, t, locale)}
             </span>

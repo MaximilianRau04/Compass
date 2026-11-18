@@ -9,7 +9,7 @@
    or the system's one. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Warm paper and neutral ink keep interface chrome quiet; accents belong to actions and data. */
+/* Quiet neutral surfaces; one restrained interaction accent, distinct colors only for data. */
 @theme {
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
@@ -52,15 +52,14 @@
 }
 
 :root {
-  --paper: #f5f3ee;
-  --paper-raised: #fcfbf8;
-  --ink: #252823;
-  --muted: #60675e;
-  --rule: #d9ddd3;
-  /* brass is the accent, one of these chosen in the settings. Each reaches 4.5:1 as text on
-     paper and paper-raised and with brass-ink on it, in both designs (validated); so does signal
-     as text. */
-  --accent-brass: #906623;
+  --paper: #f2f4f5;
+  --paper-raised: #ffffff;
+  --ink: #202b33;
+  --muted: #586874;
+  --rule: #d5dee3;
+  /* Interaction accent (historically named brass) is independent of chart series.
+     All accent choices and signal meet 4.5:1 on both light surfaces. */
+  --accent-brass: #2f626c;
   --accent-sea: #1f7268;
   --accent-blue: #2f5f8a;
   --accent-violet: #6b4fa8;
@@ -88,16 +87,16 @@
 }
 
 :root[data-theme='dark'] {
-  --paper: #171b18;
-  --paper-raised: #202620;
-  --ink: #e9ebe4;
-  --muted: #a3aca1;
-  --rule: #384238;
-  --accent-brass: #d3a04e;
+  --paper: #152129;
+  --paper-raised: #1c2b34;
+  --ink: #e7eef0;
+  --muted: #a4b5bd;
+  --rule: #334650;
+  --accent-brass: #7fbcb7;
   --accent-sea: #4fb3a3;
   --accent-blue: #7aa7d4;
   --accent-violet: #a897dc;
-  --brass-ink: #14202b;
+  --brass-ink: #152129;
   --signal: #f06a6f;
   --sea: #5fb8a9;
   --chart: #22a892;
