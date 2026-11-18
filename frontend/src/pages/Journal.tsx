@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { type JournalDay, useJournal, useJournalDay, useSaveJournal } from '../api/journal'
@@ -85,7 +85,7 @@ function Editor({ day, data }: { day: string; data: JournalDay }) {
       </div>
       <label className="block">
         <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.text')}</span>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} placeholder={t('journal.placeholder')} className={field} />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={20000} placeholder={t('journal.placeholder')} className={field} />
       </label>
       <button type="submit" disabled={save.isPending} className={button('primary')}>
         {t('journal.save')}
@@ -121,6 +121,7 @@ export function JournalPage() {
           </button>
         </div>
       </header>
+      <p className="mb-6 max-w-2xl text-sm leading-relaxed text-muted">{t('journal.intro')} <Link to="/correlations" className="text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">{t('journal.correlationsLink')} →</Link></p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="space-y-8">

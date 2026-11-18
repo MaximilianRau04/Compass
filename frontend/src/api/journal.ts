@@ -45,6 +45,11 @@ export function useSaveJournal() {
   return useMutation({
     // null: the day has no entry (nothing left in it).
     mutationFn: ({ day, data }: { day: string; data: JournalWrite }) => put<JournalEntry | null>(`/journal/${day}`, data),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['journal'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['journal'] })
+      void client.invalidateQueries({ queryKey: ['habits'] })
+      void client.invalidateQueries({ queryKey: ['correlations'] })
+      void client.invalidateQueries({ queryKey: ['today'] })
+    },
   })
 }
