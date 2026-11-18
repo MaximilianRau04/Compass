@@ -350,8 +350,9 @@ def test_overview_task_and_dismiss(client, session, accounts):
 
 
 def test_mail_content_is_fetched_only_on_demand(client, session, accounts, monkeypatch):
-    raw = raw_mail(body='<script>alert(1)</script><b>Hello</b>', html=True)
+    raw = raw_mail(body="<script>alert(1)</script><b>Hello</b>", html=True)
     [row] = stored(session, accounts, {1: (raw, False)})
+
     class ContentBox(FakeMailbox):
         def message(self, uid, limit=20_000):
             if uid not in self._mails():

@@ -318,11 +318,11 @@ def test_campus_timetable_defaults_to_uni_area(client, session, monkeypatch):
     events = client.get(
         "/api/calendar", params={"start": today.isoformat(), "end": today.isoformat()}
     ).json()
-    assert {e["feed"]: e["area"] for e in events} == {
-        "campus": "uni", "uni": "uni", "google": None
-    }
+    assert {e["feed"]: e["area"] for e in events} == {"campus": "uni", "uni": "uni", "google": None}
     assert {e["feed"]: e["area"] for e in client.get("/api/today").json()["events"]} == {
-        "campus": "uni", "uni": "uni", "google": None
+        "campus": "uni",
+        "uni": "uni",
+        "google": None,
     }
 
 
