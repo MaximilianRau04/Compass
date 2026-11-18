@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.config import DEFAULT_CALENDAR_AREAS, get_settings
 from app.models.calendar import CalendarEvent
 from app.models.feeds import Feed
 from app.models.news import NewsItem
@@ -44,7 +44,11 @@ def deadline_patterns(session: Session) -> dict[str, re.Pattern]:
 
 def calendar_areas(session: Session) -> dict[str, str]:
     rows = _rows(session, CALENDAR)
-    return {n: row.area for n, row in rows.items() if row.area} | get_settings().calendar_area_map
+    return (
+        DEFAULT_CALENDAR_AREAS
+        | {n: row.area for n, row in rows.items() if row.area}
+        | get_settings().calendar_area_map
+    )
 
 
 def news(session: Session) -> list[tuple[str, str, str]]:

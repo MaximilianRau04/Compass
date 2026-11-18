@@ -24,6 +24,8 @@ class MailAccount:
 ENV_FILES = ("../.env", ".env")
 # Hosts that are the same for everybody, so the variable can stay unset.
 KNOWN_IMAP_HOSTS = {"gmail": "imap.gmail.com"}
+# Standard university timetable feed names get an area without requiring manual feed setup.
+DEFAULT_CALENDAR_AREAS = {"campus": "uni", "uni": "uni"}
 # Logins other than a password, and the IMAP host each one uses unless <NAME>_IMAP_HOST is set.
 # Microsoft 365 and Outlook.com share one IMAP host.
 MAIL_AUTH_HOSTS = {"password": "", "microsoft": "outlook.office365.com"}

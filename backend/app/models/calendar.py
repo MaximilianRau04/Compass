@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, column_property, mapped_column
 
-from app.config import get_settings
+from app.config import DEFAULT_CALENDAR_AREAS, get_settings
 from app.models.base import Base, TimestampMixin
 from app.models.feeds import Feed
 
@@ -38,4 +38,8 @@ class CalendarEvent(TimestampMixin, Base):
     @property
     def area_slug(self) -> str | None:
         """The area of its calendar, e.g. study for a university timetable."""
-        return get_settings().calendar_area_map.get(self.feed) or self.feed_area
+        return (
+            get_settings().calendar_area_map.get(self.feed)
+            or self.feed_area
+            or DEFAULT_CALENDAR_AREAS.get(self.feed)
+        )

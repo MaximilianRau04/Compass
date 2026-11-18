@@ -307,6 +307,25 @@ def test_a_new_export_timestamp_is_not_a_change(session):
     assert again["updated"] == 0
 
 
+def test_campus_timetable_defaults_to_uni_area(client, session, monkeypatch):
+    monkeypatch.setattr(get_settings(), "calendar_feed_areas", "")
+    today = local_today()
+    for feed in ("campus", "uni"):
+        calendar.sync_feed(
+            session, feed, ics(vevent(feed, "Vorlesung", stamp(today, "1000"))), today
+        )
+    calendar.sync_feed(session, "google", ics(vevent("m", "Kino", stamp(today, "2000"))), today)
+    events = client.get(
+        "/api/calendar", params={"start": today.isoformat(), "end": today.isoformat()}
+    ).json()
+    assert {e["feed"]: e["area"] for e in events} == {
+        "campus": "uni", "uni": "uni", "google": None
+    }
+    assert {e["feed"]: e["area"] for e in client.get("/api/today").json()["events"]} == {
+        "campus": "uni", "uni": "uni", "google": None
+    }
+
+
 def test_events_take_the_area_of_their_calendar(client, session, monkeypatch):
     monkeypatch.setattr(get_settings(), "calendar_feed_areas", "campus=study")
     today = local_today()
