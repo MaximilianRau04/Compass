@@ -311,6 +311,7 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
   const { t } = useI18n()
   const merge = useMergeExercise()
   const [targets, setTargets] = useState<Record<number, number>>({})
+  const [confirm, setConfirm] = useState<{ source: Exercise; target: Exercise } | null>(null)
   return (
     <details>
       <summary className="cursor-pointer list-none">
@@ -350,15 +351,10 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
                   <button
                     type="button"
                     disabled={merge.isPending}
-                    onClick={() =>
-                      merge.mutate(
-                        { id: exercise.id, into: target },
-                        {
-                          onSuccess: (result) => toast(t('training.merged', { from: exercise.name, to: result.name })),
-                          onError: (error) => toast.error(error.message),
-                        },
-                      )
-                    }
+                    onClick={() => {
+                      const destination = exercises.find((item) => item.id === target)
+                      if (destination) setConfirm({ source: exercise, target: destination })
+                    }}
                     className={button('secondary', 'sm')}
                   >
                     {t('training.merge')}
@@ -369,6 +365,20 @@ function MergeExercises({ exercises }: { exercises: Exercise[] }) {
           )
         })}
       </ul>
+      <ConfirmDialog
+        open={confirm !== null}
+        onOpenChange={(open) => { if (!open) setConfirm(null) }}
+        title={t('training.mergeConfirmTitle')}
+        description={confirm && t('training.mergeConfirmText', { from: confirm.source.name, to: confirm.target.name })}
+        confirm={t('training.merge')}
+        onConfirm={() => {
+          if (!confirm) return
+          merge.mutate({ id: confirm.source.id, into: confirm.target.id }, {
+            onSuccess: (result) => toast(t('training.merged', { from: confirm.source.name, to: result.name })),
+            onError: (error) => toast.error(error.message),
+          })
+        }}
+      />
     </details>
   )
 }
