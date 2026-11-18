@@ -20,13 +20,13 @@ export default defineConfig({
       manifest: {
         name: 'Compass',
         short_name: 'Compass',
-        description: 'Tasks, deadlines and your day at a glance',
-        lang: 'en',
+        description: 'Aufgaben, Termine und deinen Tag im Blick',
+        lang: 'de',
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        background_color: '#EEF2F0',
-        theme_color: '#14202B',
+        background_color: '#F5F3EE',
+        theme_color: '#252823',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

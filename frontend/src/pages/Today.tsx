@@ -145,7 +145,7 @@ function DailyBrief({ brief }: { brief: Brief | null | undefined }) {
   const { t, locale } = useI18n()
   if (!brief) return null
   return (
-    <details open className="rise rounded-md border border-rule bg-paper-raised px-4 py-3" style={{ '--i': 3 } as CSSProperties}>
+    <details className="border-t border-rule pt-3">
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
         <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? t('today.brief')}</span>
         <span className="font-mono text-2xs text-muted">{clockTime(brief.updated_at, locale)}</span>
@@ -167,7 +167,7 @@ function OtherBriefs({ briefs, weekly, today }: { briefs: Brief[] | undefined; w
   return (
     <div className="space-y-2">
       {others.map((brief) => (
-        <details key={brief.id} className="rounded-md border border-rule px-4 py-3">
+        <details key={brief.id} className="border-t border-rule pt-3">
           <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3">
             <span className="font-display text-label font-semibold tracking-[0.18em] text-muted uppercase">{brief.title ?? brief.kind}</span>
             <span className="font-mono text-2xs text-muted">
@@ -209,7 +209,7 @@ function TopNews({ overview, today }: { overview: NewsOverview | undefined; toda
         <SectionLabel>{t('today.news')}</SectionLabel>
       </Link>
       <ul className="mt-1 divide-y divide-rule/60">
-        {overview.top.map((item) => (
+        {overview.top.slice(0, 2).map((item) => (
           <li key={item.id} className="py-2">
             <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-brass">
               {item.title}

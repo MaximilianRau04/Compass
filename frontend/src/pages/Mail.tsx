@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
-import { pollSignIn, useDismissMail, useMail, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
+import { pollSignIn, useDismissMail, useMail, useMailContent, useMailOverview, useMails, useMailToTask, useSignOut, useStartSignIn, useSyncMail } from '../api/mail'
 import { useTodayDate } from '../api/tasks'
 import type { Mail, MailAccount, MailOverview, SignInStart } from '../api/types'
 import { SectionLabel } from '../components/Layout'
@@ -21,6 +21,8 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
   const sender = mail.from_name ?? mail.from_addr
   const pending = mail.triage === 'pending'
   const important = isImportant(mail)
+  const [expanded, setExpanded] = useState(false)
+  const content = useMailContent(mail.id, expanded)
   return (
     <li className={['py-3', important ? '-ml-3 border-l-2 border-brass pl-2.5' : '', mail.priority === 'low' && !important ? 'opacity-60' : ''].join(' ')}>
       <div className="flex items-baseline justify-between gap-3">
@@ -42,6 +44,22 @@ function MailItem({ mail, today, local }: { mail: Mail; today: string; local: bo
         <p className="mt-1 font-mono text-2xs text-muted">
           {pending ? (local ? t('mail.pendingLocal') : t('mail.pending')) : t('mail.noSummary')}
         </p>
+      )}
+      <button type="button" aria-expanded={expanded} className="mt-2 text-sm text-brass underline" onClick={() => setExpanded(!expanded)}>
+        {expanded ? t('mail.hideContent') : t('mail.showContent')}
+      </button>
+      {expanded && (
+        <div className="mt-2 rounded border border-rule p-3 text-sm" aria-live="polite">
+          {content.isPending && <p className="text-muted">{t('common.loading')}</p>}
+          {content.error && <p className="text-signal">{t('mail.contentError', { message: content.error.message })}</p>}
+          {content.data && (
+            <>
+              <div className="whitespace-pre-wrap break-words">{content.data.text || t('mail.emptyContent')}</div>
+              {content.data.truncated && <p className="mt-2 text-muted">{t('mail.truncated')}</p>}
+              {content.data.attachments.length > 0 && <p className="mt-2 text-muted">{t('mail.attachments')}: {content.data.attachments.join(', ')}</p>}
+            </>
+          )}
+        </div>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         {mail.needs_action && <span className="rounded-full border border-brass px-2 py-0.5 text-2xs text-brass">{t('mail.needsAction')}</span>}
@@ -194,26 +212,33 @@ function SignIn({ account }: { account: MailAccount }) {
 function Accounts({ overview, today }: { overview: MailOverview; today: string }) {
   const { t, locale } = useI18n()
   return (
-    <ul className="mb-6 space-y-1 font-mono text-2xs text-muted">
+    <section className="mb-6" aria-label={t('mail.sources')}>
+      <h2 className="mb-2 font-display text-lg font-semibold">{t('mail.sources')}</h2>
+      <p className="mb-3 text-xs text-muted">{t('mail.sourceHint')}</p>
+      <ul className="space-y-2 text-sm">
       {overview.accounts.map((a) => {
         const needsSignIn = a.auth !== 'password' && a.signed_in === false
         return (
-          <li key={a.account}>
-            {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
-            {a.last_success_at
-              ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
-              : t('mail.syncNever')}
-            {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
+          <li key={a.account} className="min-w-0 border-b border-rule/60 pb-2 last:border-0">
+            <p className="min-w-0 break-words font-medium text-ink">{accountName(a.account)}</p>
+            <p className="text-muted">
+              {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
+              {a.last_success_at
+                ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
+                : t('mail.syncNever')}
+              {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
+            </p>
             {needsSignIn ? (
-              <span className="block text-signal">{a.signin_error ? t('mail.signin.error', { message: a.signin_error }) : t('mail.signin.needed')}</span>
+              <span className="block break-words text-signal">{a.signin_error ? t('mail.signin.error', { message: a.signin_error }) : t('mail.signin.needed')}</span>
             ) : (
-              a.last_error && <span className="block text-signal">{t('mail.syncError', { message: a.last_error })}</span>
+              a.last_error && <span className="block break-words text-signal">{t('mail.syncError', { message: a.last_error })}</span>
             )}
             {a.auth !== 'password' && <SignIn account={a} />}
           </li>
         )
       })}
-    </ul>
+      </ul>
+    </section>
   )
 }
 
@@ -273,7 +298,8 @@ export function MailPage() {
           sync.mutate(undefined, {
             onSuccess: (result) => {
               const created = Object.values(result).reduce<number>((n, r) => n + (typeof r === 'object' && r && 'new' in r ? Number(r.new) : 0), 0)
-              toast(t('mail.fetched', { n: created }))
+              const failed = Object.values(result).filter((r) => typeof r === 'string').length
+              toast(failed ? t('mail.fetchPartial', { n: failed }) : t('mail.fetched', { n: created }))
             },
             onError: (error) => toast.error(error.message),
           })
@@ -349,7 +375,11 @@ export function MailPage() {
         </section>
       )}
 
-      {rest.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
+      {rest.length === 0 && (
+        <p className="text-muted">
+          {dismissed ? t('mail.nothingDismissed') : filter !== 'all' ? t('mail.nothingFiltered') : t('mail.nothing')}
+        </p>
+      )}
       <div className="space-y-8">
         <ByDay mails={rest} today={today} local={local} />
         <p className="max-w-xl text-sm text-muted">{t('mail.hint')}</p>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, del, post } from './client'
-import type { Mail, MailOverview, SignInPoll, SignInStart, Task } from './types'
+import type { Mail, MailContent, MailOverview, SignInPoll, SignInStart, Task } from './types'
 
 export function useMails(params: { days: number; account?: string; dismissed?: boolean }) {
   const query = new URLSearchParams({ days: String(params.days) })
@@ -13,6 +13,10 @@ export function useMails(params: { days: number; account?: string; dismissed?: b
 /** One mail by its id, for a link from the search: the list only reaches back some days. */
 export function useMail(id: number | null) {
   return useQuery({ queryKey: ['mail', 'one', id], queryFn: () => api<Mail>(`/mail/${id}`), enabled: id !== null, retry: false })
+}
+
+export function useMailContent(id: number, enabled: boolean) {
+  return useQuery({ queryKey: ['mail', 'content', id], queryFn: () => api<MailContent>(`/mail/${id}/content`), enabled, retry: false, staleTime: 0, gcTime: 0 })
 }
 
 export function useMailOverview() {

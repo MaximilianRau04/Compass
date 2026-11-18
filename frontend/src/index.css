@@ -9,7 +9,7 @@
    or the system's one. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Palette: a nautical chart. Paper, ink, brass for actions, signal red only for overdue. */
+/* Warm paper and neutral ink keep interface chrome quiet; accents belong to actions and data. */
 @theme {
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-sans: 'Instrument Sans Variable', system-ui, sans-serif;
@@ -52,11 +52,11 @@
 }
 
 :root {
-  --paper: #eef2f0;
-  --paper-raised: #f8faf9;
-  --ink: #14202b;
-  --muted: #5e6b74;
-  --rule: #d3dbd8;
+  --paper: #f5f3ee;
+  --paper-raised: #fcfbf8;
+  --ink: #252823;
+  --muted: #60675e;
+  --rule: #d9ddd3;
   /* brass is the accent, one of these chosen in the settings. Each reaches 4.5:1 as text on
      paper and paper-raised and with brass-ink on it, in both designs (validated); so does signal
      as text. */
@@ -88,11 +88,11 @@
 }
 
 :root[data-theme='dark'] {
-  --paper: #0f1a24;
-  --paper-raised: #15232f;
-  --ink: #e4ebe8;
-  --muted: #8d9aa3;
-  --rule: #26384a;
+  --paper: #171b18;
+  --paper-raised: #202620;
+  --ink: #e9ebe4;
+  --muted: #a3aca1;
+  --rule: #384238;
   --accent-brass: #d3a04e;
   --accent-sea: #4fb3a3;
   --accent-blue: #7aa7d4;

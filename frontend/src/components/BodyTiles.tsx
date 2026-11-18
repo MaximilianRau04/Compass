@@ -37,7 +37,7 @@ function Tile({
     <Link
       to={to}
       style={{ '--accent': accent, '--i': order } as CSSProperties}
-      className="rise group flex min-h-[8.75rem] flex-col rounded-lg border border-rule bg-paper-raised px-3.5 py-3 shadow-[0_1px_0_rgb(255_255_255/0.6)_inset,0_1px_2px_rgb(20_32_43/0.05)] transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-(--accent) hover:shadow-[0_6px_16px_-8px_rgb(20_32_43/0.25)] dark:shadow-none"
+      className="rise group flex min-h-[8.75rem] flex-col rounded-lg border border-rule bg-paper-raised px-3.5 py-3 transition-colors hover:border-(--accent)"
     >
       <span className="flex items-center justify-between text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">

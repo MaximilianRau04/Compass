@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useCreateNote, useNote, useUpdateNote } from '../api/notes'
@@ -7,6 +7,7 @@ import { useAreas } from '../api/tasks'
 import type { Note, NoteDraft } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { button, overlay } from '../lib/ui'
+import { ConfirmDialog } from './ConfirmDialog'
 import { Markdown } from './Markdown'
 
 const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-input focus:border-brass focus:outline-none'
@@ -36,8 +37,12 @@ function changes(before: Draft, draft: Draft): NoteDraft {
 export function NoteSheet({ noteId, initial, onClose }: { noteId: number | 'new' | null; initial?: Partial<Note>; onClose: () => void }) {
   const note = useNote(typeof noteId === 'number' ? noteId : null)
   const ready = noteId === 'new' || note.data
+  const { t } = useI18n()
+  const [dirty, setDirty] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const close = () => { if (dirty) setConfirm(true); else onClose() }
   return (
-    <Dialog.Root open={noteId !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={noteId !== null} onOpenChange={(open) => !open && close()}>
       <Dialog.Portal>
         <Dialog.Overlay className={overlay} />
         <Dialog.Content
@@ -45,15 +50,16 @@ export function NoteSheet({ noteId, initial, onClose }: { noteId: number | 'new'
           aria-describedby={undefined}
         >
           {ready && noteId !== null && (
-            <NoteForm key={noteId === 'new' ? 'new' : `${noteId}-${note.data?.updated_at}`} note={noteId === 'new' ? null : note.data!} initial={initial} onClose={onClose} />
+            <NoteForm key={noteId === 'new' ? 'new' : noteId} note={noteId === 'new' ? null : note.data!} initial={initial} onClose={onClose} onRequestClose={close} onDirtyChange={setDirty} />
           )}
         </Dialog.Content>
       </Dialog.Portal>
+      <ConfirmDialog open={confirm} onOpenChange={setConfirm} title={t('sheet.unsavedTitle')} description={t('sheet.unsavedText')} confirm={t('sheet.discardChanges')} onConfirm={() => { setDirty(false); onClose() }} />
     </Dialog.Root>
   )
 }
 
-function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Partial<Note>; onClose: () => void }) {
+function NoteForm({ note, initial, onClose, onRequestClose, onDirtyChange }: { note: Note | null; initial?: Partial<Note>; onClose: () => void; onRequestClose: () => void; onDirtyChange: (dirty: boolean) => void }) {
   const { t } = useI18n()
   const areas = useAreas()
   const create = useCreateNote()
@@ -66,6 +72,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
   const pending = changes(before, draft)
   const dirty = note === null || Object.keys(pending).length > 0
   const busy = create.isPending || update.isPending
+  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
 
   const done = (message: string) => {
     toast.success(message)
@@ -176,7 +183,7 @@ function NoteForm({ note, initial, onClose }: { note: Note | null; initial?: Par
         )}
         {note && note.source !== 'manual' && <span className="font-mono text-2xs text-muted">{t(`notes.source.${note.source}`)}</span>}
         <span className="flex-1" />
-        <Dialog.Close className={button('quiet')}>{t('sheet.close')}</Dialog.Close>
+        <button type="button" onClick={onRequestClose} className={button('quiet')}>{t('sheet.close')}</button>
         <button
           type="submit"
           disabled={!dirty || busy || !draft.title.trim()}

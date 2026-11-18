@@ -71,7 +71,7 @@ const ONE_OF: { [K in Exclude<keyof Preferences, 'hidden'>]: readonly Preference
 }
 
 // The page color of each design, for the browser bar (meta theme-color); the same as --paper.
-const PAPER = { light: '#EEF2F0', dark: '#0F1A24' }
+const PAPER = { light: '#F5F3EE', dark: '#171B18' }
 
 const darkQuery = () => window.matchMedia('(prefers-color-scheme: dark)')
 const reduceQuery = () => window.matchMedia('(prefers-reduced-motion: reduce)')

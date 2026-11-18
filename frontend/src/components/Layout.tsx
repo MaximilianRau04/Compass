@@ -29,6 +29,7 @@ const NAV: NavItem[] = [
   { to: '/settings', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1'},
 ]
 const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01'
+const DISCOVER_PAGES = ['/journal', '/correlations']
 // On the phone the bottom bar has room for five entries: the first four pages, then "More".
 const BAR_SIZE = 4
 
@@ -47,6 +48,22 @@ function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void 
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const active = items.some((item) => isAt(pathname, item.to))
+  const discover = items.filter((item) => DISCOVER_PAGES.includes(item.to))
+  const other = items.filter((item) => !DISCOVER_PAGES.includes(item.to))
+  const link = (item: NavItem) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      role="menuitem"
+      onClick={() => setOpen(false)}
+      className={({ isActive }) =>
+        ['flex items-center gap-3 rounded px-3 py-2.5 text-sm', isActive ? 'bg-paper text-ink' : 'text-muted hover:text-ink'].join(' ')
+      }
+    >
+      <Icon d={item.icon} />
+      {t(item.label)}
+    </NavLink>
+  )
   return (
     <div className="relative flex flex-1 sm:hidden">
       {open && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 cursor-default" onClick={() => setOpen(false)} />}
@@ -63,7 +80,7 @@ function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void 
         {t('nav.more')}
       </button>
       {open && (
-        <div role="menu" className="absolute right-2 bottom-full mb-2 w-48 rounded-md border border-rule bg-paper-raised p-1 shadow-lg">
+        <div role="menu" aria-label={t('nav.more')} className="absolute right-2 bottom-full mb-2 max-h-[calc(100dvh-5rem)] w-52 overflow-y-auto rounded-md border border-rule bg-paper-raised p-1 shadow-lg">
           <button
             type="button"
             role="menuitem"
@@ -76,20 +93,13 @@ function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void 
             <SearchIcon />
             {t('search.title')}
           </button>
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                ['flex items-center gap-3 rounded px-3 py-2.5 text-sm', isActive ? 'bg-paper text-ink' : 'text-muted hover:text-ink'].join(' ')
-              }
-            >
-              <Icon d={item.icon} />
-              {t(item.label)}
-            </NavLink>
-          ))}
+          {discover.length > 0 && (
+            <div className="border-y border-rule py-1">
+              <div className="px-3 py-1 font-mono text-2xs uppercase tracking-wider text-muted">{t('nav.discover')}</div>
+              {discover.map(link)}
+            </div>
+          )}
+          {other.map(link)}
         </div>
       )}
     </div>
@@ -103,7 +113,7 @@ export function Layout() {
   const wide = pathname === '/' || pathname.startsWith('/calendar')
   const { hidden } = usePreferences()
   const shown = NAV.filter((item) => !(hidden as string[]).includes(item.to))
-  const bar = shown.filter((item) => item.to !== '/settings').slice(0, BAR_SIZE)
+  const bar = shown.filter((item) => item.to !== '/settings' && !DISCOVER_PAGES.includes(item.to)).slice(0, BAR_SIZE)
   const [searching, setSearching] = useState(false)
   // Ctrl/Cmd+K everywhere, "/" when no field has the focus.
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { api } from './client'
 
@@ -23,6 +23,5 @@ export function useCorrelation(x: string, y: string, lag: number, days: number) 
   return useQuery({
     queryKey: ['correlations', 'pair', x, y, lag, days],
     queryFn: () => api<Correlation>(`/correlations/pair?${params}`),
-    placeholderData: keepPreviousData,
   })
 }

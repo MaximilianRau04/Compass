@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { type Correlation, useCorrelation, useCorrelations } from '../api/correlations'
 import { ScatterChart } from '../components/charts'
@@ -33,8 +34,10 @@ function PairLabel({ c }: { c: Pick<Correlation, 'x' | 'y' | 'lag'> }) {
 
 function Detail({ pair, days }: { pair: Correlation; days: number }) {
   const { t, locale } = useI18n()
-  const data = useCorrelation(pair.x, pair.y, pair.lag, days).data
-  if (!data) return null
+  const result = useCorrelation(pair.x, pair.y, pair.lag, days)
+  if (result.isPending) return <p className="text-sm text-muted" role="status">{t('common.loading')}</p>
+  if (result.isError) return <p className="text-sm text-signal" role="alert">{t('corr.loadError')}</p>
+  const data = result.data
   const points = data.points.map((p) => ({
     key: p.date,
     x: p.x,
@@ -48,6 +51,7 @@ function Detail({ pair, days }: { pair: Correlation; days: number }) {
         {t(strength(data.r))} · {t('corr.days', { n: data.n })}
         {data.r !== null && <span className="font-mono"> · r = {data.r.toLocaleString(locale)}</span>}
       </p>
+      {data.n < 10 && <p className="mt-2 text-sm text-muted">{t('corr.fewDays')}</p>}
       <ScatterChart points={points} xLabel={t(metric(data.x))} yLabel={t(metric(data.y))} format={(v) => v.toLocaleString(locale, { maximumFractionDigits: 1 })} />
     </section>
   )
@@ -59,7 +63,8 @@ export function CorrelationsPage() {
   const [days, setDays] = useState(90)
   const list = useCorrelations(days)
   const [chosen, setChosen] = useState<Correlation | null>(null)
-  const pair = chosen ?? list.data?.find((c) => c.r !== null) ?? list.data?.[0] ?? null
+  const pair = list.data?.find((c) => chosen && c.x === chosen.x && c.y === chosen.y && c.lag === chosen.lag)
+    ?? list.data?.find((c) => c.r !== null) ?? list.data?.[0] ?? null
   const same = (a: Correlation, b: Correlation | null) => !!b && a.x === b.x && a.y === b.y && a.lag === b.lag
 
   return (
@@ -74,11 +79,13 @@ export function CorrelationsPage() {
           ))}
         </div>
       </header>
-      <p className="mb-6 max-w-2xl text-sm text-muted">{t('corr.intro')}</p>
+      <p className="mb-6 max-w-2xl text-sm leading-relaxed text-muted">{t('corr.intro')} <Link to="/journal" className="text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">{t('corr.journalLink')} →</Link></p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <ul className="divide-y divide-rule/60">
-          {list.isPending && <li className="py-2 font-mono text-sm text-muted">{t('common.loading')}</li>}
+          {list.isPending && <li className="py-2 font-mono text-sm text-muted" role="status">{t('common.loading')}</li>}
+          {list.isError && <li className="py-2 text-sm text-signal" role="alert">{t('corr.loadError')}</li>}
+          {list.data?.length === 0 && <li className="py-2 text-sm text-muted">{t('corr.empty')}</li>}
           {list.data?.map((c) => (
             <li key={`${c.x}-${c.y}-${c.lag}`}>
               <button type="button" onClick={() => setChosen(c)} aria-pressed={same(c, pair)} className={`flex w-full items-baseline justify-between gap-3 py-2 text-left hover:text-brass ${same(c, pair) ? 'text-brass' : ''}`}>

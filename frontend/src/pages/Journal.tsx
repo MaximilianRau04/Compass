@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { type JournalDay, useJournal, useJournalDay, useSaveJournal } from '../api/journal'
@@ -8,6 +8,7 @@ import { Markdown } from '../components/Markdown'
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { addDays, longDate, toIsoDate } from '../lib/format'
+import { clearJournalDraft, loadJournalDraft, saveJournalDraft } from '../lib/journalDraft'
 import { button, pageTitle } from '../lib/ui'
 
 const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 focus:border-brass focus:outline-none'
@@ -68,15 +69,40 @@ function Numbers({ day }: { day: JournalDay }) {
 function Editor({ day, data }: { day: string; data: JournalDay }) {
   const { t } = useI18n()
   const save = useSaveJournal()
-  const [mood, setMood] = useState(data.entry?.mood ?? null)
-  const [energy, setEnergy] = useState(data.entry?.energy ?? null)
-  const [text, setText] = useState(data.entry?.text ?? '')
+  const [initial] = useState(() => loadJournalDraft(day, data.entry))
+  const [mood, setMood] = useState(initial.mood)
+  const [energy, setEnergy] = useState(initial.energy)
+  const [text, setText] = useState(initial.text)
+  const [saved, setSaved] = useState(false)
+  const [draftStored, setDraftStored] = useState(false)
+  const dirty = mood !== (data.entry?.mood ?? null) || energy !== (data.entry?.energy ?? null) || text !== (data.entry?.text ?? '')
+  useEffect(() => {
+    if (saved) return
+    if (dirty) setDraftStored(saveJournalDraft(day, { mood, energy, text }, data.entry?.updated_at ?? null))
+    else {
+      clearJournalDraft(day)
+      setDraftStored(false)
+    }
+  }, [day, mood, energy, text, dirty, saved, data.entry?.updated_at])
+  useEffect(() => {
+    if (!dirty || draftStored || saved) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty, draftStored, saved])
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault()
-        save.mutate({ day, data: { mood, energy, text } }, { onSuccess: () => toast(t('journal.saved')), onError: (error) => toast.error(error.message) })
+        save.mutate({ day, data: { mood, energy, text } }, {
+          onSuccess: () => {
+            setSaved(true)
+            clearJournalDraft(day)
+            toast(t('journal.saved'))
+          },
+          onError: (error) => toast.error(error.message),
+        })
       }}
     >
       <div className="flex flex-wrap gap-6">
@@ -85,11 +111,14 @@ function Editor({ day, data }: { day: string; data: JournalDay }) {
       </div>
       <label className="block">
         <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.text')}</span>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} placeholder={t('journal.placeholder')} className={field} />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={20000} placeholder={t('journal.placeholder')} className={field} />
       </label>
-      <button type="submit" disabled={save.isPending} className={button('primary')}>
-        {t('journal.save')}
-      </button>
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={save.isPending || saved || !dirty} className={button('primary')}>
+          {t('journal.save')}
+        </button>
+        {dirty && !saved && <span className="text-label text-muted">{t(draftStored ? 'journal.draftSaved' : 'journal.draftUnavailable')}</span>}
+      </div>
     </form>
   )
 }
@@ -121,6 +150,7 @@ export function JournalPage() {
           </button>
         </div>
       </header>
+      <p className="mb-6 max-w-2xl text-sm leading-relaxed text-muted">{t('journal.intro')} <Link to="/correlations" className="text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">{t('journal.correlationsLink')} →</Link></p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="space-y-8">

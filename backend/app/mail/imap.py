@@ -389,7 +389,10 @@ class Mailbox:
         query = f"(UID FLAGS BODY.PEEK[]<0.{BODY_BYTES}>)"
         _, data = self.conn.uid("FETCH", str(uid), query)
         for item in data:
-            if isinstance(item, tuple):
+            if not isinstance(item, tuple):
+                continue
+            match = _UID.search(item[0])
+            if match and int(match.group(1)) == uid:
                 flags = _FLAGS.search(item[0])
                 seen = bool(flags and b"\\Seen" in flags.group(1))
                 return parse_message(uid, item[1], seen, limit)

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { toast } from 'sonner'
 
-import { useCalendar } from '../api/calendar'
+import { useCalendar, useIntegrations, useSyncCalendars } from '../api/calendar'
 import { useAreas, useTasks, useTodayDate } from '../api/tasks'
 import type { CalendarEvent, Task } from '../api/types'
-import { CalendarAgenda, DayList, SyncStatus } from '../components/CalendarAgenda'
+import { CalendarAgenda, DayList } from '../components/CalendarAgenda'
 import { EventSheet } from '../components/calendar/EventSheet'
 import { MonthView } from '../components/calendar/MonthView'
 import { WeekView } from '../components/calendar/WeekView'
@@ -105,6 +106,10 @@ export function CalendarPage() {
   const showsToday = view === 'month' ? anchor.slice(0, 7) === today.slice(0, 7) : start <= today && today <= end
 
   const events = useCalendar(start, end)
+  const integrations = useIntegrations()
+  const sync = useSyncCalendars()
+  const calendarStates = integrations.data?.filter((state) => state.name.startsWith('calendar:')) ?? []
+  const configError = integrations.data?.find((state) => state.name === 'calendar:config')?.last_error
   const tasks = useTasks({ status: ['open', 'in_progress'], areaId })
   const areas = useAreas()
   // The area filter applies to events too: those of calendars mapped to the area.
@@ -213,7 +218,47 @@ export function CalendarPage() {
         <CalendarAgenda days={days} events={eventList} tasks={taskList} today={today} onOpen={setOpenTask} onOpenEvent={setOpenEvent} />
       )}
 
-      <SyncStatus />
+      <section className="mt-10 border-t border-rule pt-4" aria-label={t('cal.sources')}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold">{t('cal.sources')}</h2>
+          <button
+            type="button"
+            disabled={sync.isPending}
+            className="text-sm text-brass hover:underline disabled:opacity-50"
+            onClick={() => sync.mutate(undefined, {
+              onSuccess: (result) => {
+                const failed = Object.values(result).filter((value) => typeof value === 'string').length
+                toast(failed ? t('cal.syncPartial', { n: failed }) : t('cal.synced'))
+              },
+              onError: (error) => toast.error(error.message),
+            })}
+          >
+            {sync.isPending ? t('cal.syncing') : t('cal.sync')}
+          </button>
+        </div>
+        {integrations.isPending && <p className="mt-2 text-sm text-muted">{t('common.loading')}</p>}
+        {integrations.error && <p className="mt-2 text-sm text-signal">{t('cal.statusError', { message: integrations.error.message })}</p>}
+        {integrations.isSuccess && (
+          <div className="mt-2 space-y-2 text-sm">
+            {configError && <p className="text-signal">{t('cal.configError', { message: configError })}</p>}
+            {calendarStates.filter((state) => state.name !== 'calendar:config').length === 0 && !configError && (
+              <p className="text-muted">{t('cal.noFeeds')}</p>
+            )}
+            {calendarStates.filter((state) => state.name !== 'calendar:config').map((state) => (
+              <div key={state.name} className="flex flex-wrap gap-x-2 gap-y-0.5 border-b border-rule/60 pb-2 last:border-0">
+                <span className="min-w-0 break-words font-medium text-ink">{state.name.slice('calendar:'.length)}</span>
+                <span className="min-w-0 break-words text-muted">
+                  {state.last_success_at
+                    ? t('cal.sourceLast', { time: new Date(state.last_success_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }) })
+                    : t('cal.sourceNever')}
+                </span>
+                {state.last_error && <span className="w-full min-w-0 break-words text-signal">{t('cal.sourceError', { message: state.last_error })}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-xs text-muted">{t('cal.sourceHint')}</p>
+      </section>
 
       <TaskSheet task={openTask} onClose={() => setOpenTask(null)} />
       <EventSheet event={openEvent} onClose={() => setOpenEvent(null)} />

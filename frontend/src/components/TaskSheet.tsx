@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 
@@ -10,6 +10,7 @@ import { useI18n } from '../i18n/context'
 import { checklist, toggled, withNewItem } from '../lib/checklist'
 import { recurrenceLabel } from '../lib/format'
 import { button, overlay } from '../lib/ui'
+import { ConfirmDialog } from './ConfirmDialog'
 import { MoveTask } from './MoveTask'
 
 const RECURRENCE_PRESETS = [
@@ -75,22 +76,27 @@ const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 text-inpu
 const label = 'mb-1 block font-display text-xs font-semibold tracking-[0.12em] text-muted uppercase'
 
 export function TaskSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
+  const { t } = useI18n()
+  const [dirty, setDirty] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const close = () => { if (dirty) setConfirm(true); else onClose() }
   return (
-    <Dialog.Root open={task !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={task !== null} onOpenChange={(open) => !open && close()}>
       <Dialog.Portal>
         <Dialog.Overlay className={overlay} />
         <Dialog.Content
           className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-2xl border border-rule bg-paper-raised p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[34rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
           aria-describedby={undefined}
         >
-          {task && <TaskForm key={task.id + task.updated_at} task={task} onClose={onClose} />}
+          {task && <TaskForm key={task.id} task={task} onClose={onClose} onRequestClose={close} onDirtyChange={setDirty} />}
         </Dialog.Content>
       </Dialog.Portal>
+      <ConfirmDialog open={confirm} onOpenChange={setConfirm} title={t('sheet.unsavedTitle')} description={t('sheet.unsavedText')} confirm={t('sheet.discardChanges')} onConfirm={() => { setDirty(false); onClose() }} />
     </Dialog.Root>
   )
 }
 
-function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
+function TaskForm({ task, onClose, onRequestClose, onDirtyChange }: { task: Task; onClose: () => void; onRequestClose: () => void; onDirtyChange: (dirty: boolean) => void }) {
   const { t, locale } = useI18n()
   const [draft, setDraft] = useState<Draft>(() => toDraft(task))
   const areas = useAreas()
@@ -101,6 +107,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const pending = changes(task, draft)
   const dirty = Object.keys(pending).length > 0
+  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   const items = checklist(draft.notes)
   const notesField = useRef<HTMLTextAreaElement>(null)
   const addItem = () => {
@@ -295,7 +302,7 @@ function TaskForm({ task, onClose }: { task: Task; onClose: () => void }) {
           </button>
         )}
         <span className="flex-1" />
-        <Dialog.Close className={button('quiet')}>{t('sheet.close')}</Dialog.Close>
+        <button type="button" onClick={onRequestClose} className={button('quiet')}>{t('sheet.close')}</button>
         <button
           type="submit"
           disabled={!dirty || update.isPending || !draft.title.trim()}

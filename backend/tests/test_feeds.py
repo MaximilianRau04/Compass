@@ -116,6 +116,15 @@ def test_entries_matching_the_pattern_become_tasks(client, session, fetched):
     assert [e.title for e in events] == ["Lecture"]
 
 
+def test_campus_calendar_added_in_app_defaults_to_uni(client, fetched):
+    assert add_calendar(client, name="campus").status_code == 201
+    assert add_calendar(client, name="uni", area="study").status_code == 201
+    today = date.today()
+    params = {"start": today.isoformat(), "end": (today + timedelta(days=7)).isoformat()}
+    events = client.get("/api/calendar", params=params).json()
+    assert {e["feed"]: e["area"] for e in events} == {"campus": "uni", "uni": "study"}
+
+
 def test_a_calendar_added_in_the_app_has_its_area(client, session, fetched):
     assert add_calendar(client, area="study").status_code == 201
     today = date.today()

@@ -208,6 +208,8 @@ function Categories({ data }: { data: FinanceOverview }) {
       <ul className="mt-3 space-y-2.5">
         {rows.map(({ c, spent, budget }) => {
           const over = budget !== undefined && spent > budget
+          const amount = editing === c ? parseAmount(value, locale) : NaN
+          const validBudget = value.trim() !== '' && Number.isFinite(amount) && amount >= 0 && amount <= 100000
           return (
             <li key={c} className="text-sm">
               <div className="flex items-baseline justify-between gap-2">
@@ -227,12 +229,15 @@ function Categories({ data }: { data: FinanceOverview }) {
                     className="mt-1 flex gap-2"
                     onSubmit={(e) => {
                       e.preventDefault()
-                      setBudget.mutate({ category: c, amount: parseAmount(value, locale) || 0 }, { onError: (err) => toast.error(err.message) })
-                      setEditing(null)
+                      if (!validBudget) return
+                      setBudget.mutate({ category: c, amount }, {
+                        onSuccess: () => setEditing(null),
+                        onError: (err) => toast.error(err.message),
+                      })
                     }}
                   >
                     <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder={currencySymbol} className={`${INPUT} w-24 py-0.5 text-xs`} />
-                    <button type="submit" className="relative text-xs text-brass before:absolute before:-inset-2 before:content-['']">{t('fin.save')}</button>
+                    <button type="submit" disabled={setBudget.isPending || !validBudget} className="relative text-xs text-brass before:absolute before:-inset-2 before:content-[''] disabled:opacity-40">{t('fin.save')}</button>
                   </form>
                 ) : (
                   <button type="button" onClick={() => (setEditing(c), setValue(budget ? String(budget) : ''))} className="relative mt-0.5 font-mono text-2xs text-muted hover:text-ink before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']">

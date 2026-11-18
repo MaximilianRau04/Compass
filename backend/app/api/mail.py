@@ -1,11 +1,14 @@
+import imaplib
 from contextlib import nullcontext
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel
 
 from app.api.deps import SessionDep
 from app.config import MailAccount, get_settings
 from app.ingestion import mail as mail_sync
+from app.mail import imap
 from app.mail.microsoft import SignInError
 from app.models.mail import Email
 from app.schemas.mail import (
@@ -22,6 +25,12 @@ from app.services import mail_auth
 from app.services.mail import MailError
 
 router = APIRouter(prefix="/mail", tags=["mail"])
+
+
+class MailContent(BaseModel):
+    text: str
+    truncated: bool
+    attachments: list[str]
 
 
 def read(e: Email) -> MailRead:
@@ -125,6 +134,37 @@ def sign_out(name: str, session: SessionDep):
 def get_mail(mail_id: int, session: SessionDep):
     """One mail, whatever its age: the search links to mails the list no longer shows."""
     return read(_get(session, mail_id))
+
+
+@router.get("/{mail_id}/content", response_model=MailContent)
+def get_mail_content(mail_id: int, session: SessionDep):
+    """Read one message on demand. Its body is neither stored nor included in list responses."""
+    e = _get(session, mail_id)
+    account = get_settings().mail_accounts.get(e.account)
+    if account is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "mail account is not configured")
+    token = None
+    if account.auth != "password":
+        try:
+            token = mail_auth.access_token(session, account)
+        except SignInError as exc:
+            session.commit()  # Keep a sign-in error or cleared expired credentials.
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+        session.commit()  # Persist a rotated refresh token even if IMAP fails.
+    try:
+        with imap.Mailbox(account, access_token=token) as box:
+            if box.examine(e.folder) != e.uidvalidity:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND, "mailbox renumbered; sync mails again"
+                )
+            message = box.message(e.uid)
+    except (imaplib.IMAP4.error, OSError) as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "mailbox unavailable") from exc
+    if message is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "mail is no longer in its folder")
+    return MailContent(
+        text=message.text, truncated=message.truncated, attachments=message.attachments
+    )
 
 
 @router.post("/{mail_id}/task", response_model=TaskRead)
