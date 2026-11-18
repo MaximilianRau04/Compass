@@ -212,26 +212,33 @@ function SignIn({ account }: { account: MailAccount }) {
 function Accounts({ overview, today }: { overview: MailOverview; today: string }) {
   const { t, locale } = useI18n()
   return (
-    <ul className="mb-6 space-y-1 font-mono text-2xs text-muted">
+    <section className="mb-6" aria-label={t('mail.sources')}>
+      <h2 className="mb-2 font-display text-lg font-semibold">{t('mail.sources')}</h2>
+      <p className="mb-3 text-xs text-muted">{t('mail.sourceHint')}</p>
+      <ul className="space-y-2 text-sm">
       {overview.accounts.map((a) => {
         const needsSignIn = a.auth !== 'password' && a.signed_in === false
         return (
-          <li key={a.account}>
-            {accountName(a.account)} · {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
-            {a.last_success_at
-              ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
-              : t('mail.syncNever')}
-            {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
+          <li key={a.account} className="min-w-0 border-b border-rule/60 pb-2 last:border-0">
+            <p className="min-w-0 break-words font-medium text-ink">{accountName(a.account)}</p>
+            <p className="text-muted">
+              {t(`mail.triage.${a.triage}` as MessageKey)} ·{' '}
+              {a.last_success_at
+                ? t('mail.syncOk', { when: `${relativeDay(localDay(a.last_success_at), today, t, locale)} ${clockTime(a.last_success_at, locale)}` })
+                : t('mail.syncNever')}
+              {a.pending > 0 && ` · ${t('mail.pendingN', { n: a.pending })}`}
+            </p>
             {needsSignIn ? (
-              <span className="block text-signal">{a.signin_error ? t('mail.signin.error', { message: a.signin_error }) : t('mail.signin.needed')}</span>
+              <span className="block break-words text-signal">{a.signin_error ? t('mail.signin.error', { message: a.signin_error }) : t('mail.signin.needed')}</span>
             ) : (
-              a.last_error && <span className="block text-signal">{t('mail.syncError', { message: a.last_error })}</span>
+              a.last_error && <span className="block break-words text-signal">{t('mail.syncError', { message: a.last_error })}</span>
             )}
             {a.auth !== 'password' && <SignIn account={a} />}
           </li>
         )
       })}
-    </ul>
+      </ul>
+    </section>
   )
 }
 
@@ -291,7 +298,8 @@ export function MailPage() {
           sync.mutate(undefined, {
             onSuccess: (result) => {
               const created = Object.values(result).reduce<number>((n, r) => n + (typeof r === 'object' && r && 'new' in r ? Number(r.new) : 0), 0)
-              toast(t('mail.fetched', { n: created }))
+              const failed = Object.values(result).filter((r) => typeof r === 'string').length
+              toast(failed ? t('mail.fetchPartial', { n: failed }) : t('mail.fetched', { n: created }))
             },
             onError: (error) => toast.error(error.message),
           })
@@ -367,7 +375,11 @@ export function MailPage() {
         </section>
       )}
 
-      {rest.length === 0 && <p className="text-muted">{t('mail.nothing')}</p>}
+      {rest.length === 0 && (
+        <p className="text-muted">
+          {dismissed ? t('mail.nothingDismissed') : filter !== 'all' ? t('mail.nothingFiltered') : t('mail.nothing')}
+        </p>
+      )}
       <div className="space-y-8">
         <ByDay mails={rest} today={today} local={local} />
         <p className="max-w-xl text-sm text-muted">{t('mail.hint')}</p>

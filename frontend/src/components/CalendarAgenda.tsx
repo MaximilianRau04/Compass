@@ -1,50 +1,10 @@
-import { toast } from 'sonner'
-
-import { useIntegrations, useSyncCalendars } from '../api/calendar'
-import { useTodayDate } from '../api/tasks'
 import type { CalendarEvent, Task } from '../api/types'
 import { useI18n } from '../i18n/context'
 import { eventsOn, tasksOn } from '../lib/calendar'
 import { addDays, eventOnDay, longDate, relativeDay } from '../lib/format'
 import { EventItem } from './EventItem'
 import { SectionLabel } from './Layout'
-import { SyncIssue } from './SyncIssue'
 import { TaskItem } from './TaskItem'
-
-export function SyncStatus() {
-  const { t, locale } = useI18n()
-  const states = useIntegrations().data?.filter((s) => s.name.startsWith('calendar:')) ?? []
-  const sync = useSyncCalendars()
-  const today = useTodayDate()
-
-  const run = () =>
-    sync.mutate(undefined, {
-      onSuccess: () => toast(t('cal.synced')),
-      onError: (error) => toast.error(error.message),
-    })
-
-  return (
-    <div className="mt-10 space-y-1 border-t border-rule pt-3 font-mono text-2xs text-muted">
-      {states.length === 0 && <p>{t('cal.noFeeds')}</p>}
-      {states.map((state) => {
-        const name = state.name.replace('calendar:', '')
-        if (state.last_error) return <SyncIssue key={state.name} name={name} error={state.last_error} lastSuccess={state.last_success_at} today={today} />
-        return (
-          <p key={state.name}>
-            {state.last_success_at &&
-              t('cal.lastSync', {
-                name,
-                time: new Date(state.last_success_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }),
-              })}
-          </p>
-        )
-      })}
-      <button type="button" onClick={run} disabled={sync.isPending} className="text-brass hover:underline disabled:opacity-50">
-        {t('cal.sync')}
-      </button>
-    </div>
-  )
-}
 
 /** One day as a list: calendar entries first (they have fixed times), then the day's tasks. */
 export function DayList({
