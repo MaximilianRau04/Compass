@@ -1,3 +1,4 @@
+import * as Dialog from '@radix-ui/react-dialog'
 import { toast } from 'sonner'
 
 import {
@@ -29,7 +30,7 @@ import {
   UNITS,
   usePreferences,
 } from '../lib/preferences'
-import { button, pageTitle } from '../lib/ui'
+import { button, overlay } from '../lib/ui'
 
 const TOPICS: { topic: PushTopic; label: MessageKey; hint: MessageKey }[] = [
   { topic: 'bedtime', label: 'push.topic.bedtime', hint: 'push.topic.bedtimeHint' },
@@ -295,37 +296,49 @@ function Notifications() {
   )
 }
 
-export function SettingsPage() {
+/** The settings as a dialog, opened from the profile at the bottom of the navigation. */
+export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { t } = useI18n()
   return (
-    <>
-      <header className="mb-6">
-        <h1 className={pageTitle}>{t('settings.title')}</h1>
-      </header>
-      <section className="mb-10">
-        <SectionLabel>{t('settings.appearance')}</SectionLabel>
-        <Appearance />
-      </section>
-      <section className="mb-10">
-        <SectionLabel>{t('settings.navigation')}</SectionLabel>
-        <Navigation />
-      </section>
-      <section>
-        <SectionLabel>{t('push.title')}</SectionLabel>
-        <div className="mt-3">
-          <Notifications />
-        </div>
-      </section>
-      <div className="mt-10">
-        <FeedSettings />
-      </div>
-      <section className="mt-10">
-        <SectionLabel>{t('settings.export')}</SectionLabel>
-        <p className="mt-2 max-w-lg text-sm text-muted">{t('settings.exportHint')}</p>
-        <a href="/api/export" download className={`${BUTTON} mt-3 inline-block`}>
-          {t('settings.exportButton')}
-        </a>
-      </section>
-    </>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className={overlay} />
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col overflow-hidden rounded-2xl border border-rule bg-paper-raised shadow-xl sm:inset-x-auto sm:top-[6vh] sm:bottom-[6vh] sm:left-1/2 sm:w-[42rem] sm:-translate-x-1/2"
+        >
+          <div className="flex items-center justify-between border-b border-rule px-5 py-3">
+            <Dialog.Title className="text-xl font-semibold tracking-tight">{t('settings.title')}</Dialog.Title>
+            <Dialog.Close className="-mr-2 px-2 py-1 text-sm text-muted hover:text-ink">{t('sheet.close')}</Dialog.Close>
+          </div>
+          <div className="overflow-y-auto px-5 py-5">
+            <section className="mb-10">
+              <SectionLabel>{t('settings.appearance')}</SectionLabel>
+              <Appearance />
+            </section>
+            <section className="mb-10">
+              <SectionLabel>{t('settings.navigation')}</SectionLabel>
+              <Navigation />
+            </section>
+            <section>
+              <SectionLabel>{t('push.title')}</SectionLabel>
+              <div className="mt-3">
+                <Notifications />
+              </div>
+            </section>
+            <div className="mt-10">
+              <FeedSettings />
+            </div>
+            <section className="mt-10">
+              <SectionLabel>{t('settings.export')}</SectionLabel>
+              <p className="mt-2 max-w-lg text-sm text-muted">{t('settings.exportHint')}</p>
+              <a href="/api/export" download className={`${BUTTON} mt-3 inline-block`}>
+                {t('settings.exportButton')}
+              </a>
+            </section>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }

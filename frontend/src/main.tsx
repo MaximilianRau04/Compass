@@ -3,7 +3,7 @@ import './index.css'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { Toaster } from 'sonner'
 
 import { Layout } from './components/Layout'
@@ -21,7 +21,6 @@ import { MailPage } from './pages/Mail'
 import { NewsPage } from './pages/News'
 import { NotesPage } from './pages/Notes'
 import { NutritionPage } from './pages/Nutrition'
-import { SettingsPage } from './pages/Settings'
 import { SharePage } from './pages/Share'
 import { SleepPage } from './pages/Sleep'
 import { TasksPage } from './pages/Tasks'
@@ -54,7 +53,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="sleep" element={<SleepPage />} />
             <Route path="nutrition" element={<NutritionPage />} />
             <Route path="finance" element={<FinancePage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            {/* Push messages still link here; the layout opens the settings dialog. */}
+            <Route path="settings" element={<Navigate to="/" replace state={{ settings: true }} />} />
             <Route path="share" element={<SharePage />} />
             <Route path="welcome" element={<WelcomePage />} />
             {Object.entries(LEGACY_PATHS).map(([from, to]) => (

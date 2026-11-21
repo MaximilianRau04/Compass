@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useI18n } from '../i18n/context'
 import type { MessageKey } from '../i18n/messages'
 import { usePreferences } from '../lib/preferences'
+import { SettingsDialog } from '../pages/Settings'
 import { Search, SearchIcon } from './Search'
 
 interface NavItem {
@@ -12,7 +13,7 @@ interface NavItem {
   icon: string
 }
 
-// Pages can be hidden in the settings, except the settings themselves.
+// Pages can be hidden in the settings; the settings open from the profile below them.
 const NAV: NavItem[] = [
   { to: '/', label: 'nav.today', icon: 'M12 3v2M12 19v2M3 12h2M19 12h2M12 8l2 4-2 4-2-4z' },
   { to: '/tasks', label: 'nav.tasks', icon: 'M4 6h16M4 12h16M4 18h10' },
@@ -26,9 +27,9 @@ const NAV: NavItem[] = [
   { to: '/correlations', label: 'nav.correlations', icon: 'M4 20h16M4 20V4M8 15h.01M11 11h.01M14 13h.01M17 7h.01' },
   { to: '/news', label: 'nav.news', icon: 'M5 4h11v16H6a1 1 0 0 1-1-1zM16 8h3v11a1 1 0 0 1-1 1h-2M8 8h5M8 12h5M8 16h3'},
   { to: '/finance', label: 'nav.finance', icon: 'M3 7h18v12H3zM3 11h18M7 15h3M16 3l-4 4-4-4'},
-  { to: '/settings', label: 'nav.settings', icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1'},
 ]
 const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01'
+const PROFILE_ICON = 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0'
 const DISCOVER_PAGES = ['/journal', '/correlations']
 // On the phone the bottom bar has room for five entries: the first four pages, then "More".
 const BAR_SIZE = 4
@@ -43,7 +44,7 @@ function Icon({ d }: { d: string }) {
   )
 }
 
-function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void }) {
+function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: () => void; onProfile: () => void }) {
   const { t } = useI18n()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
@@ -100,6 +101,18 @@ function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void 
             </div>
           )}
           {other.map(link)}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onProfile()
+            }}
+            className="flex w-full items-center gap-3 border-t border-rule px-3 py-2.5 text-sm text-muted hover:text-ink"
+          >
+            <Icon d={PROFILE_ICON} />
+            {t('nav.profile')}
+          </button>
         </div>
       )}
     </div>
@@ -109,12 +122,20 @@ function MoreMenu({ items, onSearch }: { items: NavItem[]; onSearch: () => void 
 export function Layout() {
   const { t } = useI18n()
   // The calendar grid and the today dashboard need the room; text pages stay at a readable width.
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
+  const navigate = useNavigate()
   const wide = pathname === '/' || pathname.startsWith('/calendar')
   const { hidden } = usePreferences()
   const shown = NAV.filter((item) => !(hidden as string[]).includes(item.to))
-  const bar = shown.filter((item) => item.to !== '/settings' && !DISCOVER_PAGES.includes(item.to)).slice(0, BAR_SIZE)
+  const bar = shown.filter((item) => !DISCOVER_PAGES.includes(item.to)).slice(0, BAR_SIZE)
   const [searching, setSearching] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  // /settings (linked from push messages and the search) lands here with this state; closing clears it.
+  const settingsLinked = (state as { settings?: boolean } | null)?.settings === true
+  const onSettingsChange = (open: boolean) => {
+    setSettingsOpen(open)
+    if (!open && settingsLinked) navigate(pathname, { replace: true, state: null })
+  }
   // Ctrl/Cmd+K everywhere, "/" when no field has the focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -171,9 +192,24 @@ export function Layout() {
             )}
           </NavLink>
         ))}
-        <MoreMenu items={shown.filter((item) => !bar.includes(item))} onSearch={() => setSearching(true)} />
+        <MoreMenu items={shown.filter((item) => !bar.includes(item))} onSearch={() => setSearching(true)} onProfile={() => setSettingsOpen(true)} />
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          aria-haspopup="dialog"
+          className="mt-auto hidden items-center gap-3 rounded-md border-t border-rule px-2 pt-4 pb-2 text-sm text-muted hover:text-ink sm:flex"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-paper-raised text-ink">
+            <Icon d={PROFILE_ICON} />
+          </span>
+          <span className="flex flex-col items-start leading-tight">
+            <span className="text-ink">{t('nav.profile')}</span>
+            <span className="text-2xs">{t('nav.settings')}</span>
+          </span>
+        </button>
       </nav>
-      <Search open={searching} onOpenChange={setSearching} pages={shown} />
+      <Search open={searching} onOpenChange={setSearching} pages={[...shown, { to: '/settings', label: 'nav.settings' }]} />
+      <SettingsDialog open={settingsOpen || settingsLinked} onOpenChange={onSettingsChange} />
       <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-6 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
         <Outlet />
       </main>
