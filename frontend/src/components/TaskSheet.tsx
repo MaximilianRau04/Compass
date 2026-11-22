@@ -105,7 +105,9 @@ function TaskForm({ task, onClose, onRequestClose, onDirtyChange }: { task: Task
   const update = useUpdateTask()
   const today = useTodayDate()
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }))
-  const pending = changes(task, draft)
+  // Checklist ticks save on their own; compare against that answer, since `task` may be a stale copy.
+  const [saved, setSaved] = useState<Task | null>(null)
+  const pending = changes(saved ?? task, draft)
   const dirty = Object.keys(pending).length > 0
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   const items = checklist(draft.notes)
@@ -272,7 +274,7 @@ function TaskForm({ task, onClose, onRequestClose, onDirtyChange }: { task: Task
                       if (!dirty) {
                         update.mutate(
                           { id: task.id, data: { notes: next || null } },
-                          { onError: (error) => toast.error(error.message) },
+                          { onSuccess: setSaved, onError: (error) => toast.error(error.message) },
                         )
                       }
                     }}
