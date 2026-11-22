@@ -232,3 +232,49 @@ def test_the_welcome_page_counts_feeds_of_the_app(client, session, fetched):
     assert setup.sources(session)["calendars"] is False
     add_calendar(client)
     assert setup.sources(session)["calendars"] is True
+
+
+@pytest.mark.parametrize(
+    "ip",
+    [
+        "127.0.0.1",
+        "10.0.0.5",
+        "172.16.0.2",
+        "192.168.1.1",
+        "169.254.169.254",
+        "::1",
+        "::ffff:127.0.0.1",
+    ],
+)
+def test_private_feed_addresses_are_rejected(monkeypatch, ip):
+    from app.ingestion.url import check_public_url
+
+    family = 10 if ":" in ip else 2
+    monkeypatch.setattr(
+        "socket.getaddrinfo", lambda host, port, type=0: [(family, 1, 6, "", (ip, 0))]
+    )
+    with pytest.raises(ValueError, match="public address"):
+        check_public_url("https://internal.example/feed.ics")
+
+
+def test_public_feed_address_and_webcal_are_normalized(monkeypatch):
+    from app.ingestion.url import check_public_url
+
+    monkeypatch.setattr(
+        "socket.getaddrinfo", lambda host, port, type=0: [(2, 1, 6, "", ("93.184.216.34", 0))]
+    )
+    assert (
+        check_public_url("webcal://cal.example/a.ics", allow_webcal=True)
+        == "https://cal.example/a.ics"
+    )
+    with pytest.raises(ValueError, match="https:// or http://"):
+        check_public_url("webcal://cal.example/a.ics", allow_webcal=False)
+
+
+def test_database_url_encodes_special_characters_in_password():
+    from app.config import Settings
+
+    s = Settings(
+        postgres_user="u", postgres_password="p@ss:w/rd#1", postgres_host="db", postgres_db="c"
+    )
+    assert "p%40ss%3Aw%2Frd%231@db" in s.database_url

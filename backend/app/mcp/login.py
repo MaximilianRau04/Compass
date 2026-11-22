@@ -76,9 +76,16 @@ def _client_ip(request: Request) -> str:
 
 
 def _prune(now: float) -> None:
-    for entries in [*_failures.values(), _all_failures]:
+    empty = []
+    for ip, entries in _failures.items():
         while entries and entries[0] < now - FAILURE_WINDOW:
             entries.popleft()
+        if not entries:
+            empty.append(ip)
+    for ip in empty:
+        del _failures[ip]
+    while _all_failures and _all_failures[0] < now - FAILURE_WINDOW:
+        _all_failures.popleft()
 
 
 def _locked(ip: str) -> bool:

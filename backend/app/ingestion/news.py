@@ -8,7 +8,6 @@ NEWS_KEEP_DAYS are removed.
 import html
 import logging
 import re
-import urllib.request
 from calendar import timegm
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -21,6 +20,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.ingestion.url import fetch_public
 from app.models.news import NewsItem
 from app.services import feeds as feed_config
 from app.services import integrations
@@ -57,14 +57,12 @@ class ParsedItem:
 
 
 def fetch_feed(url: str) -> bytes:
-    request = urllib.request.Request(
-        url, headers={"User-Agent": "Compass news sync (self-hosted, one user)"}
+    return fetch_public(
+        url,
+        user_agent="Compass news sync (self-hosted, one user)",
+        max_bytes=MAX_FEED_BYTES,
+        size_error="feed is larger than 5 MB",
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = response.read(MAX_FEED_BYTES + 1)
-    if len(data) > MAX_FEED_BYTES:
-        raise ValueError("feed is larger than 5 MB")
-    return data
 
 
 def plain(value: str | None, limit: int) -> str | None:

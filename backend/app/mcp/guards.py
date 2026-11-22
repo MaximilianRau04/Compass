@@ -34,10 +34,16 @@ def caller() -> str:
 def audited(action: str, arguments: dict[str, Any]) -> Iterator[Session]:
     """Rate limit, run a write in a session, and record the outcome in the audit log."""
     actor = caller()
-    window = _writes[actor]
     now = time.monotonic()
-    while window and window[0] < now - 3600:
-        window.popleft()
+    empty = []
+    for key, entries in _writes.items():
+        while entries and entries[0] < now - 3600:
+            entries.popleft()
+        if not entries and key != actor:
+            empty.append(key)
+    for key in empty:
+        del _writes[key]
+    window = _writes[actor]
     if len(window) >= get_settings().mcp_write_limit_per_hour:
         raise ToolError("Write limit reached for this hour. Try again later.")
     window.append(now)

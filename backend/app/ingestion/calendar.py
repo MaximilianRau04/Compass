@@ -6,7 +6,6 @@ but turned into tasks (see app.ingestion.deadlines).
 """
 
 import logging
-import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -19,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app import i18n
 from app.ingestion import deadlines
+from app.ingestion.url import fetch_public
 from app.models.calendar import CalendarEvent
 from app.services import feeds as feed_config
 from app.services import integrations
@@ -50,16 +50,13 @@ class ParsedEvent:
 
 
 def fetch_ics(url: str) -> bytes:
-    if url.startswith("webcal://"):
-        url = "https://" + url.removeprefix("webcal://")
-    if not url.startswith(("https://", "http://")):
-        raise ValueError("calendar URL must start with https://, http:// or webcal://")
-    request = urllib.request.Request(url, headers={"User-Agent": "Compass calendar sync"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = response.read(MAX_FEED_BYTES + 1)
-    if len(data) > MAX_FEED_BYTES:
-        raise ValueError("calendar feed is larger than 10 MB")
-    return data
+    return fetch_public(
+        url,
+        user_agent="Compass calendar sync",
+        max_bytes=MAX_FEED_BYTES,
+        size_error="calendar feed is larger than 10 MB",
+        allow_webcal=True,
+    )
 
 
 def _as_datetime(value: date | datetime, tz: ZoneInfo) -> tuple[datetime, bool]:
