@@ -50,6 +50,7 @@ deploy:        ## Server: pull the CI images and restart (no local build)
 	# that lists main twice ("Cannot fast-forward to multiple branches").
 	git fetch --quiet origin main
 	git merge --ff-only --quiet origin/main
+	if $(COMPOSE_PROD) ps --status running --services | grep -qx db; then infra/backup/pg-backup.sh; fi
 	$(COMPOSE_PROD) pull
 	$(COMPOSE_PROD) up -d --no-build --remove-orphans
 	docker image prune -f
@@ -60,7 +61,7 @@ backup:        ## Server: write a database dump now
 password-hash: ## Create the bcrypt hash for COMPASS_BASIC_AUTH_HASH (escaped for .env)
 	@printf "Password: "; stty -echo; read -r pw; stty echo; echo; \
 	[ -n "$$pw" ] || { echo "Empty password" >&2; exit 1; }; \
-	docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$$pw" | sed 's/\$$/$$$$/g'
+	printf '%s\n' "$$pw" | docker run --rm -i caddy:2.10-alpine caddy hash-password | sed 's/\$$/$$$$/g'
 
 vapid-keys:    ## Create the VAPID key pair for web push (lines for .env)
 	$(COMPOSE) run --rm --no-deps api python -m app.services.push

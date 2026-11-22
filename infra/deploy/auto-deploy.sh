@@ -55,6 +55,21 @@ if ! "${COMPOSE[@]}" up -d --no-build --remove-orphans; then
   remove_leftovers
   "${COMPOSE[@]}" up -d --no-build --remove-orphans
 fi
+
+# Wait until the API has run migrations and answers /api/health before marking the commit deployed.
+ready=0
+for _ in $(seq 1 30); do
+  if "${COMPOSE[@]}" exec -T api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$ready" -ne 1 ]]; then
+  echo "deploy failed: api did not become healthy after 60s" >&2
+  "${COMPOSE[@]}" logs --tail=40 api >&2 || true
+  exit 1
+fi
 echo "$target" >.deployed
 
 # Drop older Compass images; images still used by a container are skipped.

@@ -11,5 +11,6 @@ psql() { "${COMPOSE[@]}" exec -T db sh -c "psql -U \"\$POSTGRES_USER\" -v ON_ERR
 psql "-d postgres -c 'DROP DATABASE IF EXISTS restore_test' -c 'CREATE DATABASE restore_test'"
 "${COMPOSE[@]}" exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d restore_test --no-owner' <"$dump"
 psql "-d restore_test -tAc 'SELECT version_num FROM alembic_version'"
+psql "-d restore_test -tAc \"SELECT 'tasks=' || (SELECT count(*) FROM tasks) || ' notes=' || (SELECT count(*) FROM notes) || ' health_records=' || (SELECT count(*) FROM health_records)\""
 psql "-d postgres -c 'DROP DATABASE restore_test'"
 echo "restore test ok"

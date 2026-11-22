@@ -1,5 +1,11 @@
 name: compass
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 x-backend: &backend
   build: ../backend
   env_file: ../.env
@@ -11,6 +17,9 @@ x-backend: &backend
   depends_on:
     db:
       condition: service_healthy
+  security_opt:
+    - no-new-privileges:true
+  logging: *logging
   restart: unless-stopped
 
 services:
@@ -27,11 +36,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    logging: *logging
     restart: unless-stopped
 
   api:
     <<: *backend
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=172.16.0.0/12,10.0.0.0/8,127.0.0.1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
 
   worker:
     <<: *backend
@@ -40,17 +56,17 @@ services:
       db:
         condition: service_healthy
       api:
-        condition: service_started
+        condition: service_healthy
 
   mcp:
     <<: *backend
     # Separate process: the only part of Compass that is reachable without the VPN.
-    command: uvicorn app.mcp.app:app --host 0.0.0.0 --port 8001 --proxy-headers --forwarded-allow-ips=*
+    command: uvicorn app.mcp.app:app --host 0.0.0.0 --port 8001 --proxy-headers --forwarded-allow-ips=172.16.0.0/12,10.0.0.0/8,127.0.0.1
     depends_on:
       db:
         condition: service_healthy
       api:
-        condition: service_started
+        condition: service_healthy
 
   caddy:
     build: ../frontend
@@ -72,8 +88,13 @@ services:
       - "${COMPASS_HTTP_PORT:-127.0.0.1:8080}:80"
       - "${COMPASS_MCP_HTTP_PORT:-127.0.0.1:8081}:8081"
     depends_on:
-      - api
-      - mcp
+      api:
+        condition: service_healthy
+      mcp:
+        condition: service_started
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
     restart: unless-stopped
 
 volumes:
