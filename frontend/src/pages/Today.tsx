@@ -26,6 +26,7 @@ import type { MessageKey } from '../i18n/messages'
 import { shortPart } from '../lib/brief'
 import { addDays, clockTime, isLeftBehind, longDate, relativeDay, toIsoDate } from '../lib/format'
 import { pageTitle } from '../lib/ui'
+import { useDeviceNow } from '../lib/useClock'
 
 /** Important mails of the last two weeks: count and the newest three. */
 function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
@@ -57,7 +58,7 @@ function ImportantMail({ overview }: { overview: MailOverview | undefined }) {
 /** In the evening: the latest bedtime before tomorrow's first event. */
 function Bedtime() {
   const { t, locale } = useI18n()
-  const [evening] = useState(() => new Date().getHours() >= 16)
+  const evening = useDeviceNow().getHours() >= 16
   const bedtime = useBedtime(evening)
   const b = bedtime.data
   if (!evening || !b?.event || !b.latest_bedtime || !b.wake_at) return null
@@ -126,7 +127,7 @@ function PlannedWorkouts() {
 /** In the evening: a link to today's journal entry, or its mood and energy once written. */
 function JournalPrompt({ today }: { today: string }) {
   const { t } = useI18n()
-  const [evening] = useState(() => new Date().getHours() >= 18)
+  const evening = useDeviceNow().getHours() >= 18
   const day = useJournalDay(today, evening)
   if (!evening || !day.data) return null
   const entry = day.data.entry
@@ -235,15 +236,19 @@ export function TodayPage() {
   const weekly = useBriefs('weekly', 1)
   const news = useNewsOverview()
   const setup = useSetup()
-  const [open, setOpen] = useState<Task | null>(null)
+  const [openId, setOpenId] = useState<number | null>(null)
   const [params] = useSearchParams()
-  const [deviceDay] = useState(() => toIsoDate(new Date()))
+  const deviceDay = toIsoDate(useDeviceNow())
 
   if (setup.data?.first_run) return <Navigate to="/welcome" replace />
-  if (error) return <p className="text-signal">{t('common.apiUnreachable', { message: error.message })}</p>
-  // A stored answer from an earlier day would show yesterday's tasks for a moment; wait for today's.
-  const yesterday = data !== undefined && data.today !== deviceDay && isFetching
-  if (isPending || yesterday) return <p className="font-mono text-sm text-muted">{t('common.loading')}</p>
+  if (!data && error) return <p className="text-signal">{t('common.apiUnreachable', { message: error.message })}</p>
+  // Only hold the screen on an earlier day's persisted cache while the very first refresh is in flight.
+  const staleDay = data !== undefined && data.today < deviceDay && isFetching && !error
+  if (isPending || !data || staleDay) return <p className="font-mono text-sm text-muted">{t('common.loading')}</p>
+
+  const allTasks = [...data.overdue, ...data.due_today, ...data.scheduled, ...data.upcoming, ...data.done_today]
+  const openTask = openId === null ? null : (allTasks.find((task) => task.id === openId) ?? null)
+  const onOpenTask = (task: Task) => setOpenId(task.id)
 
   const today = data.today
   const { weekday, date } = longDate(today, locale)
@@ -260,6 +265,11 @@ export function TodayPage() {
 
   return (
     <>
+      {error && (
+        <p role="status" className="mb-4 rounded-md border border-signal/40 bg-paper-raised px-3 py-2 font-mono text-xs text-signal">
+          {t('common.offlineStale', { message: error.message })}
+        </p>
+      )}
       <header className="rise mb-2 flex items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs text-muted">{date}</p>
@@ -324,7 +334,7 @@ export function TodayPage() {
               </SectionLabel>
               <ul className="divide-y divide-rule/60">
                 {section.tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} today={today} onOpen={setOpen}>
+                  <TaskItem key={task.id} task={task} today={today} onOpen={onOpenTask}>
                     {isLeftBehind(task, today) && <MoveTask task={task} today={today} targets={['today', 'tomorrow']} />}
                   </TaskItem>
                 ))}
@@ -339,7 +349,7 @@ export function TodayPage() {
               </summary>
               <ul className="divide-y divide-rule/60">
                 {data.done_today.map((task) => (
-                  <TaskItem key={task.id} task={task} today={today} onOpen={setOpen} />
+                  <TaskItem key={task.id} task={task} today={today} onOpen={onOpenTask} />
                 ))}
               </ul>
             </details>
@@ -353,7 +363,7 @@ export function TodayPage() {
         </div>
       </div>
 
-      <TaskSheet task={open} onClose={() => setOpen(null)} />
+      <TaskSheet task={openTask} onClose={() => setOpenId(null)} />
     </>
   )
 }

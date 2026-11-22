@@ -16,11 +16,24 @@ function detailMessage(body: unknown, fallback: string): string {
   return fallback
 }
 
+const REQUEST_TIMEOUT_MS = 30_000
+
+function requestSignal(caller?: AbortSignal | null): AbortSignal | undefined {
+  const timeout = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(REQUEST_TIMEOUT_MS) : undefined
+  if (caller && timeout && 'any' in AbortSignal) return AbortSignal.any([caller, timeout])
+  return caller ?? timeout
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers)
+  if (typeof init.body === 'string' && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
   const response = await fetch(`/api${path}`, {
     ...init,
     credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', ...init.headers },
+    headers,
+    signal: requestSignal(init.signal),
   })
   const body = response.status === 204 ? null : await response.json().catch(() => null)
   if (!response.ok) {

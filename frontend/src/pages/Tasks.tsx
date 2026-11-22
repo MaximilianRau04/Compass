@@ -73,7 +73,7 @@ export function TasksPage() {
   const [scope, setScope] = useState<Scope>('active')
   const [areaId, setAreaId] = useState<number | null>(null)
   const [q, setQ] = useState('')
-  const [open, setOpen] = useState<Task | null>(null)
+  const [openId, setOpenId] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
 
   const status = view === 'board' ? (['open', 'in_progress', 'done'] as TaskStatus[]) : SCOPES[scope].status
@@ -83,6 +83,8 @@ export function TasksPage() {
   const update = useUpdateTask()
 
   const list = tasks.data ?? []
+  const openTask = openId === null ? null : (list.find((task) => task.id === openId) ?? null)
+  const setOpen = (task: Task) => setOpenId(task.id)
 
   // The calendar used to be a view of this page; old links and bookmarks still lead there.
   if (params.get('ansicht') === 'kalender') return <Navigate to="/calendar" replace />
@@ -243,7 +245,7 @@ export function TasksPage() {
         </div>
       )}
 
-      <TaskSheet task={open} onClose={() => setOpen(null)} />
+      <TaskSheet task={openTask} onClose={() => setOpenId(null)} />
     </>
   )
 }

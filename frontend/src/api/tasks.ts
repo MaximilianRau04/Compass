@@ -1,8 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 
 import { api, patch, post } from './client'
 import { toIsoDate } from '../lib/format'
+import { useDeviceNow } from '../lib/useClock'
 import type { Area, QuickAddPreview, Task, TaskEvent, TaskStatus, TaskUpdate, TodayOverview } from './types'
 
 export const keys = {
@@ -25,8 +25,8 @@ export function useToday() {
 
 /** Today's date from the server (in its time zone), with the device date as fallback while loading. */
 export function useTodayDate(): string {
-  const [fallback] = useState(() => toIsoDate(new Date()))
-  return useToday().data?.today ?? fallback
+  const now = useDeviceNow()
+  return useToday().data?.today ?? toIsoDate(now)
 }
 
 export function useTasks(filters: TaskFilters) {
