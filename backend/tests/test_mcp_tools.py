@@ -87,12 +87,16 @@ async def test_tools_are_listed_with_annotations(client):
         "get_journal",
         "write_journal",
         "monthly_review",
+        "get_training_session",
+        "log_sleep",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
+    assert tools["log_sleep"].annotations.destructive_hint is False
     for name in (
         "get_calendar",
         "training_summary",
+        "get_training_session",
         "exercise_progress",
         "sleep_summary",
         "nutrition_summary",
@@ -448,3 +452,82 @@ async def test_mail_to_task_creates_one_task_and_handles_the_mail(client, sessio
     assert [(h["type"], h["actor"]) for h in detail["history"]] == [("created", "claude")]
 
     assert "No mail with id" in await call_error(client, "mail_to_task", mail_id=0)
+
+
+@pytest.mark.anyio
+async def test_get_training_session_returns_exercises_and_sets(client, session):
+    from decimal import Decimal
+
+    from app.models.training import Exercise, ExerciseSet, TrainingSession
+
+    ex = Exercise(name="Bench Press", bodyweight=False)
+    session.add(ex)
+    session.flush()
+    ts = TrainingSession(
+        started_at=datetime(2026, 11, 10, 17, 0, tzinfo=local_tz()),
+        workout_name="Push A",
+        source="compass",
+    )
+    session.add(ts)
+    session.flush()
+    session.add_all(
+        [
+            ExerciseSet(
+                session_id=ts.id,
+                exercise_id=ex.id,
+                set_index=1,
+                weight_kg=Decimal("80"),
+                reps=8,
+                rir=2,
+            ),
+            ExerciseSet(
+                session_id=ts.id,
+                exercise_id=ex.id,
+                set_index=2,
+                weight_kg=Decimal("80"),
+                reps=7,
+                rir=1,
+            ),
+        ]
+    )
+    session.flush()
+
+    detail = await call(client, "get_training_session", session_id=ts.id)
+    assert (detail["id"], detail["workout"], detail["sets"]) == (ts.id, "Push A", 2)
+    assert len(detail["exercises_detail"]) == 1
+    assert detail["exercises_detail"][0]["exercise"] == "Bench Press"
+    assert [
+        (s["set_index"], s["weight_kg"], s["reps"], s["rir"])
+        for s in detail["exercises_detail"][0]["sets"]
+    ] == [
+        (1, 80.0, 8, 2),
+        (2, 80.0, 7, 1),
+    ]
+    assert "No training session with id" in await call_error(
+        client, "get_training_session", session_id=999999
+    )
+
+
+@pytest.mark.anyio
+async def test_log_sleep_records_manual_night_and_rejects_overlap(client, session):
+    tz = local_tz()
+    wake = datetime.combine(local_today(), datetime.min.time(), tzinfo=tz) + timedelta(hours=7)
+    bed = wake - timedelta(hours=8)
+
+    night = await call(
+        client,
+        "log_sleep",
+        start_at=bed.isoformat(),
+        end_at=wake.isoformat(),
+        awake_minutes=20,
+    )
+    assert night["in_bed_minutes"] == 480
+    assert night["asleep_minutes"] == 460
+    assert night["awake_minutes"] == 20
+
+    assert "overlaps" in await call_error(
+        client,
+        "log_sleep",
+        start_at=bed.isoformat(),
+        end_at=wake.isoformat(),
+    )

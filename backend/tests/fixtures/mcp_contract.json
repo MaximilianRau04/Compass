@@ -3583,6 +3583,215 @@
    },
    "title": "Today"
   },
+  "get_training_session": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "All exercises and sets (weight, reps, RIR, estimated 1RM) of one training session.",
+   "inputSchema": {
+    "properties": {
+     "session_id": {
+      "description": "Session id from training_summary().recent",
+      "minimum": 1,
+      "title": "Session Id",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "session_id"
+    ],
+    "title": "get_training_sessionArguments",
+    "type": "object"
+   },
+   "name": "get_training_session",
+   "outputSchema": {
+    "$defs": {
+     "SessionExerciseOut": {
+      "properties": {
+       "bodyweight": {
+        "title": "Bodyweight",
+        "type": "boolean"
+       },
+       "exercise": {
+        "title": "Exercise",
+        "type": "string"
+       },
+       "sets": {
+        "items": {
+         "$ref": "#/$defs/SessionSetOut"
+        },
+        "title": "Sets",
+        "type": "array"
+       }
+      },
+      "required": [
+       "exercise",
+       "bodyweight",
+       "sets"
+      ],
+      "title": "SessionExerciseOut",
+      "type": "object"
+     },
+     "SessionSetOut": {
+      "properties": {
+       "e1rm_kg": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "E1Rm Kg"
+       },
+       "reps": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Reps"
+       },
+       "rir": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Rir"
+       },
+       "set_index": {
+        "title": "Set Index",
+        "type": "integer"
+       },
+       "weight_kg": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Weight Kg"
+       }
+      },
+      "required": [
+       "set_index",
+       "weight_kg",
+       "reps",
+       "rir",
+       "e1rm_kg"
+      ],
+      "title": "SessionSetOut",
+      "type": "object"
+     }
+    },
+    "properties": {
+     "date": {
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+     },
+     "duration_minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "From the export or Health Connect",
+      "title": "Duration Minutes"
+     },
+     "exercises": {
+      "title": "Exercises",
+      "type": "integer"
+     },
+     "exercises_detail": {
+      "items": {
+       "$ref": "#/$defs/SessionExerciseOut"
+      },
+      "title": "Exercises Detail",
+      "type": "array"
+     },
+     "hr_avg": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Average heart rate from the watch",
+      "title": "Hr Avg"
+     },
+     "hr_max": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hr Max"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "sets": {
+      "title": "Sets",
+      "type": "integer"
+     },
+     "split": {
+      "title": "Split",
+      "type": "string"
+     },
+     "volume_kg": {
+      "title": "Volume Kg",
+      "type": "number"
+     },
+     "with_sets": {
+      "description": "False: only known from Health Connect, no sets logged",
+      "title": "With Sets",
+      "type": "boolean"
+     },
+     "workout": {
+      "title": "Workout",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "date",
+     "workout",
+     "split",
+     "exercises",
+     "sets",
+     "volume_kg",
+     "duration_minutes",
+     "with_sets",
+     "hr_avg",
+     "hr_max",
+     "exercises_detail"
+    ],
+    "title": "SessionDetailOut",
+    "type": "object"
+   },
+   "title": "Training session detail"
+  },
   "list_areas": {
    "annotations": {
     "openWorldHint": false,
@@ -4408,6 +4617,132 @@
     "type": "object"
    },
    "title": "Log depot value"
+  },
+  "log_sleep": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Record a night of sleep by hand, e.g. when the watch was not worn. Fails on overlapping\nmanual nights or future wake times.",
+   "inputSchema": {
+    "properties": {
+     "awake_minutes": {
+      "default": 0,
+      "description": "Minutes spent lying awake during the night",
+      "maximum": 600,
+      "minimum": 0,
+      "title": "Awake Minutes",
+      "type": "integer"
+     },
+     "end_at": {
+      "description": "ISO timestamp with timezone: woke up",
+      "format": "date-time",
+      "title": "End At",
+      "type": "string"
+     },
+     "start_at": {
+      "description": "ISO timestamp with timezone: fell asleep",
+      "format": "date-time",
+      "title": "Start At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "start_at",
+     "end_at"
+    ],
+    "title": "log_sleepArguments",
+    "type": "object"
+   },
+   "name": "log_sleep",
+   "outputSchema": {
+    "properties": {
+     "asleep_minutes": {
+      "title": "Asleep Minutes",
+      "type": "integer"
+     },
+     "awake_minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Awake Minutes"
+     },
+     "bedtime": {
+      "description": "Local time, HH:MM",
+      "title": "Bedtime",
+      "type": "string"
+     },
+     "date": {
+      "description": "Day of waking up",
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+     },
+     "deep_minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deep Minutes"
+     },
+     "in_bed_minutes": {
+      "title": "In Bed Minutes",
+      "type": "integer"
+     },
+     "light_minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Light Minutes"
+     },
+     "rem_minutes": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rem Minutes"
+     },
+     "wake_time": {
+      "description": "Local time, HH:MM",
+      "title": "Wake Time",
+      "type": "string"
+     }
+    },
+    "required": [
+     "date",
+     "bedtime",
+     "wake_time",
+     "asleep_minutes",
+     "in_bed_minutes",
+     "deep_minutes",
+     "light_minutes",
+     "rem_minutes",
+     "awake_minutes"
+    ],
+    "title": "NightOut",
+    "type": "object"
+   },
+   "title": "Log sleep"
   },
   "mail_to_task": {
    "annotations": {
@@ -6990,6 +7325,10 @@
         ],
         "title": "Hr Max"
        },
+       "id": {
+        "title": "Id",
+        "type": "integer"
+       },
        "sets": {
         "title": "Sets",
         "type": "integer"
@@ -7013,6 +7352,7 @@
        }
       },
       "required": [
+       "id",
        "date",
        "workout",
        "split",

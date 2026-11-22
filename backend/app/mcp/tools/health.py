@@ -2,11 +2,13 @@
 
 from typing import Annotated
 
-from pydantic import Field
+from mcp.server.mcpserver.exceptions import ToolError
+from pydantic import AwareDatetime, Field
 
 from app.config import get_settings
-from app.mcp.core import READ, mcp
+from app.mcp.core import READ, WRITE, mcp
 from app.mcp.db import session_scope
+from app.mcp.guards import audited
 from app.mcp.schemas import (
     DailyDataOut,
     DayOut,
@@ -18,7 +20,7 @@ from app.mcp.schemas import (
     resting_out,
 )
 from app.models.integrations import IntegrationState
-from app.services import analysis, daily, health
+from app.services import analysis, daily, health, sleep_log
 from app.services.clock import local_tz
 
 
@@ -106,4 +108,41 @@ def daily_data(
             sleep_need_minutes=get_settings().sleep_need_minutes,
             hr_max=analysis.hr_max(session),
             days=[DayRowOut(**r.__dict__) for r in rows],
+        )
+
+
+@mcp.tool(title="Log sleep", annotations=WRITE)
+def log_sleep(
+    start_at: Annotated[
+        AwareDatetime, Field(description="ISO timestamp with timezone: fell asleep")
+    ],
+    end_at: Annotated[AwareDatetime, Field(description="ISO timestamp with timezone: woke up")],
+    awake_minutes: Annotated[
+        int, Field(ge=0, le=600, description="Minutes spent lying awake during the night")
+    ] = 0,
+) -> NightOut:
+    """Record a night of sleep by hand, e.g. when the watch was not worn. Fails on overlapping
+    manual nights or future wake times."""
+    args = {"start_at": start_at, "end_at": end_at, "awake_minutes": awake_minutes}
+    tz = local_tz()
+    with audited("log_sleep", args) as session:
+        try:
+            night = sleep_log.add(
+                session,
+                sleep_log.ManualNight(
+                    start_at=start_at, end_at=end_at, awake_minutes=awake_minutes
+                ),
+            )
+        except sleep_log.SleepLogError as exc:
+            raise ToolError(str(exc)) from exc
+        return NightOut(
+            date=night.local_date,
+            bedtime=night.start_at.astimezone(tz).strftime("%H:%M"),
+            wake_time=night.end_at.astimezone(tz).strftime("%H:%M"),
+            asleep_minutes=night.asleep_minutes,
+            in_bed_minutes=night.in_bed_minutes,
+            deep_minutes=night.deep_minutes,
+            light_minutes=night.light_minutes,
+            rem_minutes=night.rem_minutes,
+            awake_minutes=night.awake_minutes,
         )

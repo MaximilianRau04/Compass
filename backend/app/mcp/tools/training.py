@@ -1,10 +1,12 @@
 """Tools for strength training."""
 
+from collections import defaultdict
 from datetime import timedelta
 from typing import Annotated
 
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
+from sqlalchemy import select
 
 from app.mcp.core import READ, mcp
 from app.mcp.db import session_scope
@@ -12,12 +14,16 @@ from app.mcp.schemas import (
     ExerciseProgressOut,
     ProgressionOut,
     ProgressOut,
+    SessionDetailOut,
+    SessionExerciseOut,
+    SessionSetOut,
     TrainingSummaryOut,
     WeekOut,
     Zone2Out,
     session_out,
     target_out,
 )
+from app.models.training import Exercise
 from app.services import analysis, progression, training
 from app.services.clock import local_today
 
@@ -95,3 +101,46 @@ def progression_suggestions(
             suggestions=[target_out(s) for s in found],
             stagnant=[target_out(s) for s in found if s.stagnant],
         )
+
+
+@mcp.tool(title="Training session detail", annotations=READ)
+def get_training_session(
+    session_id: Annotated[
+        int, Field(ge=1, description="Session id from training_summary().recent")
+    ],
+) -> SessionDetailOut:
+    """All exercises and sets (weight, reps, RIR, estimated 1RM) of one training session."""
+    with session_scope() as session:
+        found = training.get_session(session, session_id)
+        if found is None:
+            raise ToolError(f"No training session with id {session_id}.")
+        exercise_ids = {s.exercise_id for s in found.sets}
+        exercises = (
+            {
+                e.id: e
+                for e in session.scalars(select(Exercise).where(Exercise.id.in_(exercise_ids)))
+            }
+            if exercise_ids
+            else {}
+        )
+        grouped: dict[int, list] = defaultdict(list)
+        for s in sorted(found.sets, key=lambda x: (x.id, x.set_index)):
+            grouped[s.exercise_id].append(s)
+        detail = [
+            SessionExerciseOut(
+                exercise=exercises[ex_id].name if ex_id in exercises else f"#{ex_id}",
+                bodyweight=exercises[ex_id].bodyweight if ex_id in exercises else False,
+                sets=[
+                    SessionSetOut(
+                        set_index=x.set_index,
+                        weight_kg=float(x.weight_kg) if x.weight_kg is not None else None,
+                        reps=x.reps,
+                        rir=x.rir,
+                        e1rm_kg=training.e1rm(x.weight_kg, x.reps),
+                    )
+                    for x in sorted(sets, key=lambda s: s.set_index)
+                ],
+            )
+            for ex_id, sets in grouped.items()
+        ]
+        return SessionDetailOut(**session_out(found).model_dump(), exercises_detail=detail)

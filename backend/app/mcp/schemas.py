@@ -113,6 +113,7 @@ class WeekOut(BaseModel):
 
 
 class SessionOut(BaseModel):
+    id: int
     date: date
     workout: str
     split: str
@@ -123,6 +124,24 @@ class SessionOut(BaseModel):
     with_sets: bool = Field(description="False: only known from Health Connect, no sets logged")
     hr_avg: int | None = Field(description="Average heart rate from the watch")
     hr_max: int | None
+
+
+class SessionSetOut(BaseModel):
+    set_index: int
+    weight_kg: float | None
+    reps: int | None
+    rir: int | None
+    e1rm_kg: float | None
+
+
+class SessionExerciseOut(BaseModel):
+    exercise: str
+    bodyweight: bool
+    sets: list[SessionSetOut]
+
+
+class SessionDetailOut(SessionOut):
+    exercises_detail: list[SessionExerciseOut]
 
 
 class TrainingSummaryOut(BaseModel):
@@ -634,6 +653,7 @@ def resting_out(r: analysis.RestingTrend) -> RestingOut:
 
 def session_out(s: TrainingSession) -> SessionOut:
     return SessionOut(
+        id=s.id,
         date=training.local_date(s.started_at),
         workout=s.workout_name,
         split=training.split_for(s),
