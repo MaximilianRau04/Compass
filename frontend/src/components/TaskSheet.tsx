@@ -249,7 +249,7 @@ function TaskForm({ task, onClose, onRequestClose, onDirtyChange }: { task: Task
           <label className={label} htmlFor="tags">
             {t('sheet.tags')}
           </label>
-          <input id="tags" value={draft.tags} onChange={(e) => set('tags', e.target.value)} placeholder="#ki #paper" className={field} />
+          <input id="tags" value={draft.tags} onChange={(e) => set('tags', e.target.value)} placeholder={t('sheet.tagsPlaceholder')} className={field} />
         </div>
       </div>
 

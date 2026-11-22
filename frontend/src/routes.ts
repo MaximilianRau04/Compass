@@ -1,0 +1,16 @@
+import { lazy } from 'react'
+
+export const CalendarPage = lazy(() => import('./pages/Calendar').then((m) => ({ default: m.CalendarPage })))
+export const CorrelationsPage = lazy(() => import('./pages/Correlations').then((m) => ({ default: m.CorrelationsPage })))
+export const FinancePage = lazy(() => import('./pages/Finance').then((m) => ({ default: m.FinancePage })))
+export const JournalPage = lazy(() => import('./pages/Journal').then((m) => ({ default: m.JournalPage })))
+export const MailPage = lazy(() => import('./pages/Mail').then((m) => ({ default: m.MailPage })))
+export const NewsPage = lazy(() => import('./pages/News').then((m) => ({ default: m.NewsPage })))
+export const NotesPage = lazy(() => import('./pages/Notes').then((m) => ({ default: m.NotesPage })))
+export const NutritionPage = lazy(() => import('./pages/Nutrition').then((m) => ({ default: m.NutritionPage })))
+export const SharePage = lazy(() => import('./pages/Share').then((m) => ({ default: m.SharePage })))
+export const SleepPage = lazy(() => import('./pages/Sleep').then((m) => ({ default: m.SleepPage })))
+export const TasksPage = lazy(() => import('./pages/Tasks').then((m) => ({ default: m.TasksPage })))
+export const TrainingPage = lazy(() => import('./pages/Training').then((m) => ({ default: m.TrainingPage })))
+export const WelcomePage = lazy(() => import('./pages/Welcome').then((m) => ({ default: m.WelcomePage })))
+export const WorkoutLogPage = lazy(() => import('./pages/WorkoutLog').then((m) => ({ default: m.WorkoutLogPage })))

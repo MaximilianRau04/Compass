@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useI18n } from '../i18n/context'
@@ -48,6 +48,22 @@ function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: 
   const { t } = useI18n()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const close = (returnFocus = false) => {
+    setOpen(false)
+    if (returnFocus) triggerRef.current?.focus()
+  }
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
   const active = items.some((item) => isAt(pathname, item.to))
   const discover = items.filter((item) => DISCOVER_PAGES.includes(item.to))
   const other = items.filter((item) => !DISCOVER_PAGES.includes(item.to))
@@ -55,8 +71,7 @@ function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: 
     <NavLink
       key={item.to}
       to={item.to}
-      role="menuitem"
-      onClick={() => setOpen(false)}
+      onClick={() => close()}
       className={({ isActive }) =>
         ['flex items-center gap-3 rounded px-3 py-2.5 text-sm', isActive ? 'bg-paper text-ink' : 'text-muted hover:text-ink'].join(' ')
       }
@@ -67,11 +82,12 @@ function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: 
   )
   return (
     <div className="relative flex flex-1 sm:hidden">
-      {open && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 cursor-default" onClick={() => setOpen(false)} />}
+      {open && <div aria-hidden className="fixed inset-0" onClick={() => close()} />}
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-controls="more-nav-menu"
         onClick={() => setOpen(!open)}
         className={['flex flex-1 flex-col items-center gap-0.5 py-2 text-2xs', active || open ? 'text-ink' : 'text-muted'].join(' ')}
       >
@@ -81,12 +97,11 @@ function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: 
         {t('nav.more')}
       </button>
       {open && (
-        <div role="menu" aria-label={t('nav.more')} className="absolute right-2 bottom-full mb-2 max-h-[calc(100dvh-5rem)] w-52 overflow-y-auto rounded-md border border-rule bg-paper-raised p-1 shadow-lg">
+        <div id="more-nav-menu" aria-label={t('nav.more')} className="absolute right-2 bottom-full mb-2 max-h-[calc(100dvh-5rem)] w-52 overflow-y-auto rounded-md border border-rule bg-paper-raised p-1 shadow-lg">
           <button
             type="button"
-            role="menuitem"
             onClick={() => {
-              setOpen(false)
+              close()
               onSearch()
             }}
             className="flex w-full items-center gap-3 rounded px-3 py-2.5 text-sm text-muted hover:text-ink"
@@ -103,9 +118,8 @@ function MoreMenu({ items, onSearch, onProfile }: { items: NavItem[]; onSearch: 
           {other.map(link)}
           <button
             type="button"
-            role="menuitem"
             onClick={() => {
-              setOpen(false)
+              close()
               onProfile()
             }}
             className="flex w-full items-center gap-3 border-t border-rule px-3 py-2.5 text-sm text-muted hover:text-ink"
@@ -152,6 +166,12 @@ export function Layout() {
   }, [])
   return (
     <div className="min-h-dvh sm:flex">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border focus:border-brass focus:bg-paper-raised focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
+      >
+        {t('nav.skipToContent')}
+      </a>
       <nav
         aria-label={t('nav.main')}
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-rule bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:sticky sm:top-0 sm:h-dvh sm:w-52 sm:flex-col sm:border-t-0 sm:border-r sm:bg-transparent sm:px-4 sm:py-6 sm:pb-6"
@@ -210,7 +230,7 @@ export function Layout() {
       </nav>
       <Search open={searching} onOpenChange={setSearching} pages={[...shown, { to: '/settings', label: 'nav.settings' }]} />
       <SettingsDialog open={settingsOpen || settingsLinked} onOpenChange={onSettingsChange} />
-      <main className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-6 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
+      <main id="main-content" className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} px-4 pt-6 pb-44 sm:px-10 sm:pt-10 sm:pb-16`}>
         <Outlet />
       </main>
     </div>
