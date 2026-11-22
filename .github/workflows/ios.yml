@@ -17,7 +17,7 @@ jobs:
       run:
         working-directory: ios/Core
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: swift test
 
   app:
@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: ios
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: brew install xcodegen
       - run: xcodegen generate
       - run: >-
