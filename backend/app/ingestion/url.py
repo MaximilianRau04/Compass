@@ -12,6 +12,8 @@ import urllib.request
 from urllib.parse import urlsplit
 
 
+# shortcut: urllib resolves the host again when connecting (DNS rebinding), and feeds on a LAN or
+# VPN (e.g. 100.64.0.0/10) are rejected; pin the checked IP or add an allowlist if that is needed.
 def _ensure_public_host(hostname: str) -> None:
     try:
         infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)

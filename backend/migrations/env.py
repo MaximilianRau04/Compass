@@ -9,7 +9,9 @@ from app.models import Base
 config = context.config
 # Tests pass their own URL via config.attributes; otherwise use the app settings.
 config.set_main_option(
-    "sqlalchemy.url", config.attributes.get("url") or get_settings().database_url
+    "sqlalchemy.url",
+    # ConfigParser reads % as interpolation; percent-encoded passwords need %%.
+    (config.attributes.get("url") or get_settings().database_url).replace("%", "%%"),
 )
 
 if config.config_file_name is not None and not config.attributes.get("url"):
