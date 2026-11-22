@@ -257,13 +257,27 @@ function TaskForm({ task, onClose, onRequestClose, onDirtyChange }: { task: Task
         <label className={label} htmlFor="notes">
           {t('sheet.notes')}
         </label>
-        {/* Lines like "- [ ] rent a van" can be ticked here; ticking edits the text below. */}
+        {/* Lines like "- [ ] rent a van" can be ticked here; saves immediately when no other draft edits exist. */}
         {items.length > 0 && (
           <ul className="mb-2" aria-label={t('sheet.checklist')}>
             {items.map((item) => (
               <li key={item.line}>
                 <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
-                  <input type="checkbox" checked={item.done} onChange={() => set('notes', toggled(draft.notes, item.line))} className="mt-1 h-4 w-4 shrink-0 accent-brass" />
+                  <input
+                    type="checkbox"
+                    checked={item.done}
+                    onChange={() => {
+                      const next = toggled(draft.notes, item.line)
+                      set('notes', next)
+                      if (!dirty) {
+                        update.mutate(
+                          { id: task.id, data: { notes: next || null } },
+                          { onError: (error) => toast.error(error.message) },
+                        )
+                      }
+                    }}
+                    className="mt-1 h-4 w-4 shrink-0 accent-brass"
+                  />
                   <span className={['min-w-0 break-words leading-snug', item.done ? 'text-muted line-through' : ''].join(' ')}>{item.text}</span>
                 </label>
               </li>
