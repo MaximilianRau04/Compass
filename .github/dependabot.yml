@@ -25,6 +25,9 @@ updates:
     directory: /infra
     schedule: { interval: monthly }
     groups: { images: { patterns: ["*"] } }
+    # A new Postgres major cannot read the old data volume; that upgrade needs pg_upgrade by hand.
+    ignore:
+      - dependency-name: pgvector/pgvector
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule: { interval: monthly }
