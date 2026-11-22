@@ -14,6 +14,7 @@ from app.mcp.tools import (  # noqa: F401  (each module registers its tools)
     briefs,
     calendar,
     finance,
+    habits,
     health,
     journal,
     mail,

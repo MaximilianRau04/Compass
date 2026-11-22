@@ -89,14 +89,18 @@ async def test_tools_are_listed_with_annotations(client):
         "monthly_review",
         "get_training_session",
         "log_sleep",
+        "list_habits",
+        "check_habit",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
     assert tools["log_sleep"].annotations.destructive_hint is False
+    assert tools["check_habit"].annotations.destructive_hint is False
     for name in (
         "get_calendar",
         "training_summary",
         "get_training_session",
+        "list_habits",
         "exercise_progress",
         "sleep_summary",
         "nutrition_summary",
@@ -531,3 +535,25 @@ async def test_log_sleep_records_manual_night_and_rejects_overlap(client, sessio
         start_at=bed.isoformat(),
         end_at=wake.isoformat(),
     )
+
+
+@pytest.mark.anyio
+async def test_habits_mcp_lists_and_checks_manual_habits(client, session):
+    from app.services import habits
+
+    manual = habits.create(session, "Read 20 pages")
+    auto = habits.create(session, "Journal", rule="journal")
+    session.flush()
+
+    listed = await call(client, "list_habits")
+    assert [h["name"] for h in listed["habits"]] == ["Read 20 pages", "Journal"]
+    assert listed["habits"][0]["done_today"] is False
+
+    ticked = await call(client, "check_habit", habit_id=manual.id, done=True)
+    assert (ticked["done_today"], ticked["streak"]) == (True, 1)
+
+    unticked = await call(client, "check_habit", habit_id=manual.id, done=False)
+    assert (unticked["done_today"], unticked["streak"]) == (False, 0)
+
+    assert "from the data" in await call_error(client, "check_habit", habit_id=auto.id, done=True)
+    assert "No active habit" in await call_error(client, "check_habit", habit_id=999999, done=True)
