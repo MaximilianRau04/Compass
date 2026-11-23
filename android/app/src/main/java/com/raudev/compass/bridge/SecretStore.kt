@@ -49,6 +49,8 @@ internal object SecretStore {
     private const val PROVIDER = "AndroidKeyStore"
     private const val ALIAS = "compass_bridge_token"
 
+    // Synchronized: the worker and the UI can both create the key on first use, the second would replace it.
+    @Synchronized
     private fun key(): SecretKey {
         val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
         (store.getKey(ALIAS, null) as? SecretKey)?.let { return it }
