@@ -87,3 +87,44 @@ def export_zip(session: Session) -> bytes:
             json.dumps({"exported_at": utc_now().isoformat(), "tables": counts}, indent=1),
         )
     return buffer.getvalue()
+
+
+def verify_zip(data: bytes) -> dict[str, int]:
+    """Validate an export zip: readable archive, valid manifest, all expected tables present and
+    valid JSON arrays matching the manifest counts, and no skipped secret tables included."""
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(data), "r")
+    except zipfile.BadZipFile as exc:
+        raise ValueError("not a valid zip archive") from exc
+    with archive:
+        names = set(archive.namelist())
+        if "manifest.json" not in names:
+            raise ValueError("manifest.json is missing")
+        try:
+            manifest = json.loads(archive.read("manifest.json"))
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise ValueError("manifest.json is not valid JSON") from exc
+        if not isinstance(manifest, dict) or not isinstance(manifest.get("tables"), dict):
+            raise ValueError("manifest.json has no tables object")
+        forbidden = names & {f"{t}.json" for t in SKIP_TABLES}
+        if forbidden:
+            raise ValueError(f"archive contains excluded tables: {', '.join(sorted(forbidden))}")
+        expected = set(columns())
+        missing = expected - set(manifest["tables"])
+        if missing:
+            raise ValueError(f"manifest is missing tables: {', '.join(sorted(missing))}")
+        counts: dict[str, int] = {}
+        for table, expected_count in manifest["tables"].items():
+            filename = f"{table}.json"
+            if filename not in names:
+                raise ValueError(f"{filename} is missing from archive")
+            try:
+                rows = json.loads(archive.read(filename))
+            except (ValueError, UnicodeDecodeError) as exc:
+                raise ValueError(f"{filename} is not valid JSON") from exc
+            if not isinstance(rows, list):
+                raise ValueError(f"{filename} must be a JSON array")
+            if len(rows) != expected_count:
+                raise ValueError(f"{filename} has {len(rows)} rows, manifest says {expected_count}")
+            counts[table] = len(rows)
+        return counts

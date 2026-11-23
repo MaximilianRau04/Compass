@@ -291,3 +291,32 @@ def test_export_has_the_data_but_no_secrets(client, session):
     assert "session_id" not in conn and "state" not in conn
     manifest = json.loads(archive.read("manifest.json"))
     assert manifest["tables"]["journal_entries"] == 1
+
+
+def test_verify_zip_accepts_valid_export_and_rejects_broken_archives(client, session):
+    journal.save(session, local_today(), mood=4, text="gut")
+    session.commit()
+    raw = client.get("/api/export").content
+    counts = export.verify_zip(raw)
+    assert counts["journal_entries"] == 1
+
+    import pytest
+
+    with pytest.raises(ValueError, match="not a valid zip"):
+        export.verify_zip(b"not a zip")
+
+    # Tamper with a row count in the manifest.
+    buf = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(raw), "r") as src,
+        zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as dst,
+    ):
+        for name in src.namelist():
+            content = src.read(name)
+            if name == "manifest.json":
+                m = json.loads(content)
+                m["tables"]["journal_entries"] = 99
+                content = json.dumps(m).encode()
+            dst.writestr(name, content)
+    with pytest.raises(ValueError, match="manifest says 99"):
+        export.verify_zip(buf.getvalue())
