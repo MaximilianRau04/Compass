@@ -48,7 +48,6 @@ function Numbers({ day }: { day: JournalDay }) {
     day.weight_kg != null && t('journal.weight', { kg: day.weight_kg.toLocaleString(locale) }),
     ...day.training,
   ].filter(Boolean) as string[]
-  if (parts.length === 0 && day.tasks_done.length === 0 && day.notes.length === 0) return null
   return (
     <section>
       <SectionLabel>{t('journal.day')}</SectionLabel>
