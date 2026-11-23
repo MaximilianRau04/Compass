@@ -26,7 +26,7 @@ from app.db import SessionLocal
 from app.mcp.oauth import revoke_all_tokens
 from app.models.credentials import Credential
 from app.models.health import HealthRecord
-from app.services import export, health, nutrition
+from app.services import export, health, integrations, nutrition
 
 CHUNK_DAYS = 60
 
@@ -70,6 +70,11 @@ def main() -> None:
     )
     verify = commands.add_parser("verify-export", help="validate a Compass export zip file")
     verify.add_argument("path", type=Path, help="path to compass-export-*.zip")
+    report = commands.add_parser(
+        "report-status", help="record an external job status (e.g. ops:backup) in integration_state"
+    )
+    report.add_argument("name", help="integration name, e.g. ops:backup or ops:deploy")
+    report.add_argument("--error", default=None, help="failure reason; omit to record success")
     args = parser.parse_args()
 
     if args.command == "rebuild-health":
@@ -91,6 +96,14 @@ def main() -> None:
             print(f"export invalid: {exc}", file=sys.stderr)
             raise SystemExit(1) from None
         print(json.dumps({"ok": True, "tables": len(counts), "rows": sum(counts.values())}))
+    elif args.command == "report-status":
+        with SessionLocal() as session:
+            if args.error:
+                integrations.record_failure(session, args.name, args.error)
+            else:
+                integrations.record_success(session, args.name, {})
+            session.commit()
+        print(json.dumps({"name": args.name, "ok": not args.error}))
 
 
 if __name__ == "__main__":

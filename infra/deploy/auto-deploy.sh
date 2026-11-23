@@ -71,6 +71,7 @@ if [[ "$ready" -ne 1 ]]; then
   exit 1
 fi
 echo "$target" >.deployed
+"${COMPOSE[@]}" exec -T api python -m app.cli report-status ops:deploy >/dev/null 2>&1 || true
 
 # Drop older Compass images; images still used by a container are skipped.
 docker images --format '{{.Repository}}:{{.Tag}}' --filter "reference=$REGISTRY/compass-*" \

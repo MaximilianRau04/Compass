@@ -36,8 +36,8 @@ log = logging.getLogger("compass.notify")
 
 DEADLINE_AHEAD = timedelta(hours=24)
 RESTING_EVERY = timedelta(days=3)
-# Sources the worker fetches by itself; uploads (training, nutrition exports) only run on demand.
-SYNC_SOURCES = ("calendar:", "mail:", "news:")
+# Sources the worker fetches by itself, plus ops:* status reported by backup/deploy scripts.
+SYNC_SOURCES = ("calendar:", "mail:", "news:", "ops:")
 
 
 def quiet(now: datetime) -> bool:

@@ -22,4 +22,5 @@ fi
 mv "$partial" "$BACKUP_DIR/compass_$stamp.dump"
 
 find "$BACKUP_DIR" -name 'compass_*.dump' -mtime +"$KEEP_DAYS" -delete
+"${COMPOSE[@]}" exec -T api python -m app.cli report-status ops:backup >/dev/null 2>&1 || true
 echo "backup written: $BACKUP_DIR/compass_$stamp.dump"
