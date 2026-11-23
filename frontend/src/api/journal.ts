@@ -17,6 +17,7 @@ export interface JournalDay {
   entry: JournalEntry | null
   briefs: { kind: string; title: string | null; body: string }[]
   tasks_done: string[]
+  notes: { id: number; title: string }[]
   training: string[]
   asleep_minutes: number | null
   steps: number | null

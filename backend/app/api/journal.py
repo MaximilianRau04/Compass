@@ -4,7 +4,13 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import SessionDep
-from app.schemas.journal import JournalBrief, JournalDayRead, JournalRead, JournalWrite
+from app.schemas.journal import (
+    JournalBrief,
+    JournalDayRead,
+    JournalNote,
+    JournalRead,
+    JournalWrite,
+)
 from app.services import journal
 from app.services.clock import local_today
 
@@ -28,6 +34,7 @@ def get_day(day: date, session: SessionDep):
         entry=JournalRead.model_validate(d.entry) if d.entry else None,
         briefs=[JournalBrief(kind=k, title=t, body=b) for k, t, b in d.briefs],
         tasks_done=d.tasks_done,
+        notes=[JournalNote(id=i, title=title) for i, title in d.notes],
         training=r.training,
         asleep_minutes=r.asleep_minutes,
         steps=r.steps,

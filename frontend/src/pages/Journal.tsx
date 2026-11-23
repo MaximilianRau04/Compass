@@ -10,6 +10,7 @@ import type { MessageKey } from '../i18n/messages'
 import { addDays, longDate, toIsoDate } from '../lib/format'
 import { clearJournalDraft, loadJournalDraft, saveJournalDraft } from '../lib/journalDraft'
 import { button, pageTitle } from '../lib/ui'
+import { useDeviceNow } from '../lib/useClock'
 
 const field = 'w-full rounded-md border border-rule bg-paper px-3 py-2 focus:border-brass focus:outline-none'
 
@@ -47,7 +48,7 @@ function Numbers({ day }: { day: JournalDay }) {
     day.weight_kg != null && t('journal.weight', { kg: day.weight_kg.toLocaleString(locale) }),
     ...day.training,
   ].filter(Boolean) as string[]
-  if (parts.length === 0 && day.tasks_done.length === 0) return null
+  if (parts.length === 0 && day.tasks_done.length === 0 && day.notes.length === 0) return null
   return (
     <section>
       <SectionLabel>{t('journal.day')}</SectionLabel>
@@ -58,6 +59,20 @@ function Numbers({ day }: { day: JournalDay }) {
           <ul className="mt-1 list-disc pl-5">
             {day.tasks_done.map((title, i) => (
               <li key={i}>{title}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      {day.notes.length > 0 && (
+        <>
+          <p className="mt-3 font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.notes')}</p>
+          <ul className="mt-1 space-y-1">
+            {day.notes.map((note) => (
+              <li key={note.id}>
+                <Link to={`/notes?id=${note.id}`} className="text-brass hover:underline">
+                  {note.title}
+                </Link>
+              </li>
             ))}
           </ul>
         </>
@@ -74,16 +89,18 @@ function Editor({ day, data }: { day: string; data: JournalDay }) {
   const [energy, setEnergy] = useState(initial.energy)
   const [text, setText] = useState(initial.text)
   const [saved, setSaved] = useState(false)
-  const [draftStored, setDraftStored] = useState(false)
-  const dirty = mood !== (data.entry?.mood ?? null) || energy !== (data.entry?.energy ?? null) || text !== (data.entry?.text ?? '')
-  useEffect(() => {
+  const [draftStored, setDraftStored] = useState(true)
+  const isDirty = (m: number | null, en: number | null, tx: string) =>
+    m !== (data.entry?.mood ?? null) || en !== (data.entry?.energy ?? null) || tx !== (data.entry?.text ?? '')
+  const dirty = isDirty(mood, energy, text)
+  const persist = (m: number | null, en: number | null, tx: string) => {
     if (saved) return
-    if (dirty) setDraftStored(saveJournalDraft(day, { mood, energy, text }, data.entry?.updated_at ?? null))
+    if (isDirty(m, en, tx)) setDraftStored(saveJournalDraft(day, { mood: m, energy: en, text: tx }, data.entry?.updated_at ?? null))
     else {
       clearJournalDraft(day)
-      setDraftStored(false)
+      setDraftStored(true)
     }
-  }, [day, mood, energy, text, dirty, saved, data.entry?.updated_at])
+  }
   useEffect(() => {
     if (!dirty || draftStored || saved) return
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault() }
@@ -106,12 +123,12 @@ function Editor({ day, data }: { day: string; data: JournalDay }) {
       }}
     >
       <div className="flex flex-wrap gap-6">
-        <Scale label="journal.mood" value={mood} onChange={setMood} />
-        <Scale label="journal.energy" value={energy} onChange={setEnergy} />
+        <Scale label="journal.mood" value={mood} onChange={(v) => { setMood(v); persist(v, energy, text) }} />
+        <Scale label="journal.energy" value={energy} onChange={(v) => { setEnergy(v); persist(mood, v, text) }} />
       </div>
       <label className="block">
         <span className="mb-1 block font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.text')}</span>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={20000} placeholder={t('journal.placeholder')} className={field} />
+        <textarea value={text} onChange={(e) => { const v = e.target.value; setText(v); persist(mood, energy, v) }} rows={6} maxLength={20000} placeholder={t('journal.placeholder')} className={field} />
       </label>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={save.isPending || saved || !dirty} className={button('primary')}>
@@ -127,7 +144,7 @@ function Editor({ day, data }: { day: string; data: JournalDay }) {
 export function JournalPage() {
   const { t, locale } = useI18n()
   const [params, setParams] = useSearchParams()
-  const [today] = useState(() => toIsoDate(new Date()))
+  const today = toIsoDate(useDeviceNow())
   const day = params.get('day') ?? today
   const data = useJournalDay(day)
   const recent = useJournal(30)

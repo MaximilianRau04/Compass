@@ -27,11 +27,17 @@ class JournalBrief(BaseModel):
     body: str
 
 
+class JournalNote(BaseModel):
+    id: int
+    title: str
+
+
 class JournalDayRead(BaseModel):
     date: date
     entry: JournalRead | None
     briefs: list[JournalBrief]
     tasks_done: list[str]
+    notes: list[JournalNote]
     training: list[str]
     asleep_minutes: int | None
     steps: int | None

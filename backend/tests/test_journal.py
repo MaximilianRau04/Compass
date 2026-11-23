@@ -46,6 +46,20 @@ def test_journal_api(client, session):
     assert client.get(f"/api/journal/{empty}").json()["entry"] is None
     got = client.get(f"/api/journal/{day}").json()
     assert got["entry"]["text"] == "ok" and got["tasks_done"] == [] and got["briefs"] == []
+    assert got["notes"] == []
     assert client.get(f"/api/journal/{TODAY.isoformat()}").json()["entry"] is None
     [listed] = client.get("/api/journal").json()
     assert listed["local_date"] == day
+
+
+def test_journal_day_lists_notes_touched_that_day(client, session):
+    from app.models.notes import Note
+    from app.services.clock import utc_now
+
+    active = Note(title="Lecture summary", body="...")
+    archived = Note(title="Old note", body="...", archived_at=utc_now())
+    session.add_all([active, archived])
+    session.commit()
+
+    got = client.get(f"/api/journal/{TODAY.isoformat()}").json()
+    assert got["notes"] == [{"id": active.id, "title": "Lecture summary"}]

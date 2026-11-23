@@ -5,11 +5,12 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.journal import JournalEntry
 from app.models.news import Brief
+from app.models.notes import Note
 from app.models.tasks import Task, TaskStatus
 from app.services import daily
 from app.services.clock import local_today, local_tz
@@ -98,6 +99,7 @@ class Day:
     row: daily.DayRow
     briefs: list[tuple[str, str | None, str]] = field(default_factory=list)  # kind, title, body
     tasks_done: list[str] = field(default_factory=list)
+    notes: list[tuple[int, str]] = field(default_factory=list)  # id, title
 
 
 def day(session: Session, when: date) -> Day:
@@ -108,15 +110,32 @@ def day(session: Session, when: date) -> Day:
         for b in session.scalars(select(Brief).where(Brief.local_date == when).order_by(Brief.kind))
     ]
     start = datetime.combine(when, time.min, tzinfo=tz)
+    end = start + timedelta(days=1)
     done = list(
         session.scalars(
             select(Task.title)
             .where(
                 Task.status == TaskStatus.done,
                 Task.completed_at >= start,
-                Task.completed_at < start + timedelta(days=1),
+                Task.completed_at < end,
             )
             .order_by(Task.completed_at)
         )
     )
-    return Day(date=when, entry=get(session, when), row=row, briefs=briefs, tasks_done=done)
+    notes = [
+        (n.id, n.title)
+        for n in session.scalars(
+            select(Note)
+            .where(
+                Note.archived_at.is_(None),
+                or_(
+                    (Note.created_at >= start) & (Note.created_at < end),
+                    (Note.updated_at >= start) & (Note.updated_at < end),
+                ),
+            )
+            .order_by(Note.updated_at.desc())
+        )
+    ]
+    return Day(
+        date=when, entry=get(session, when), row=row, briefs=briefs, tasks_done=done, notes=notes
+    )
