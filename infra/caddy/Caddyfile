@@ -55,7 +55,9 @@
 		request_body {
 			max_size 25MB
 		}
-		reverse_proxy api:8000
+		reverse_proxy api:8000 {
+			header_up X-Compass-Proxy-Secret {$COMPASS_API_PROXY_SECRET:}
+		}
 	}
 
 	handle {

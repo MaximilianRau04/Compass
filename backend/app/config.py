@@ -136,6 +136,9 @@ class Settings(BaseSettings):
     # COMPASS_PREVIOUS_SECRET_KEY, run `python -m app.cli rotate-secrets`, then drop the old key.
     compass_secret_key: str = ""
     compass_previous_secret_key: str = ""
+    # Optional shared secret between Caddy and the API (defense in depth on the Docker network).
+    # When set, every /api/* request except /api/health and /api/ingest/* must carry it.
+    compass_api_proxy_secret: str = ""
 
     # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
     # General items are shown as they come; personal ones are ranked by the interest profile.
