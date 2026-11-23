@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { I18nContext, type Lang, LOCALES, MESSAGES, STORAGE_KEY, type Translate } from './context'
+import { formatMessage } from './format'
 
 function initialLang(): Lang {
   try {
@@ -29,8 +30,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, [lang])
 
   const t = useCallback<Translate>(
-    (key, vars) =>
-      MESSAGES[lang][key].replace(/\{(\w+)\}/g, (_, name: string) => String(vars?.[name] ?? `{${name}}`)),
+    (key, vars) => formatMessage(MESSAGES[lang][key], vars),
     [lang],
   )
 
