@@ -132,8 +132,10 @@ class Settings(BaseSettings):
     microsoft_client_id: str = ""
     microsoft_tenant: str = "common"
     # Encrypts what Compass has to store and use again, like the Microsoft sign-ins. Any long
-    # random string (openssl rand -hex 32). Changing it means signing in again.
+    # random string (openssl rand -hex 32). To rotate the key, put the old one in
+    # COMPASS_PREVIOUS_SECRET_KEY, run `python -m app.cli rotate-secrets`, then drop the old key.
     compass_secret_key: str = ""
+    compass_previous_secret_key: str = ""
 
     # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
     # General items are shown as they come; personal ones are ranked by the interest profile.

@@ -14,15 +14,19 @@ again through the login page.
 
 import argparse
 import json
+import sys
 from datetime import date, timedelta
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import crypto
 from app.db import SessionLocal
 from app.mcp.oauth import revoke_all_tokens
+from app.models.credentials import Credential
 from app.models.health import HealthRecord
-from app.services import health, nutrition
+from app.services import export, health, nutrition
 
 CHUNK_DAYS = 60
 
@@ -40,11 +44,32 @@ def rebuild_health(session: Session) -> dict:
     return {"days": len(record_days), "gymday_sessions": sessions, "watch_workouts": watch}
 
 
+def rotate_secrets(session: Session) -> dict:
+    rotated = 0
+    for cred in session.scalars(select(Credential)):
+        changed = False
+        if cred.secret:
+            cred.secret = crypto.rotate(cred.secret)
+            changed = True
+        if cred.pending:
+            cred.pending = crypto.rotate(cred.pending)
+            changed = True
+        if changed:
+            rotated += 1
+    session.flush()
+    return {"rotated": rotated}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("rebuild-health", help="recompute data derived from Health Connect")
     commands.add_parser("revoke-mcp-tokens", help="log out every MCP client")
+    commands.add_parser(
+        "rotate-secrets", help="re-encrypt stored credentials with the current COMPASS_SECRET_KEY"
+    )
+    verify = commands.add_parser("verify-export", help="validate a Compass export zip file")
+    verify.add_argument("path", type=Path, help="path to compass-export-*.zip")
     args = parser.parse_args()
 
     if args.command == "rebuild-health":
@@ -54,6 +79,18 @@ def main() -> None:
         print(json.dumps(result))
     elif args.command == "revoke-mcp-tokens":
         print(json.dumps({"revoked": revoke_all_tokens()}))
+    elif args.command == "rotate-secrets":
+        with SessionLocal() as session:
+            result = rotate_secrets(session)
+            session.commit()
+        print(json.dumps(result))
+    elif args.command == "verify-export":
+        try:
+            counts = export.verify_zip(args.path.read_bytes())
+        except (OSError, ValueError) as exc:
+            print(f"export invalid: {exc}", file=sys.stderr)
+            raise SystemExit(1) from None
+        print(json.dumps({"ok": True, "tables": len(counts), "rows": sum(counts.values())}))
 
 
 if __name__ == "__main__":
