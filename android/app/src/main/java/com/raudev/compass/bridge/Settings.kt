@@ -12,8 +12,19 @@ class Settings(context: Context) {
         set(value) = prefs.edit { putString("server_url", value.trim().trimEnd('/')) }
 
     var token: String
-        get() = prefs.getString("token", "") ?: ""
-        set(value) = prefs.edit { putString("token", value.trim()) }
+        get() {
+            val raw = prefs.getString("token", "") ?: ""
+            if (raw.isEmpty()) return ""
+            if (TokenCipher.isEncrypted(raw)) return SecretStore.decrypt(raw) ?: ""
+            // Migrate plaintext tokens written by older app versions on first read.
+            runCatching { prefs.edit { putString("token", SecretStore.encrypt(raw)) } }
+            return raw
+        }
+        set(value) {
+            val clean = value.trim()
+            val stored = if (clean.isEmpty()) "" else SecretStore.encrypt(clean)
+            prefs.edit { putString("token", stored) }
+        }
 
     /** How far back the first sync (and a reset) reads. Without the history permission Health
      * Connect only returns the last 30 days anyway. */
