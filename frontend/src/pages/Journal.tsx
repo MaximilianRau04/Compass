@@ -63,19 +63,22 @@ function Numbers({ day }: { day: JournalDay }) {
           </ul>
         </>
       )}
+      <div className="mt-3 flex items-baseline justify-between gap-2">
+        <p className="font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.notes')}</p>
+        <Link to="/notes?id=new" className="font-mono text-2xs text-brass hover:underline">
+          + {t('notes.new')}
+        </Link>
+      </div>
       {day.notes.length > 0 && (
-        <>
-          <p className="mt-3 font-mono text-2xs tracking-wider text-muted uppercase">{t('journal.notes')}</p>
-          <ul className="mt-1 space-y-1">
-            {day.notes.map((note) => (
-              <li key={note.id}>
-                <Link to={`/notes?id=${note.id}`} className="text-brass hover:underline">
-                  {note.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="mt-1 space-y-1">
+          {day.notes.map((note) => (
+            <li key={note.id}>
+              <Link to={`/notes?id=${note.id}`} className="text-brass hover:underline">
+                {note.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   )
