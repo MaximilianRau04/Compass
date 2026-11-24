@@ -26,7 +26,7 @@ from app.db import SessionLocal
 from app.mcp.oauth import revoke_all_tokens
 from app.models.credentials import Credential
 from app.models.health import HealthRecord
-from app.services import export, health, integrations, nutrition
+from app.services import embeddings, export, health, integrations, nutrition
 
 CHUNK_DAYS = 60
 
@@ -75,6 +75,9 @@ def main() -> None:
     )
     report.add_argument("name", help="integration name, e.g. ops:backup or ops:deploy")
     report.add_argument("--error", default=None, help="failure reason; omit to record success")
+    commands.add_parser(
+        "backfill-embeddings", help="compute pgvector embeddings for notes and journal entries"
+    )
     args = parser.parse_args()
 
     if args.command == "rebuild-health":
@@ -104,6 +107,11 @@ def main() -> None:
                 integrations.record_success(session, args.name, {})
             session.commit()
         print(json.dumps({"name": args.name, "ok": not args.error}))
+    elif args.command == "backfill-embeddings":
+        with SessionLocal() as session:
+            result = embeddings.backfill(session)
+            session.commit()
+        print(json.dumps(result))
 
 
 if __name__ == "__main__":

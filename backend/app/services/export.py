@@ -35,8 +35,9 @@ SKIP_TABLES = {
 SKIP_COLUMNS = {
     "bank_connections": {"session_id", "state"},
     "feeds": {"url"},
-    # The search index of the notes, built from title and body.
-    "notes": {"search"},
+    # Derived search indexes / embeddings, rebuilt from title and body.
+    "notes": {"search", "embedding"},
+    "journal_entries": {"embedding"},
 }
 HOST_OF = {"feeds": "url"}
 

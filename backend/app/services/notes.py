@@ -8,12 +8,14 @@ archiving hides a note from the default list.
 import re
 from dataclasses import dataclass
 
-from sqlalchemy import any_, func, or_, select
+from sqlalchemy import Float, any_, cast, func, literal, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.notes import Note
 from app.models.tasks import Area, Task
+from app.models.vector import Vector
 from app.schemas.notes import NoteCreate, NoteUpdate
+from app.services import embeddings
 from app.services.clock import utc_now
 from app.services.tasks import area_lookup, find_area
 
@@ -55,6 +57,7 @@ def create_note(session: Session, data: NoteCreate, source: str | None = None) -
         source=source or data.source,
     )
     session.add(note)
+    embeddings.embed_note(note)
     session.flush()
     session.refresh(note)
     return note
@@ -77,6 +80,8 @@ def update_note(session: Session, note: Note, data: NoteUpdate) -> Note:
         if key in ("title", "body", "tags", "pinned") and value is None:
             continue  # not clearable
         setattr(note, key, value)
+    if "title" in changes or "body" in changes:
+        embeddings.embed_note(note)
     session.flush()
     session.refresh(note)
     return note
@@ -88,6 +93,7 @@ def append(session: Session, note: Note, text: str) -> Note:
     if not text:
         raise NoteError("Nothing to append.")
     note.body = f"{note.body.rstrip()}\n\n{text}" if note.body.strip() else text
+    embeddings.embed_note(note)
     session.flush()
     session.refresh(note)
     return note
@@ -187,8 +193,29 @@ def search(
         )
         order.append(sum(func.ts_rank(Note.search, q) for q in queries).desc())
     order.append(Note.updated_at.desc())
-    notes = session.scalars(stmt.order_by(*order).limit(limit)).unique()
-    return [Found(note=n, snippet=snippet(n.body, query)) for n in notes]
+    found = list(session.scalars(stmt.order_by(*order).limit(limit)).unique())
+    if query and len(found) < limit and embeddings.configured():
+        vec = embeddings.embed(query)
+        if vec is not None:
+            seen = {n.id for n in found}
+            vec_param = cast(literal(vec, type_=Vector), Vector)
+            distance = Note.embedding.op("<=>", return_type=Float)(vec_param)
+            sem = select(Note).where(
+                Note.archived_at.is_not(None) if archived else Note.archived_at.is_(None),
+                Note.embedding.is_not(None),
+                distance <= embeddings.MAX_COSINE_DISTANCE,
+            )
+            if seen:
+                sem = sem.where(Note.id.notin_(seen))
+            if area_id is not None:
+                sem = sem.where(Note.area_id == area_id)
+            if tag:
+                sem = sem.where(any_(Note.tags) == tag.lower().lstrip("#"))
+            if task_id is not None:
+                sem = sem.where(Note.task_id == task_id)
+            extra = list(session.scalars(sem.order_by(distance).limit(limit - len(found))).unique())
+            found.extend(extra)
+    return [Found(note=n, snippet=snippet(n.body, query)) for n in found]
 
 
 def context_notes(session: Session) -> list[Note]:

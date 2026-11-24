@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 from app.models.tasks import Area
+from app.models.vector import Vector
 
 # German and English stemming ("Abgaben" finds "Abgabe", "running" finds "run"), plus the plain
 # words so names match as written. Title words weigh more than body words.
@@ -58,5 +59,6 @@ class Note(TimestampMixin, Base):
         ForeignKey("tasks.id", ondelete="SET NULL"), index=True
     )
     search: Mapped[str] = mapped_column(TSVECTOR, Computed(SEARCH_VECTOR, persisted=True))
+    embedding: Mapped[list[float] | None] = mapped_column(Vector, nullable=True)
 
     area: Mapped[Area | None] = relationship(lazy="joined")

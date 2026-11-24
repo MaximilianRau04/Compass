@@ -4,6 +4,7 @@ from sqlalchemy import CheckConstraint, Date, SmallInteger, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
+from app.models.vector import Vector
 
 
 class JournalEntry(TimestampMixin, Base):
@@ -20,3 +21,4 @@ class JournalEntry(TimestampMixin, Base):
     mood: Mapped[int | None] = mapped_column(SmallInteger)
     energy: Mapped[int | None] = mapped_column(SmallInteger)
     text: Mapped[str] = mapped_column(Text, server_default="")
+    embedding: Mapped[list[float] | None] = mapped_column(Vector, nullable=True)

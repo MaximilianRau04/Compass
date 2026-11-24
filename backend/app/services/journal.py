@@ -12,7 +12,7 @@ from app.models.journal import JournalEntry
 from app.models.news import Brief
 from app.models.notes import Note
 from app.models.tasks import Task, TaskStatus
-from app.services import daily
+from app.services import daily, embeddings
 from app.services.clock import local_today, local_tz
 
 MAX_TEXT = 20_000
@@ -77,6 +77,7 @@ def save(
         entry = JournalEntry(local_date=day)
         session.add(entry)
     entry.mood, entry.energy, entry.text = new_mood, new_energy, new_text
+    embeddings.embed_journal(entry)
     session.flush()
     return entry
 

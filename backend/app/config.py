@@ -139,6 +139,11 @@ class Settings(BaseSettings):
     # Optional shared secret between Caddy and the API (defense in depth on the Docker network).
     # When set, every /api/* request except /api/health and /api/ingest/* must carry it.
     compass_api_proxy_secret: str = ""
+    # Optional semantic search embeddings (pgvector) for notes and journal entries.
+    # Works with Ollama (/api/embed or /api/embeddings) and OpenAI-compatible (/v1/embeddings).
+    embedding_url: str = ""
+    embedding_model: str = ""
+    embedding_api_key: str = ""
 
     # News feeds (RSS/Atom): space separated stream:name=url, stream is "general" or "personal".
     # General items are shown as they come; personal ones are ranked by the interest profile.
