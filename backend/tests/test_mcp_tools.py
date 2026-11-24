@@ -91,16 +91,22 @@ async def test_tools_are_listed_with_annotations(client):
         "log_sleep",
         "list_habits",
         "check_habit",
+        "list_savings_goals",
+        "save_savings_goal",
+        "split_transaction",
     }
     assert tools["get_today"].annotations.read_only_hint is True
     assert tools["add_task"].annotations.destructive_hint is False
     assert tools["log_sleep"].annotations.destructive_hint is False
     assert tools["check_habit"].annotations.destructive_hint is False
+    assert tools["save_savings_goal"].annotations.destructive_hint is False
+    assert tools["split_transaction"].annotations.destructive_hint is False
     for name in (
         "get_calendar",
         "training_summary",
         "get_training_session",
         "list_habits",
+        "list_savings_goals",
         "exercise_progress",
         "sleep_summary",
         "nutrition_summary",
@@ -557,3 +563,43 @@ async def test_habits_mcp_lists_and_checks_manual_habits(client, session):
 
     assert "from the data" in await call_error(client, "check_habit", habit_id=auto.id, done=True)
     assert "No active habit" in await call_error(client, "check_habit", habit_id=999999, done=True)
+
+
+@pytest.mark.anyio
+async def test_finance_savings_goals_and_splits_mcp(client, session):
+    from decimal import Decimal
+
+    from app.models.finance import BankAccount, BankTransaction
+
+    goal = await call(
+        client, "save_savings_goal", name="Vacation", target_amount=2000, current_amount=500
+    )
+    assert (goal["name"], goal["progress_pct"]) == ("Vacation", 25.0)
+    updated = await call(client, "save_savings_goal", goal_id=goal["id"], current_amount=1000)
+    assert updated["progress_pct"] == 50.0
+    listed = await call(client, "list_savings_goals")
+    assert [g["name"] for g in listed["goals"]] == ["Vacation"]
+
+    acc = BankAccount(identification_hash="h1", name="Giro")
+    session.add(acc)
+    session.flush()
+    tx = BankTransaction(
+        account_id=acc.id,
+        external_id="split-1",
+        booking_date=local_today(),
+        amount=Decimal("-80.00"),
+        counterparty="Shop",
+    )
+    session.add(tx)
+    session.flush()
+
+    msg = await call(
+        client,
+        "split_transaction",
+        transaction_id=tx.id,
+        splits=[
+            {"category": "shopping", "amount": 50},
+            {"category": "groceries", "amount": 30},
+        ],
+    )
+    assert "shopping: 50.00" in msg["result"] and "groceries: 30.00" in msg["result"]

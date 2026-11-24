@@ -101,6 +101,23 @@ class FinanceOverview(BaseModel):
     spending_categories: list[str]
 
 
+class TransactionSplitRead(BaseModel):
+    id: int
+    category: str
+    amount: float
+    note: str | None = None
+
+
+class TransactionSplitInput(BaseModel):
+    category: str = Field(max_length=30)
+    amount: float = Field(gt=0, le=100_000_000)
+    note: str | None = Field(default=None, max_length=200)
+
+
+class SplitsUpdate(BaseModel):
+    splits: list[TransactionSplitInput] = Field(max_length=20)
+
+
 class TransactionRead(BaseModel):
     id: int
     account: str
@@ -111,6 +128,7 @@ class TransactionRead(BaseModel):
     purpose: str | None
     category: str | None
     category_source: str | None
+    splits: list[TransactionSplitRead] = []
 
 
 class TransactionUpdate(BaseModel):
@@ -131,3 +149,27 @@ class BudgetSet(BaseModel):
 class DepotLog(BaseModel):
     value: float = Field(ge=0, le=100_000_000)
     day: date | None = None
+
+
+class SavingsGoalRead(BaseModel):
+    id: int
+    name: str
+    target_amount: float
+    current_amount: float
+    target_date: date | None
+    archived: bool
+
+
+class SavingsGoalCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    target_amount: float = Field(gt=0, le=100_000_000)
+    current_amount: float = Field(default=0.0, ge=0, le=100_000_000)
+    target_date: date | None = None
+
+
+class SavingsGoalUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    target_amount: float | None = Field(default=None, gt=0, le=100_000_000)
+    current_amount: float | None = Field(default=None, ge=0, le=100_000_000)
+    target_date: date | None = None
+    archived: bool | None = None

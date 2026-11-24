@@ -6,9 +6,11 @@ from app.models.finance import (
     BankAccount,
     BankConnection,
     BankTransaction,
+    BankTransactionSplit,
     DepotValue,
     FinanceBudget,
     FinanceRule,
+    SavingsGoal,
 )
 from app.models.habits import Habit, HabitCheck
 from app.models.health import DailyMetrics, HealthRecord, HeartRateSample, SleepSession
@@ -35,6 +37,7 @@ __all__ = [
     "BankAccount",
     "BankConnection",
     "BankTransaction",
+    "BankTransactionSplit",
     "Base",
     "BodyMeasurement",
     "BodyWeight",
@@ -50,6 +53,7 @@ __all__ = [
     "Feed",
     "FinanceBudget",
     "FinanceRule",
+    "SavingsGoal",
     "Goal",
     "HealthRecord",
     "HeartRateSample",

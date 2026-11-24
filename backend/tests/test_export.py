@@ -23,6 +23,7 @@ EXPORTED = {
         "created_at",
         "updated_at",
     ],  # noqa: E501
+    "bank_transaction_splits": ["id", "transaction_id", "category", "amount", "note"],
     "body_measurements": ["id", "metric", "local_date", "value", "created_at", "updated_at"],
     "body_weight": ["id", "source", "local_date", "kg", "measured_at", "created_at", "updated_at"],
     "briefs": ["id", "kind", "local_date", "title", "body", "actor", "created_at", "updated_at"],
@@ -76,6 +77,16 @@ EXPORTED = {
     ],  # noqa: E501
     "finance_budgets": ["category", "amount", "created_at", "updated_at"],
     "finance_rules": ["id", "pattern", "category", "created_at", "updated_at"],
+    "savings_goals": [
+        "id",
+        "name",
+        "target_amount",
+        "current_amount",
+        "target_date",
+        "archived",
+        "created_at",
+        "updated_at",
+    ],  # noqa: E501
     "goals": ["id", "metric", "value", "valid_from", "created_at"],
     "habits": ["id", "name", "rule", "sort_order", "archived", "created_at", "updated_at"],
     "integration_state": [

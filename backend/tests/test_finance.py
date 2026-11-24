@@ -319,3 +319,86 @@ def test_rule_sets_and_currency(session, bank, monkeypatch):
     session.scalar(select(BankAccount)).currency = "SEK"
     session.flush()
     assert finance.currency(session) == "SEK"
+
+
+def test_transaction_splits_affect_monthly_categories_and_validate_sum(client, session, bank):
+    from decimal import Decimal
+
+    from app.models.finance import BankTransaction
+
+    connect(session, bank)
+    account = session.scalar(select(BankAccount))
+    tx = BankTransaction(
+        account_id=account.id,
+        external_id="amazon-combo",
+        booking_date=local_today(),
+        amount=Decimal("-100.00"),
+        counterparty="Amazon",
+        purpose="Groceries and headphones",
+        category="shopping",
+        category_source="rule",
+    )
+    session.add(tx)
+    session.commit()
+
+    # Wrong sum is rejected.
+    bad = client.put(
+        f"/api/finance/transactions/{tx.id}/splits",
+        json={
+            "splits": [
+                {"category": "shopping", "amount": 50},
+                {"category": "groceries", "amount": 30},
+            ]
+        },
+    )
+    assert bad.status_code == 422
+
+    # Valid split allocates 60 to shopping and 40 to groceries in monthly overview.
+    ok = client.put(
+        f"/api/finance/transactions/{tx.id}/splits",
+        json={
+            "splits": [
+                {"category": "shopping", "amount": 60, "note": "headphones"},
+                {"category": "groceries", "amount": 40, "note": "coffee"},
+            ]
+        },
+    )
+    assert ok.status_code == 200
+    assert len(ok.json()["splits"]) == 2
+
+    current = client.get("/api/finance/overview?months=1").json()["months"][-1]
+    assert current["by_category"]["shopping"] == 60.0
+    assert current["by_category"]["groceries"] == 40.0
+    assert current["spending"] == 100.0
+
+    # Filtering transactions by a split category finds the transaction.
+    found = client.get("/api/finance/transactions?category=groceries").json()
+    assert [t["id"] for t in found] == [tx.id]
+
+    # Empty list clears splits.
+    cleared = client.put(f"/api/finance/transactions/{tx.id}/splits", json={"splits": []})
+    assert cleared.status_code == 200 and cleared.json()["splits"] == []
+
+
+def test_savings_goals_crud(client, session):
+    created = client.post(
+        "/api/finance/goals",
+        json={
+            "name": "Emergency fund",
+            "target_amount": 5000,
+            "current_amount": 1200,
+            "target_date": "2027-06-01",
+        },
+    )
+    assert created.status_code == 201
+    goal_id = created.json()["id"]
+    assert created.json()["current_amount"] == 1200.0
+
+    updated = client.patch(f"/api/finance/goals/{goal_id}", json={"current_amount": 2000})
+    assert updated.status_code == 200 and updated.json()["current_amount"] == 2000.0
+
+    listed = client.get("/api/finance/goals").json()
+    assert [g["name"] for g in listed] == ["Emergency fund"]
+
+    assert client.delete(f"/api/finance/goals/{goal_id}").status_code == 204
+    assert client.get("/api/finance/goals").json() == []

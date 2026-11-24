@@ -2,6 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -79,6 +80,24 @@ class BankTransaction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     account: Mapped[BankAccount] = relationship()
+    splits: Mapped[list["BankTransactionSplit"]] = relationship(
+        cascade="all, delete-orphan", order_by="BankTransactionSplit.id"
+    )
+
+
+class BankTransactionSplit(Base):
+    """Splits one bank transaction across multiple categories (e.g. a combined order).
+    Amounts are positive and sum to abs(transaction.amount); the sign follows the transaction."""
+
+    __tablename__ = "bank_transaction_splits"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(
+        ForeignKey("bank_transactions.id", ondelete="CASCADE"), index=True
+    )
+    category: Mapped[str] = mapped_column(String(30), index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    note: Mapped[str | None] = mapped_column(String(200))
 
 
 class FinanceRule(TimestampMixin, Base):
@@ -107,3 +126,16 @@ class DepotValue(TimestampMixin, Base):
 
     local_date: Mapped[date] = mapped_column(Date, primary_key=True)
     value: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+
+
+class SavingsGoal(TimestampMixin, Base):
+    """A medium- or long-term savings target (e.g. emergency fund, vacation)."""
+
+    __tablename__ = "savings_goals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    current_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"))
+    target_date: Mapped[date | None] = mapped_column(Date)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)

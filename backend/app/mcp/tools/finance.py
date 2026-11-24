@@ -4,9 +4,9 @@ from datetime import date
 from typing import Annotated
 
 from mcp.server.mcpserver.exceptions import ToolError
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from app.mcp.core import IDEMPOTENT_WRITE, READ, mcp
+from app.mcp.core import IDEMPOTENT_WRITE, READ, WRITE, mcp
 from app.mcp.db import session_scope
 from app.mcp.guards import audited
 from app.mcp.schemas import (
@@ -140,3 +140,121 @@ def log_depot_value(
         except finance.FinanceError as exc:
             raise ToolError(str(exc)) from exc
         return f"Depot {value:.2f} {finance.currency(session)} on {stored}"
+
+
+class SavingsGoalOut(BaseModel):
+    id: int
+    name: str
+    target_amount: float
+    current_amount: float
+    progress_pct: float
+    target_date: date | None
+    archived: bool
+
+
+class SplitItemIn(BaseModel):
+    category: str = Field(max_length=30)
+    amount: float = Field(gt=0, le=100_000_000)
+    note: str | None = Field(default=None, max_length=200)
+
+
+def _goal_out(g) -> SavingsGoalOut:
+    target = float(g.target_amount)
+    current = float(g.current_amount)
+    return SavingsGoalOut(
+        id=g.id,
+        name=g.name,
+        target_amount=target,
+        current_amount=current,
+        progress_pct=round(current / target * 100, 1) if target else 0.0,
+        target_date=g.target_date,
+        archived=g.archived,
+    )
+
+
+class SavingsGoalsOut(BaseModel):
+    goals: list[SavingsGoalOut]
+
+
+@mcp.tool(title="List savings goals", annotations=READ)
+def list_savings_goals(
+    include_archived: Annotated[bool, Field(description="Also include archived goals")] = False,
+) -> SavingsGoalsOut:
+    """Medium- and long-term savings goals with target amount, current amount and progress."""
+    with session_scope() as session:
+        return SavingsGoalsOut(
+            goals=[_goal_out(g) for g in finance.list_savings_goals(session, include_archived)]
+        )
+
+
+@mcp.tool(title="Save savings goal", annotations=WRITE)
+def save_savings_goal(
+    name: Annotated[str | None, Field(min_length=1, max_length=120)] = None,
+    target_amount: Annotated[float | None, Field(gt=0, le=100_000_000)] = None,
+    current_amount: Annotated[float | None, Field(ge=0, le=100_000_000)] = None,
+    target_date: Annotated[date | None, Field(description="YYYY-MM-DD")] = None,
+    goal_id: Annotated[int | None, Field(ge=1, description="Omit to create a new goal")] = None,
+    archived: Annotated[
+        bool | None, Field(description="Archive or unarchive an existing goal")
+    ] = None,
+) -> SavingsGoalOut:
+    """Create a new savings goal (give name and target_amount) or update an existing one by id."""
+    args = {
+        "goal_id": goal_id,
+        "name": name,
+        "target_amount": target_amount,
+        "current_amount": current_amount,
+        "target_date": target_date,
+        "archived": archived,
+    }
+    with audited("save_savings_goal", args) as session:
+        try:
+            if goal_id is None:
+                if not name or target_amount is None:
+                    raise ToolError("creating a savings goal requires name and target_amount")
+                goal = finance.create_savings_goal(
+                    session, name, target_amount, current_amount or 0.0, target_date
+                )
+            else:
+                changes = {
+                    k: v
+                    for k, v in (
+                        ("name", name),
+                        ("target_amount", target_amount),
+                        ("current_amount", current_amount),
+                        ("target_date", target_date),
+                        ("archived", archived),
+                    )
+                    if v is not None
+                }
+                goal = finance.update_savings_goal(session, goal_id, **changes)
+        except finance.FinanceError as exc:
+            raise ToolError(str(exc)) from exc
+        return _goal_out(goal)
+
+
+@mcp.tool(title="Split transaction", annotations=IDEMPOTENT_WRITE)
+def split_transaction(
+    transaction_id: Annotated[int, Field(ge=1)],
+    splits: Annotated[
+        list[SplitItemIn],
+        Field(
+            max_length=20,
+            description="At least two splits summing to abs(amount), or empty list to clear splits",
+        ),
+    ],
+) -> str:
+    """Split one bank transaction across multiple categories (e.g. a combined Amazon order).
+    Pass an empty list to clear splits and return to a single category."""
+    args = {"transaction_id": transaction_id, "count": len(splits)}
+    with audited("split_transaction", args) as session:
+        try:
+            t = finance.set_splits(
+                session, transaction_id, [(s.category, s.amount, s.note) for s in splits]
+            )
+        except finance.FinanceError as exc:
+            raise ToolError(str(exc)) from exc
+        if not t.splits:
+            return f"Cleared splits on transaction {t.id}"
+        parts = ", ".join(f"{s.category}: {float(s.amount):.2f}" for s in t.splits)
+        return f"Split transaction {t.id} into {parts}"

@@ -11,13 +11,18 @@ import {
   startConnect,
   useBanks,
   useCategorize,
+  useCreateSavingsGoal,
+  useDeleteSavingsGoal,
   useFinanceForecast,
   useFinanceOverview,
   useFinanceStatus,
   useLogDepot,
+  useSavingsGoals,
   useSetBudget,
+  useSetSplits,
   useSyncFinance,
   useTransactions,
+  useUpdateSavingsGoal,
 } from '../api/finance'
 import { useTodayDate } from '../api/tasks'
 import { ColumnChart } from '../components/charts'
@@ -343,13 +348,187 @@ function Depot({ data }: { data: FinanceOverview }) {
   )
 }
 
+function SavingsGoals() {
+  const { t, locale } = useI18n()
+  const money = useMoney()
+  const goals = useSavingsGoals()
+  const create = useCreateSavingsGoal()
+  const update = useUpdateSavingsGoal()
+  const remove = useDeleteSavingsGoal()
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [target, setTarget] = useState('')
+  const [current, setCurrent] = useState('')
+  const [targetDate, setTargetDate] = useState('')
+  const [editing, setEditing] = useState<number | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  const list = goals.data ?? []
+  return (
+    <section>
+      <div className="flex items-baseline justify-between gap-2">
+        <SectionLabel>{t('fin.goals')}</SectionLabel>
+        <button type="button" onClick={() => setAdding(!adding)} className="font-mono text-2xs text-brass hover:underline">
+          {adding ? t('common.cancel') : `+ ${t('fin.goalAdd')}`}
+        </button>
+      </div>
+      {adding && (
+        <form
+          className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-rule bg-paper-raised p-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const targetAmount = parseAmount(target, locale)
+            const currentAmount = current.trim() ? parseAmount(current, locale) : 0
+            if (!name.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0 || !Number.isFinite(currentAmount) || currentAmount < 0) return
+            create.mutate(
+              { name: name.trim(), target_amount: targetAmount, current_amount: currentAmount, target_date: targetDate || null },
+              {
+                onSuccess: () => {
+                  setName('')
+                  setTarget('')
+                  setCurrent('')
+                  setTargetDate('')
+                  setAdding(false)
+                  toast(t('fin.goalSaved'))
+                },
+                onError: (err) => toast.error(err.message),
+              },
+            )
+          }}
+        >
+          <label className="min-w-36 flex-1 text-sm">
+            <span className="mb-1 block text-xs text-muted">{t('fin.goalName')}</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} required className={`${INPUT} w-full font-sans`} />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs text-muted">{t('fin.goalTarget')}</span>
+            <input value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" required className={`${INPUT} w-28`} />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs text-muted">{t('fin.goalCurrent')}</span>
+            <input value={current} onChange={(e) => setCurrent(e.target.value)} inputMode="decimal" placeholder="0" className={`${INPUT} w-28`} />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs text-muted">{t('fin.goalDate')}</span>
+            <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className={`${INPUT} w-36`} />
+          </label>
+          <button type="submit" disabled={create.isPending || !name.trim() || !target.trim()} className={button('primary')}>
+            {t('fin.save')}
+          </button>
+        </form>
+      )}
+      {!adding && list.length === 0 && <p className="mt-2 text-sm text-muted">{t('fin.goalEmpty')}</p>}
+      {list.length > 0 && (
+        <ul className="mt-3 space-y-3">
+          {list.map((g) => {
+            const pct = g.target_amount > 0 ? Math.min(100, Math.round((g.current_amount / g.target_amount) * 100)) : 0
+            return (
+              <li key={g.id} className="rounded-lg border border-rule bg-paper-raised p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <span className="font-medium">{g.name}</span>
+                    {g.target_date && (
+                      <span className="ml-2 font-mono text-2xs text-muted">
+                        {parseDate(g.target_date).toLocaleDateString(locale)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-xs">
+                    <span className="tabular-nums">
+                      {money(g.current_amount)} / {money(g.target_amount)} ({pct} %)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(editing === g.id ? null : g.id)
+                        setEditValue(String(g.current_amount))
+                      }}
+                      className="text-brass hover:underline"
+                    >
+                      {t('fin.goalCurrent')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove.mutate(g.id, { onError: (err) => toast.error(err.message) })}
+                      className="text-muted hover:text-signal"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-rule">
+                  <div className="h-full rounded-full bg-chart" style={{ width: `${pct}%` }} />
+                </div>
+                {editing === g.id && (
+                  <form
+                    className="mt-2 flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      const val = parseAmount(editValue, locale)
+                      if (!Number.isFinite(val) || val < 0) return
+                      update.mutate(
+                        { id: g.id, current_amount: val },
+                        {
+                          onSuccess: () => {
+                            setEditing(null)
+                            toast(t('fin.goalSaved'))
+                          },
+                          onError: (err) => toast.error(err.message),
+                        },
+                      )
+                    }}
+                  >
+                    <input value={editValue} onChange={(e) => setEditValue(e.target.value)} inputMode="decimal" className={`${INPUT} w-28 text-xs`} />
+                    <button type="submit" disabled={update.isPending} className={button('primary')}>
+                      {t('fin.save')}
+                    </button>
+                  </form>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 function TransactionRow({ tx, categories }: { tx: BankTransaction; categories: string[] }) {
   const { t, locale } = useI18n()
   const today = useTodayDate()
   const money = useMoney()
   const categorize = useCategorize()
+  const setSplits = useSetSplits()
+  const [splitting, setSplitting] = useState(false)
+  const [rows, setRows] = useState<{ category: string; amount: string }[]>([])
   const party = tx.counterparty ?? ''
   const remember = party.length >= 3 && !/paypal/i.test(party)
+  const absAmount = Math.abs(tx.amount)
+
+  const openSplit = () => {
+    if (splitting) {
+      setSplitting(false)
+      return
+    }
+    if (tx.splits.length >= 2) {
+      setRows(tx.splits.map((s) => ({ category: s.category, amount: String(s.amount) })))
+    } else {
+      const half = Math.round((absAmount / 2) * 100) / 100
+      const rest = Math.round((absAmount - half) * 100) / 100
+      setRows([
+        { category: tx.category ?? categories[0] ?? 'other', amount: String(half) },
+        { category: categories.find((c) => c !== tx.category) ?? categories[0] ?? 'other', amount: String(rest) },
+      ])
+    }
+    setSplitting(true)
+  }
+
+  const parsedTotal = rows.reduce((sum, r) => {
+    const v = parseAmount(r.amount, locale)
+    return sum + (Number.isFinite(v) && v > 0 ? v : 0)
+  }, 0)
+  const remaining = Math.round((absAmount - parsedTotal) * 100) / 100
+
   const choose = (category: string) =>
     categorize.mutate(
       { id: tx.id, category },
@@ -371,30 +550,134 @@ function TransactionRow({ tx, categories }: { tx: BankTransaction; categories: s
       },
     )
   return (
-    <li className="flex items-start justify-between gap-3 py-2 text-sm">
-      <span className="min-w-0 flex-1">
-        <span className="block truncate">{party || tx.purpose || '–'}</span>
-        <span className="block truncate font-mono text-2xs text-muted">
-          {relativeDay(tx.booking_date, today, t, locale)}
-          {tx.purpose && party ? ` · ${tx.purpose}` : ''}
+    <li className="py-2 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate">{party || tx.purpose || '–'}</span>
+          <span className="block truncate font-mono text-2xs text-muted">
+            {relativeDay(tx.booking_date, today, t, locale)}
+            {tx.purpose && party ? ` · ${tx.purpose}` : ''}
+          </span>
+          {tx.splits.length > 0 && (
+            <span className="mt-1 flex flex-wrap gap-1.5 font-mono text-2xs text-muted">
+              {tx.splits.map((s) => (
+                <span key={s.id} className="rounded border border-rule px-1.5 py-0.5">
+                  {categoryLabel(t, s.category)} {money(s.amount, 2)}
+                </span>
+              ))}
+            </span>
+          )}
         </span>
-      </span>
-      <span className="flex shrink-0 flex-col items-end gap-1">
-        <span className={`font-mono tabular-nums ${tx.amount > 0 ? 'text-chart' : ''}`}>{money(tx.amount, 2)}</span>
-        <select
-          value={tx.category ?? ''}
-          onChange={(e) => choose(e.target.value)}
-          aria-label={t('fin.category')}
-          className={`rounded border border-rule bg-paper-raised px-1 py-1.5 text-xs sm:py-0.5 ${tx.category ? 'text-muted' : 'text-brass'}`}
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <span className={`font-mono tabular-nums ${tx.amount > 0 ? 'text-chart' : ''}`}>{money(tx.amount, 2)}</span>
+          <div className="flex items-center gap-1.5">
+            {tx.splits.length === 0 && (
+              <select
+                value={tx.category ?? ''}
+                onChange={(e) => choose(e.target.value)}
+                aria-label={t('fin.category')}
+                className={`rounded border border-rule bg-paper-raised px-1 py-1.5 text-xs sm:py-0.5 ${tx.category ? 'text-muted' : 'text-brass'}`}
+              >
+                {!tx.category && <option value="">{t('fin.cat.none')}</option>}
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {categoryLabel(t, c)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button type="button" onClick={openSplit} className="font-mono text-2xs text-muted hover:text-ink">
+              {t('fin.split')}
+            </button>
+          </div>
+        </span>
+      </div>
+      {splitting && (
+        <form
+          className="mt-2 space-y-2 rounded-md border border-rule bg-paper-raised p-2.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const payload = rows.map((r) => ({ category: r.category, amount: parseAmount(r.amount, locale) }))
+            if (payload.some((p) => !Number.isFinite(p.amount) || p.amount <= 0)) return
+            setSplits.mutate(
+              { id: tx.id, splits: payload },
+              {
+                onSuccess: () => {
+                  setSplitting(false)
+                  toast(t('fin.splitSaved'))
+                },
+                onError: (err) => toast.error(err.message),
+              },
+            )
+          }}
         >
-          {!tx.category && <option value="">{t('fin.cat.none')}</option>}
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {categoryLabel(t, c)}
-            </option>
+          {rows.map((row, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <select
+                value={row.category}
+                onChange={(e) => setRows(rows.map((r, i) => (i === idx ? { ...r, category: e.target.value } : r)))}
+                className="rounded border border-rule bg-paper px-1.5 py-1 text-xs"
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {categoryLabel(t, c)}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={row.amount}
+                onChange={(e) => setRows(rows.map((r, i) => (i === idx ? { ...r, amount: e.target.value } : r)))}
+                inputMode="decimal"
+                className={`${INPUT} w-24 py-1 text-xs`}
+              />
+              {rows.length > 2 && (
+                <button type="button" onClick={() => setRows(rows.filter((_, i) => i !== idx))} className="text-muted hover:text-signal">
+                  ×
+                </button>
+              )}
+            </div>
           ))}
-        </select>
-      </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setRows([...rows, { category: categories[0] ?? 'other', amount: remaining > 0 ? String(remaining) : '' }])}
+                className="font-mono text-2xs text-brass hover:underline"
+              >
+                + {t('fin.splitAdd')}
+              </button>
+              <span className={`font-mono text-2xs ${Math.abs(remaining) <= 0.01 ? 'text-muted' : 'text-signal'}`}>
+                {t('fin.splitRemaining', { value: money(remaining, 2) })}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {tx.splits.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSplits.mutate(
+                      { id: tx.id, splits: [] },
+                      {
+                        onSuccess: () => {
+                          setSplitting(false)
+                          toast(t('fin.splitSaved'))
+                        },
+                        onError: (err) => toast.error(err.message),
+                      },
+                    )
+                  }
+                  className="font-mono text-2xs text-muted hover:text-signal"
+                >
+                  {t('fin.splitClear')}
+                </button>
+              )}
+              <button type="submit" disabled={setSplits.isPending || Math.abs(remaining) > 0.01} className={button('primary')}>
+                {t('fin.save')}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
     </li>
   )
 }
@@ -495,6 +778,7 @@ export function FinancePage() {
         {data.accounts.length > 0 && <Categories data={data} />}
         {data.accounts.length > 0 && <Recurring data={data} />}
         <Depot data={data} />
+        <SavingsGoals />
         {data.accounts.length > 0 && <Transactions categories={data.categories} />}
       </div>
     </>

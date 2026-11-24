@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import SessionDep
 from app.config import get_settings
-from app.models.finance import BankConnection, BankTransaction
+from app.models.finance import BankConnection, BankTransaction, SavingsGoal
 from app.schemas.finance import (
     AccountRead,
     BankRead,
@@ -20,8 +20,13 @@ from app.schemas.finance import (
     ForecastRead,
     MonthRead,
     RecurringRead,
+    SavingsGoalCreate,
+    SavingsGoalRead,
+    SavingsGoalUpdate,
+    SplitsUpdate,
     SyncResult,
     TransactionRead,
+    TransactionSplitRead,
     TransactionUpdate,
     TransactionUpdated,
 )
@@ -58,6 +63,21 @@ def transaction_read(t: BankTransaction) -> TransactionRead:
         purpose=t.purpose,
         category=t.category,
         category_source=t.category_source,
+        splits=[
+            TransactionSplitRead(id=s.id, category=s.category, amount=float(s.amount), note=s.note)
+            for s in t.splits
+        ],
+    )
+
+
+def savings_goal_read(g: SavingsGoal) -> SavingsGoalRead:
+    return SavingsGoalRead(
+        id=g.id,
+        name=g.name,
+        target_amount=float(g.target_amount),
+        current_amount=float(g.current_amount),
+        target_date=g.target_date,
+        archived=g.archived,
     )
 
 
@@ -211,6 +231,61 @@ def set_budget(category: str, data: BudgetSet, session: SessionDep):
 def log_depot(data: DepotLog, session: SessionDep):
     try:
         finance.log_depot(session, data.value, data.day)
+    except finance.FinanceError as exc:
+        raise _fail(exc) from exc
+    session.commit()
+
+
+@router.put("/transactions/{transaction_id}/splits", response_model=TransactionRead)
+def update_splits(transaction_id: int, data: SplitsUpdate, session: SessionDep):
+    try:
+        t = finance.set_splits(
+            session,
+            transaction_id,
+            [(s.category, s.amount, s.note) for s in data.splits],
+        )
+    except finance.FinanceError as exc:
+        raise _fail(exc) from exc
+    session.commit()
+    return transaction_read(t)
+
+
+@router.get("/goals", response_model=list[SavingsGoalRead])
+def list_goals(session: SessionDep, include_archived: bool = False):
+    return [savings_goal_read(g) for g in finance.list_savings_goals(session, include_archived)]
+
+
+@router.post("/goals", response_model=SavingsGoalRead, status_code=status.HTTP_201_CREATED)
+def create_goal(data: SavingsGoalCreate, session: SessionDep):
+    try:
+        goal = finance.create_savings_goal(
+            session,
+            data.name,
+            data.target_amount,
+            data.current_amount,
+            data.target_date,
+        )
+    except finance.FinanceError as exc:
+        raise _fail(exc) from exc
+    session.commit()
+    return savings_goal_read(goal)
+
+
+@router.patch("/goals/{goal_id}", response_model=SavingsGoalRead)
+def update_goal(goal_id: int, data: SavingsGoalUpdate, session: SessionDep):
+    changes = {k: getattr(data, k) for k in data.model_fields_set}
+    try:
+        goal = finance.update_savings_goal(session, goal_id, **changes)
+    except finance.FinanceError as exc:
+        raise _fail(exc) from exc
+    session.commit()
+    return savings_goal_read(goal)
+
+
+@router.delete("/goals/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_goal(goal_id: int, session: SessionDep):
+    try:
+        finance.delete_savings_goal(session, goal_id)
     except finance.FinanceError as exc:
         raise _fail(exc) from exc
     session.commit()

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api, patch, post } from './client'
+import { api, del, patch, post, put } from './client'
 
 export interface BankConnection {
   id: number
@@ -56,6 +56,13 @@ export interface FinanceOverview {
   spending_categories: string[]
 }
 
+export interface TransactionSplit {
+  id: number
+  category: string
+  amount: number
+  note: string | null
+}
+
 export interface BankTransaction {
   id: number
   account: string
@@ -66,6 +73,16 @@ export interface BankTransaction {
   purpose: string | null
   category: string | null
   category_source: string | null
+  splits: TransactionSplit[]
+}
+
+export interface SavingsGoal {
+  id: number
+  name: string
+  target_amount: number
+  current_amount: number
+  target_date: string | null
+  archived: boolean
 }
 
 const invalidate = (qc: ReturnType<typeof useQueryClient>) => qc.invalidateQueries({ queryKey: ['finance'] })
@@ -149,6 +166,45 @@ export function useLogDepot() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (value: number) => post('/finance/depot', { value }),
+    onSettled: () => invalidate(qc),
+  })
+}
+
+export function useSetSplits() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, splits }: { id: number; splits: { category: string; amount: number; note?: string | null }[] }) =>
+      put<BankTransaction>(`/finance/transactions/${id}/splits`, { splits }),
+    onSettled: () => invalidate(qc),
+  })
+}
+
+export function useSavingsGoals() {
+  return useQuery({ queryKey: ['finance', 'goals'], queryFn: () => api<SavingsGoal[]>('/finance/goals') })
+}
+
+export function useCreateSavingsGoal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { name: string; target_amount: number; current_amount?: number; target_date?: string | null }) =>
+      post<SavingsGoal>('/finance/goals', data),
+    onSettled: () => invalidate(qc),
+  })
+}
+
+export function useUpdateSavingsGoal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: number; name?: string; target_amount?: number; current_amount?: number; target_date?: string | null; archived?: boolean }) =>
+      patch<SavingsGoal>(`/finance/goals/${id}`, data),
+    onSettled: () => invalidate(qc),
+  })
+}
+
+export function useDeleteSavingsGoal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => del(`/finance/goals/${id}`),
     onSettled: () => invalidate(qc),
   })
 }

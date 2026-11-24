@@ -23,17 +23,19 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from statistics import median
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.models.finance import (
     BankAccount,
     BankConnection,
     BankTransaction,
+    BankTransactionSplit,
     DepotValue,
     FinanceBudget,
     FinanceRule,
+    SavingsGoal,
 )
 from app.services import enablebanking
 from app.services.clock import local_today, utc_now
@@ -415,13 +417,20 @@ def transactions(
     query: str | None = None,
     limit: int = 200,
 ) -> list[BankTransaction]:
-    stmt = select(BankTransaction).where(
-        BankTransaction.booking_date >= local_today() - timedelta(days=days - 1)
+    stmt = (
+        select(BankTransaction)
+        .options(selectinload(BankTransaction.splits))
+        .where(BankTransaction.booking_date >= local_today() - timedelta(days=days - 1))
     )
     if category:
-        stmt = stmt.where(BankTransaction.category == category)
+        stmt = stmt.where(
+            or_(
+                BankTransaction.category == category,
+                BankTransaction.splits.any(BankTransactionSplit.category == category),
+            )
+        )
     if uncategorized:
-        stmt = stmt.where(BankTransaction.category.is_(None))
+        stmt = stmt.where(BankTransaction.category.is_(None), ~BankTransaction.splits.any())
     if query:
         like = f"%{query.lower()}%"
         stmt = stmt.where(
@@ -430,6 +439,115 @@ def transactions(
         )
     stmt = stmt.order_by(BankTransaction.booking_date.desc(), BankTransaction.id.desc())
     return list(session.scalars(stmt.limit(limit)))
+
+
+def set_splits(
+    session: Session,
+    transaction_id: int,
+    items: list[tuple[str, float, str | None]],
+) -> BankTransaction:
+    """Split a transaction across categories, or pass an empty list to clear existing splits."""
+    t = session.get(BankTransaction, transaction_id, options=[selectinload(BankTransaction.splits)])
+    if t is None:
+        raise FinanceError(f"no transaction {transaction_id}")
+    if not items:
+        t.splits.clear()
+        session.flush()
+        return t
+    if len(items) < 2:
+        raise FinanceError("at least two splits are required (or empty to clear)")
+    parsed: list[tuple[str, Decimal, str | None]] = []
+    total = Decimal("0")
+    for category, amount, note in items:
+        cat = check_category(category)
+        dec = Decimal(str(round(amount, 2)))
+        if dec <= 0:
+            raise FinanceError("every split amount must be positive")
+        clean_note = " ".join((note or "").split())[:200] or None
+        parsed.append((cat, dec, clean_note))
+        total += dec
+    expected = abs(t.amount)
+    if abs(total - expected) > Decimal("0.01"):
+        raise FinanceError(f"splits add up to {total:.2f}, transaction amount is {expected:.2f}")
+    t.splits.clear()
+    session.flush()
+    for cat, dec, clean_note in parsed:
+        t.splits.append(BankTransactionSplit(category=cat, amount=dec, note=clean_note))
+    t.category = parsed[0][0]
+    t.category_source = "manual"
+    session.flush()
+    return t
+
+
+# --- Savings goals -----------------------------------------------------------------------------
+
+
+def list_savings_goals(session: Session, include_archived: bool = False) -> list[SavingsGoal]:
+    stmt = select(SavingsGoal).order_by(
+        SavingsGoal.archived, SavingsGoal.target_date, SavingsGoal.id
+    )
+    if not include_archived:
+        stmt = stmt.where(SavingsGoal.archived.is_(False))
+    return list(session.scalars(stmt))
+
+
+def create_savings_goal(
+    session: Session,
+    name: str,
+    target_amount: float,
+    current_amount: float = 0.0,
+    target_date: date | None = None,
+) -> SavingsGoal:
+    clean = " ".join(name.split())[:120]
+    if not clean:
+        raise FinanceError("a savings goal needs a name")
+    if target_amount <= 0:
+        raise FinanceError("target amount must be positive")
+    if current_amount < 0:
+        raise FinanceError("current amount cannot be negative")
+    goal = SavingsGoal(
+        name=clean,
+        target_amount=Decimal(str(round(target_amount, 2))),
+        current_amount=Decimal(str(round(current_amount, 2))),
+        target_date=target_date,
+        archived=False,
+    )
+    session.add(goal)
+    session.flush()
+    return goal
+
+
+def update_savings_goal(session: Session, goal_id: int, **changes) -> SavingsGoal:
+    goal = session.get(SavingsGoal, goal_id)
+    if goal is None:
+        raise FinanceError(f"no savings goal {goal_id}")
+    if "name" in changes and changes["name"] is not None:
+        clean = " ".join(str(changes["name"]).split())[:120]
+        if not clean:
+            raise FinanceError("a savings goal needs a name")
+        goal.name = clean
+    if "target_amount" in changes and changes["target_amount"] is not None:
+        if changes["target_amount"] <= 0:
+            raise FinanceError("target amount must be positive")
+        goal.target_amount = Decimal(str(round(changes["target_amount"], 2)))
+    if "current_amount" in changes and changes["current_amount"] is not None:
+        if changes["current_amount"] < 0:
+            raise FinanceError("current amount cannot be negative")
+        goal.current_amount = Decimal(str(round(changes["current_amount"], 2)))
+    if "target_date" in changes:
+        goal.target_date = changes["target_date"]
+    if "archived" in changes and changes["archived"] is not None:
+        goal.archived = bool(changes["archived"])
+    session.flush()
+    return goal
+
+
+def delete_savings_goal(session: Session, goal_id: int) -> None:
+    goal = session.get(SavingsGoal, goal_id)
+    if goal is None:
+        raise FinanceError(f"no savings goal {goal_id}")
+    session.delete(goal)
+    session.flush()
 
 
 # --- Depot -------------------------------------------------------------------------------------
@@ -507,27 +625,40 @@ def _months_back(today: date, n: int) -> list[str]:
     return list(reversed(out))
 
 
+def _book_entry(m: Month, category: str | None, amount: float) -> None:
+    if category == "transfer":
+        return
+    if category == "savings":
+        m.saved -= amount
+    elif category == "income":
+        m.income += amount
+    elif category in SPENDING or (category is None and amount < 0):
+        m.spending -= amount
+        m.by_category[category or "uncategorized"] -= amount
+        if category is None:
+            m.uncategorized += 1
+
+
 def months(session: Session, n: int = 6, today: date | None = None) -> list[Month]:
     today = today or local_today()
     keys = _months_back(today, n)
     first = date.fromisoformat(keys[0] + "-01")
     data = {k: Month(k, 0.0, 0.0, 0.0, defaultdict(float), 0) for k in keys}
-    for t in session.scalars(select(BankTransaction).where(BankTransaction.booking_date >= first)):
+    stmt = (
+        select(BankTransaction)
+        .options(selectinload(BankTransaction.splits))
+        .where(BankTransaction.booking_date >= first)
+    )
+    for t in session.scalars(stmt):
         m = data.get(_month_key(t.booking_date))
         if m is None:
             continue
-        amount = float(t.amount)
-        if t.category == "transfer":
-            continue
-        if t.category == "savings":
-            m.saved -= amount
-        elif t.category == "income":
-            m.income += amount
-        elif t.category in SPENDING or (t.category is None and amount < 0):
-            m.spending -= amount
-            m.by_category[t.category or "uncategorized"] -= amount
-            if t.category is None:
-                m.uncategorized += 1
+        if t.splits:
+            sign = -1.0 if t.amount < 0 else 1.0
+            for split in t.splits:
+                _book_entry(m, split.category, sign * float(split.amount))
+        else:
+            _book_entry(m, t.category, float(t.amount))
     out = []
     for m in data.values():
         m.by_category = {

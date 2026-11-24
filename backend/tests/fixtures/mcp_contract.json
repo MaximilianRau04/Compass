@@ -4173,6 +4173,96 @@
    },
    "title": "Important mails"
   },
+  "list_savings_goals": {
+   "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Medium- and long-term savings goals with target amount, current amount and progress.",
+   "inputSchema": {
+    "properties": {
+     "include_archived": {
+      "default": false,
+      "description": "Also include archived goals",
+      "title": "Include Archived",
+      "type": "boolean"
+     }
+    },
+    "title": "list_savings_goalsArguments",
+    "type": "object"
+   },
+   "name": "list_savings_goals",
+   "outputSchema": {
+    "$defs": {
+     "SavingsGoalOut": {
+      "properties": {
+       "archived": {
+        "title": "Archived",
+        "type": "boolean"
+       },
+       "current_amount": {
+        "title": "Current Amount",
+        "type": "number"
+       },
+       "id": {
+        "title": "Id",
+        "type": "integer"
+       },
+       "name": {
+        "title": "Name",
+        "type": "string"
+       },
+       "progress_pct": {
+        "title": "Progress Pct",
+        "type": "number"
+       },
+       "target_amount": {
+        "title": "Target Amount",
+        "type": "number"
+       },
+       "target_date": {
+        "anyOf": [
+         {
+          "format": "date",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Target Date"
+       }
+      },
+      "required": [
+       "id",
+       "name",
+       "target_amount",
+       "current_amount",
+       "progress_pct",
+       "target_date",
+       "archived"
+      ],
+      "title": "SavingsGoalOut",
+      "type": "object"
+     }
+    },
+    "properties": {
+     "goals": {
+      "items": {
+       "$ref": "#/$defs/SavingsGoalOut"
+      },
+      "title": "Goals",
+      "type": "array"
+     }
+    },
+    "required": [
+     "goals"
+    ],
+    "title": "SavingsGoalsOut",
+    "type": "object"
+   },
+   "title": "List savings goals"
+  },
   "list_tasks": {
    "annotations": {
     "openWorldHint": false,
@@ -6175,6 +6265,157 @@
    },
    "title": "Save mail triage"
   },
+  "save_savings_goal": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Create a new savings goal (give name and target_amount) or update an existing one by id.",
+   "inputSchema": {
+    "properties": {
+     "archived": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Archive or unarchive an existing goal",
+      "title": "Archived"
+     },
+     "current_amount": {
+      "anyOf": [
+       {
+        "maximum": 100000000,
+        "minimum": 0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Current Amount"
+     },
+     "goal_id": {
+      "anyOf": [
+       {
+        "minimum": 1,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Omit to create a new goal",
+      "title": "Goal Id"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "maxLength": 120,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Name"
+     },
+     "target_amount": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0,
+        "maximum": 100000000,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Target Amount"
+     },
+     "target_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "YYYY-MM-DD",
+      "title": "Target Date"
+     }
+    },
+    "title": "save_savings_goalArguments",
+    "type": "object"
+   },
+   "name": "save_savings_goal",
+   "outputSchema": {
+    "properties": {
+     "archived": {
+      "title": "Archived",
+      "type": "boolean"
+     },
+     "current_amount": {
+      "title": "Current Amount",
+      "type": "number"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "progress_pct": {
+      "title": "Progress Pct",
+      "type": "number"
+     },
+     "target_amount": {
+      "title": "Target Amount",
+      "type": "number"
+     },
+     "target_date": {
+      "anyOf": [
+       {
+        "format": "date",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Date"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "target_amount",
+     "current_amount",
+     "progress_pct",
+     "target_date",
+     "archived"
+    ],
+    "title": "SavingsGoalOut",
+    "type": "object"
+   },
+   "title": "Save savings goal"
+  },
   "search": {
    "annotations": {
     "openWorldHint": false,
@@ -7439,6 +7680,90 @@
     "type": "object"
    },
    "title": "Sleep and health"
+  },
+  "split_transaction": {
+   "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+   },
+   "description": "Split one bank transaction across multiple categories (e.g. a combined Amazon order).\nPass an empty list to clear splits and return to a single category.",
+   "inputSchema": {
+    "$defs": {
+     "SplitItemIn": {
+      "properties": {
+       "amount": {
+        "exclusiveMinimum": 0,
+        "maximum": 100000000,
+        "title": "Amount",
+        "type": "number"
+       },
+       "category": {
+        "maxLength": 30,
+        "title": "Category",
+        "type": "string"
+       },
+       "note": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Note"
+       }
+      },
+      "required": [
+       "category",
+       "amount"
+      ],
+      "title": "SplitItemIn",
+      "type": "object"
+     }
+    },
+    "properties": {
+     "splits": {
+      "description": "At least two splits summing to abs(amount), or empty list to clear splits",
+      "items": {
+       "$ref": "#/$defs/SplitItemIn"
+      },
+      "maxItems": 20,
+      "title": "Splits",
+      "type": "array"
+     },
+     "transaction_id": {
+      "minimum": 1,
+      "title": "Transaction Id",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "transaction_id",
+     "splits"
+    ],
+    "title": "split_transactionArguments",
+    "type": "object"
+   },
+   "name": "split_transaction",
+   "outputSchema": {
+    "properties": {
+     "result": {
+      "title": "Result",
+      "type": "string"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "split_transactionOutput",
+    "type": "object"
+   },
+   "title": "Split transaction"
   },
   "training_summary": {
    "annotations": {
