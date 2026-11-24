@@ -1,6 +1,7 @@
-"""One search over tasks, notes, calendar events and mails, for the search field of the web app
-and for assistants. Each kind is matched its own way: notes by their full text index, the
-others by the words appearing in their texts."""
+"""One search over tasks, notes, journal entries, calendar events and mails, for the search
+field of the web app and for assistants. Each kind is matched its own way: notes by their full
+text index, the others by the words appearing in their texts. Notes and journal entries are
+also found by meaning when embeddings are set up."""
 
 from dataclasses import dataclass, field
 from datetime import datetime, time
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.calendar import CalendarEvent
 from app.models.mail import Email
 from app.models.tasks import Task
+from app.services import journal as journal_service
 from app.services import notes as note_service
 from app.services.clock import local_today, local_tz
 from app.services.tasks import ACTIVE, contains
@@ -22,6 +24,7 @@ MIN_QUERY = 2
 class Results:
     tasks: list[Task] = field(default_factory=list)
     notes: list[note_service.Found] = field(default_factory=list)
+    journal: list[journal_service.Found] = field(default_factory=list)
     events: list[CalendarEvent] = field(default_factory=list)
     mails: list[Email] = field(default_factory=list)
 
@@ -87,6 +90,7 @@ def search(session: Session, query: str, limit: int = 8) -> Results:
     return Results(
         tasks=list(tasks),
         notes=note_service.search(session, query, limit=limit),
+        journal=journal_service.search(session, query, limit=limit),
         events=list(events),
         mails=list(mails),
     )

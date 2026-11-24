@@ -3,16 +3,24 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from './client'
 import type { CalendarEvent, Mail, NoteListItem, Task } from './types'
 
+export interface JournalHit {
+  local_date: string
+  mood: number | null
+  energy: number | null
+  snippet: string
+}
+
 export interface SearchResults {
   tasks: Task[]
   notes: NoteListItem[]
+  journal: JournalHit[]
   events: CalendarEvent[]
   mails: Mail[]
 }
 
 export const SEARCH_MIN = 2
 
-/** Tasks, notes, events and mails that contain the words of q. Not kept on the device (see
+/** Tasks, notes, journal entries, events and mails that contain the words of q. Not kept on the device (see
  * lib/queryCache): every keystroke would leave an entry behind. */
 export function useSearch(q: string) {
   return useQuery({

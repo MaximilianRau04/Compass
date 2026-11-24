@@ -8,12 +8,11 @@ archiving hides a note from the default list.
 import re
 from dataclasses import dataclass
 
-from sqlalchemy import Float, any_, cast, func, literal, or_, select
+from sqlalchemy import any_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.notes import Note
 from app.models.tasks import Area, Task
-from app.models.vector import Vector
 from app.schemas.notes import NoteCreate, NoteUpdate
 from app.services import embeddings
 from app.services.clock import utc_now
@@ -180,6 +179,7 @@ def search(
         stmt = stmt.where(any_(Note.tags) == tag.lower().lstrip("#"))
     if task_id is not None:
         stmt = stmt.where(Note.task_id == task_id)
+    base = stmt
     query = (query or "").strip()
     order = [Note.pinned.desc()]
     if query:
@@ -195,28 +195,13 @@ def search(
     order.append(Note.updated_at.desc())
     found = list(session.scalars(stmt.order_by(*order).limit(limit)).unique())
     if query and len(found) < limit and embeddings.configured():
-        vec = embeddings.embed(query)
+        vec = embeddings.embed_query(query)
         if vec is not None:
-            seen = {n.id for n in found}
-            vec_param = cast(literal(vec, type_=Vector), Vector)
-            distance = Note.embedding.op("<=>", return_type=Float)(vec_param)
-            sem = select(Note).where(
-                Note.archived_at.is_not(None) if archived else Note.archived_at.is_(None),
-                Note.embedding.is_not(None),
-                # Vectors of an earlier model with other dims would make <=> raise.
-                func.vector_dims(Note.embedding) == len(vec),
-                distance <= embeddings.MAX_COSINE_DISTANCE,
+            # The same filters, minus the words: notes that mean the same with other words.
+            sem = embeddings.nearest(
+                base.where(Note.id.notin_([n.id for n in found])), Note.embedding, vec
             )
-            if seen:
-                sem = sem.where(Note.id.notin_(seen))
-            if area_id is not None:
-                sem = sem.where(Note.area_id == area_id)
-            if tag:
-                sem = sem.where(any_(Note.tags) == tag.lower().lstrip("#"))
-            if task_id is not None:
-                sem = sem.where(Note.task_id == task_id)
-            extra = list(session.scalars(sem.order_by(distance).limit(limit - len(found))).unique())
-            found.extend(extra)
+            found += session.scalars(sem.limit(limit - len(found))).unique()
     return [Found(note=n, snippet=snippet(n.body, query)) for n in found]
 
 

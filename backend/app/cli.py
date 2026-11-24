@@ -75,8 +75,11 @@ def main() -> None:
     )
     report.add_argument("name", help="integration name, e.g. ops:backup or ops:deploy")
     report.add_argument("--error", default=None, help="failure reason; omit to record success")
-    commands.add_parser(
+    backfill = commands.add_parser(
         "backfill-embeddings", help="compute pgvector embeddings for notes and journal entries"
+    )
+    backfill.add_argument(
+        "--all", action="store_true", help="redo every embedding, e.g. after switching the model"
     )
     args = parser.parse_args()
 
@@ -109,7 +112,7 @@ def main() -> None:
         print(json.dumps({"name": args.name, "ok": not args.error}))
     elif args.command == "backfill-embeddings":
         with SessionLocal() as session:
-            result = embeddings.backfill(session)
+            result = embeddings.backfill(session, everything=args.all)
             session.commit()
         print(json.dumps(result))
 

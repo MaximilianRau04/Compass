@@ -389,6 +389,13 @@ class NotesOut(BaseModel):
     notes: list[NoteSummaryOut]
 
 
+class JournalHitOut(BaseModel):
+    date: date
+    mood: int | None
+    energy: int | None
+    snippet: str = Field(description="Use get_journal for the full text")
+
+
 class SearchOut(BaseModel):
     query: str
     note: str = Field(
@@ -396,6 +403,7 @@ class SearchOut(BaseModel):
     )
     tasks: list[TaskOut] = Field(description="Open ones first; done and cancelled ones too")
     notes: list[NoteSummaryOut] = Field(description="Use get_note for the full text")
+    journal: list[JournalHitOut] = Field(description="Newest first, then alike in meaning")
     events: list[EventItem] = Field(description="Upcoming first, then past ones")
     mails: list[MailOut]
 

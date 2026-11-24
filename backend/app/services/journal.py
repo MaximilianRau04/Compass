@@ -14,6 +14,8 @@ from app.models.notes import Note
 from app.models.tasks import Task, TaskStatus
 from app.services import daily, embeddings
 from app.services.clock import local_today, local_tz
+from app.services.notes import snippet
+from app.services.tasks import contains
 
 MAX_TEXT = 20_000
 
@@ -93,6 +95,36 @@ def entries(session: Session, since: date, until: date) -> list[JournalEntry]:
             .order_by(JournalEntry.local_date.desc())
         )
     )
+
+
+@dataclass
+class Found:
+    entry: JournalEntry
+    snippet: str
+
+
+def search(session: Session, query: str, limit: int = 8) -> list[Found]:
+    """Entries whose text holds every word of the query, newest first. With embeddings set up,
+    the rest are filled with entries that mean something alike in other words."""
+    query = " ".join(query.split())
+    if not query:
+        return []
+    words = [JournalEntry.text.ilike(contains(word), escape="\\") for word in query.split()]
+    found = list(
+        session.scalars(
+            select(JournalEntry).where(*words).order_by(JournalEntry.local_date.desc()).limit(limit)
+        )
+    )
+    if len(found) < limit and embeddings.configured():
+        vec = embeddings.embed_query(query)
+        if vec is not None:
+            rest = select(JournalEntry).where(
+                JournalEntry.local_date.notin_([e.local_date for e in found])
+            )
+            found += session.scalars(
+                embeddings.nearest(rest, JournalEntry.embedding, vec).limit(limit - len(found))
+            )
+    return [Found(entry=e, snippet=snippet(e.text, query)) for e in found]
 
 
 @dataclass

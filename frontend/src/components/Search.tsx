@@ -31,7 +31,8 @@ function useDebounced(value: string, ms: number): string {
 }
 
 /**
- * The search over everything: pages by name, and tasks, notes, events and mails by their text.
+ * The search over everything: pages by name, and tasks, notes, journal entries, events and mails
+ * by their text.
  * Opened with Ctrl/Cmd+K or "/" and from the navigation. Arrow keys and Enter pick a hit.
  */
 export function Search({
@@ -116,6 +117,13 @@ function SearchBody({
       title: note.title,
       detail: note.snippet,
       run: go(`/notes?id=${note.id}`),
+    })),
+    ...(found?.journal ?? []).map((entry) => ({
+      key: `journal${entry.local_date}`,
+      group: 'nav.journal' as const,
+      title: relativeDay(entry.local_date, today, t, locale),
+      detail: entry.snippet,
+      run: go(`/journal?day=${entry.local_date}`),
     })),
     ...(found?.events ?? []).map((event) => {
       const day = localDay(event.starts_at)

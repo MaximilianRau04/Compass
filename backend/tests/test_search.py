@@ -123,7 +123,19 @@ def test_percent_and_underscore_are_plain_characters(client):
 def test_short_queries_find_nothing_and_the_limit_applies(client):
     for n in range(5):
         task(client, title=f"Call {n}")
-    assert search(client, "c") == {"tasks": [], "notes": [], "events": [], "mails": []}
-    assert search(client, "  ") == {"tasks": [], "notes": [], "events": [], "mails": []}
+    assert search(client, "c") == {
+        "tasks": [],
+        "notes": [],
+        "journal": [],
+        "events": [],
+        "mails": [],
+    }
+    assert search(client, "  ") == {
+        "tasks": [],
+        "notes": [],
+        "journal": [],
+        "events": [],
+        "mails": [],
+    }
     assert len(search(client, "call", limit=3)["tasks"]) == 3
     assert client.get("/api/search").status_code == 422
