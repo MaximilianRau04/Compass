@@ -76,8 +76,10 @@ def save(
     if entry is None:
         entry = JournalEntry(local_date=day)
         session.add(entry)
+    text_changed = entry.text != new_text
     entry.mood, entry.energy, entry.text = new_mood, new_energy, new_text
-    embeddings.embed_journal(entry)
+    if text_changed:
+        embeddings.embed_journal(entry)
     session.flush()
     return entry
 

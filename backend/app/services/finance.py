@@ -362,6 +362,7 @@ def set_category(
     if t is None:
         raise FinanceError(f"unknown transaction {transaction_id}")
     t.category, t.category_source = check_category(category), source
+    t.splits.clear()  # one category replaces a split, else months() would still book the splits
     session.flush()
     return t
 

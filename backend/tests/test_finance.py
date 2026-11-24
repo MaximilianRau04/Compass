@@ -375,6 +375,21 @@ def test_transaction_splits_affect_monthly_categories_and_validate_sum(client, s
     found = client.get("/api/finance/transactions?category=groceries").json()
     assert [t["id"] for t in found] == [tx.id]
 
+    # Picking one category replaces the split.
+    single = client.patch(f"/api/finance/transactions/{tx.id}", json={"category": "groceries"})
+    assert single.json()["transaction"]["splits"] == []
+    current = client.get("/api/finance/overview?months=1").json()["months"][-1]
+    assert current["by_category"] == {"groceries": 100.0}
+    client.put(
+        f"/api/finance/transactions/{tx.id}/splits",
+        json={
+            "splits": [
+                {"category": "shopping", "amount": 60},
+                {"category": "groceries", "amount": 40},
+            ]
+        },
+    )
+
     # Empty list clears splits.
     cleared = client.put(f"/api/finance/transactions/{tx.id}/splits", json={"splits": []})
     assert cleared.status_code == 200 and cleared.json()["splits"] == []

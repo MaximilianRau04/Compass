@@ -203,6 +203,8 @@ def search(
             sem = select(Note).where(
                 Note.archived_at.is_not(None) if archived else Note.archived_at.is_(None),
                 Note.embedding.is_not(None),
+                # Vectors of an earlier model with other dims would make <=> raise.
+                func.vector_dims(Note.embedding) == len(vec),
                 distance <= embeddings.MAX_COSINE_DISTANCE,
             )
             if seen:
