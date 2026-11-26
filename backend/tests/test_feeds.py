@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from email.utils import format_datetime
 from urllib.error import HTTPError
 
 import pytest
@@ -13,10 +14,11 @@ from app.models.tasks import Task
 from app.services import feeds, setup
 
 SECRET = "https://cal.example/export?token=SECRET"
-RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>Blog</title>
+# Yesterday, so the item stays inside news_keep_days whenever the tests run.
+RSS = f"""<?xml version="1.0"?><rss version="2.0"><channel><title>Blog</title>
 <item><title>A post</title><link>https://blog.example/a</link><guid>a</guid>
-<pubDate>Mon, 26 Oct 2026 08:00:00 GMT</pubDate></item>
-</channel></rss>"""
+<pubDate>{format_datetime(datetime.now(UTC) - timedelta(days=1), usegmt=True)}</pubDate></item>
+</channel></rss>""".encode()
 
 
 def ics(*titles: str) -> bytes:
