@@ -1,5 +1,5 @@
 """Money: bank accounts through Enable Banking, categories, budgets, recurring payments and the
-securities account (entered by hand).
+securities account (entered by hand, or valued daily from its positions' closing prices).
 
 - Connecting: the user picks the bank, approves at the bank and comes back with a code; the
   consent lasts up to 180 days, then the user approves again.
@@ -14,9 +14,13 @@ securities account (entered by hand).
 """
 
 import hashlib
+import json
 import logging
 import re
 import secrets
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
@@ -32,6 +36,7 @@ from app.models.finance import (
     BankConnection,
     BankTransaction,
     BankTransactionSplit,
+    DepotPosition,
     DepotValue,
     FinanceBudget,
     FinanceRule,
@@ -554,7 +559,9 @@ def delete_savings_goal(session: Session, goal_id: int) -> None:
 # --- Depot -------------------------------------------------------------------------------------
 
 
-def log_depot(session: Session, value: float, day: date | None = None) -> date:
+def log_depot(
+    session: Session, value: float, day: date | None = None, source: str = "manual"
+) -> date:
     day = day or local_today()
     if day > local_today():
         raise FinanceError("the day is in the future")
@@ -562,11 +569,86 @@ def log_depot(session: Session, value: float, day: date | None = None) -> date:
         raise FinanceError("the value cannot be negative")
     row = session.get(DepotValue, day)
     if row is None:
-        session.add(DepotValue(local_date=day, value=Decimal(str(value))))
+        session.add(DepotValue(local_date=day, value=Decimal(str(value)), source=source))
     else:
-        row.value = Decimal(str(value))
+        row.value, row.source = Decimal(str(value)), source
     session.flush()
     return day
+
+
+QUOTE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{}?range=1d&interval=1d"
+SYMBOL = re.compile(r"[A-Z0-9][A-Z0-9.\-=^]{0,19}")
+
+
+def quote(symbol: str) -> tuple[Decimal, str, str | None]:
+    """Last price, its currency and the name of a Yahoo Finance symbol. No account needed."""
+    url = QUOTE_URL.format(urllib.parse.quote(symbol, safe=""))
+    # Yahoo answers 429 to the default Python user agent.
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; Compass)"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            meta = json.load(response)["chart"]["result"][0]["meta"]
+        price = Decimal(str(meta["regularMarketPrice"]))
+    except urllib.error.HTTPError as exc:
+        raise FinanceError(f"no price for {symbol} (HTTP {exc.code})") from exc
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as exc:
+        raise FinanceError(f"no price for {symbol}") from exc
+    return price, str(meta.get("currency") or ""), meta.get("longName") or meta.get("shortName")
+
+
+def _priced(session: Session, position: DepotPosition) -> None:
+    price, cur, name = quote(position.symbol)
+    want = currency(session)
+    # shortcut: no exchange rates, so a position must trade in the accounts' currency
+    if cur != want:
+        raise FinanceError(f"{position.symbol} trades in {cur or '?'}, pick a listing in {want}")
+    position.price, position.name = price, (name or "")[:200] or None
+
+
+def positions(session: Session) -> list[DepotPosition]:
+    return list(session.scalars(select(DepotPosition).order_by(DepotPosition.symbol)))
+
+
+def _log_positions(session: Session) -> float | None:
+    """Today's depot value from the positions and their last prices. None without positions or
+    when the user entered today's value by hand."""
+    held = positions(session)
+    today = session.get(DepotValue, local_today())
+    if not held or (today is not None and today.source == "manual"):
+        return None
+    value = float(sum((p.quantity * (p.price or 0) for p in held), Decimal(0)))
+    log_depot(session, round(value, 2), source="positions")
+    return round(value, 2)
+
+
+def set_position(session: Session, symbol: str, quantity: float) -> float | None:
+    """Add, change or (quantity 0) remove a position, then log today's depot value."""
+    symbol = symbol.strip().upper()
+    if not SYMBOL.fullmatch(symbol):
+        raise FinanceError("not a valid symbol")
+    if quantity < 0:
+        raise FinanceError("the quantity cannot be negative")
+    position = session.get(DepotPosition, symbol)
+    if quantity == 0:
+        if position is not None:
+            session.delete(position)
+            session.flush()
+        return _log_positions(session)
+    if position is None:
+        position = DepotPosition(symbol=symbol)
+    position.quantity = Decimal(str(quantity))
+    _priced(session, position)
+    session.add(position)
+    session.flush()
+    return _log_positions(session)
+
+
+def refresh_depot(session: Session) -> float | None:
+    """Fetch every position's price and log today's value. All or nothing: one failed price
+    leaves the day as it was, so a missing position never shows as a drop."""
+    for position in positions(session):
+        _priced(session, position)
+    return _log_positions(session)
 
 
 # --- Overview ----------------------------------------------------------------------------------
@@ -603,6 +685,7 @@ class Overview:
     depot: list[DepotValue]
     invested: float  # all money to the securities account in the data
     recurring: list[Recurring] = field(default_factory=list)
+    positions: list[DepotPosition] = field(default_factory=list)
 
     @property
     def cash(self) -> float:
@@ -749,6 +832,7 @@ def overview(session: Session, n: int = 6, today: date | None = None) -> Overvie
         depot=list(session.scalars(select(DepotValue).order_by(DepotValue.local_date))),
         invested=round(-float(invested or 0), 2),
         recurring=recurring(session, today),
+        positions=positions(session),
     )
 
 

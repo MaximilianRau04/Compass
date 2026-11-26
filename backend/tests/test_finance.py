@@ -1,6 +1,7 @@
 import base64
 import json
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from cryptography.hazmat.primitives import hashes, serialization
@@ -8,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.models.finance import BankAccount, BankConnection, BankTransaction
+from app.models.finance import BankAccount, BankConnection, BankTransaction, DepotPosition
 from app.services import enablebanking, finance, notify, push
 from app.services.clock import local_today
 from tests.test_healthconnect import at
@@ -272,6 +273,50 @@ def test_depot_value_and_net_worth(client, session, bank):
     o = client.get("/api/finance/overview").json()
     assert o["depot_value"] == 5000
     assert o["net_worth"] == 6234.56
+
+
+def test_depot_from_positions(client, session, monkeypatch):
+    prices = {"EUNL.DE": ("100", "EUR"), "AAPL": ("200", "USD")}
+
+    def quote(symbol):
+        if symbol not in prices:
+            raise finance.FinanceError(f"no price for {symbol}")
+        price, cur = prices[symbol]
+        return Decimal(price), cur, f"Fund {symbol}"
+
+    monkeypatch.setattr(finance, "quote", quote)
+    assert finance.refresh_depot(session) is None  # no positions: the value stays manual
+
+    def put(symbol, q):
+        return client.put(f"/api/finance/positions/{symbol}", json={"quantity": q})
+
+    assert put("eunl.de", 2.5).status_code == 204
+    assert put("AAPL", 1).status_code == 422  # not in the accounts' currency
+    assert put("NOPE", 1).status_code == 422
+    assert put("bad symbol", 1).status_code == 422
+    o = client.get("/api/finance/overview").json()
+    assert o["depot_value"] == 250
+    assert o["positions"] == [
+        {"symbol": "EUNL.DE", "name": "Fund EUNL.DE", "quantity": 2.5, "price": 100}
+    ]
+
+    prices["EUNL.DE"] = ("110", "EUR")
+    assert finance.refresh_depot(session) == 275
+    session.commit()
+    # One failed price leaves the day's value as it was.
+    session.add(DepotPosition(symbol="NOPE", quantity=Decimal(1)))
+    with pytest.raises(finance.FinanceError):
+        finance.refresh_depot(session)
+    session.rollback()
+    assert finance.overview(session).depot_value == 275
+
+    # A value entered by hand stays for the day.
+    assert client.post("/api/finance/depot", json={"value": 300}).status_code == 204
+    assert finance.refresh_depot(session) is None
+    assert finance.overview(session).depot_value == 300
+
+    assert put("EUNL.DE", 0).status_code == 204
+    assert client.get("/api/finance/overview").json()["positions"] == []
 
 
 def test_transaction_update_with_rule(client, session, bank):

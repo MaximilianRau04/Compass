@@ -52,7 +52,8 @@ EXPORTED = {
         "sleep_minutes",
         "updated_at",
     ],  # noqa: E501
-    "depot_values": ["local_date", "value", "created_at", "updated_at"],
+    "depot_positions": ["symbol", "quantity", "name", "price", "created_at", "updated_at"],
+    "depot_values": ["local_date", "value", "source", "created_at", "updated_at"],
     "exercises": [
         "id",
         "name",

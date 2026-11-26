@@ -120,12 +120,26 @@ class FinanceBudget(TimestampMixin, Base):
 
 
 class DepotValue(TimestampMixin, Base):
-    """Value of the securities account on a day, entered by hand (Trade Republic has no API)."""
+    """Value of the securities account on a day, entered by hand (Trade Republic has no API) or
+    from the positions' prices. A value entered by hand is never replaced by the prices."""
 
     __tablename__ = "depot_values"
 
     local_date: Mapped[date] = mapped_column(Date, primary_key=True)
     value: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    source: Mapped[str] = mapped_column(String(10), default="manual", server_default="manual")
+
+
+class DepotPosition(TimestampMixin, Base):
+    """A holding in the securities account. With positions, the worker logs the depot value from
+    the daily closing prices instead of the user entering it."""
+
+    __tablename__ = "depot_positions"
+
+    symbol: Mapped[str] = mapped_column(String(20), primary_key=True)  # Yahoo symbol, e.g. EUNL.DE
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 6))
+    name: Mapped[str | None] = mapped_column(String(200))
+    price: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))  # last close seen
 
 
 class SavingsGoal(TimestampMixin, Base):

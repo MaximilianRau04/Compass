@@ -30,6 +30,7 @@ def test_main_schedules_every_job(monkeypatch):
         "weekly-review",
         "monthly-review",
         "finance",
+        "depot",
         "notifications",
     }
     review = str(jobs["weekly-review"].trigger)
@@ -56,6 +57,7 @@ def test_jobs_run_against_the_database(monkeypatch, session, engine):
     worker.sync_calendars()
     worker.sync_news()
     worker.sync_finance()
+    worker.depot_prices()  # no positions: no price is fetched
     worker.notifications()  # no device subscribed: nothing is sent
     worker.weekly_review()
     worker.monthly_review()

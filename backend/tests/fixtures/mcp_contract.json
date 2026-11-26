@@ -2057,7 +2057,7 @@
     "openWorldHint": false,
     "readOnlyHint": true
    },
-   "description": "Money per month (income, spending by category against the budgets, saved to the\nsecurities account), account balances, the securities account value (entered by hand,\nbrokers have no API here), net worth and recurring payments such as subscriptions. Bank data\ncomes from the user's bank through Enable Banking; amounts in the currency of the account.",
+   "description": "Money per month (income, spending by category against the budgets, saved to the\nsecurities account), account balances, the securities account value (entered by hand, or\nvalued daily from its positions' closing prices), net worth and recurring payments such as\nsubscriptions. Bank data comes from the user's bank through Enable Banking; amounts in the\ncurrency of the account.",
    "inputSchema": {
     "properties": {
      "months": {
@@ -2225,7 +2225,7 @@
         "type": "null"
        }
       ],
-      "description": "Securities account, entered by hand",
+      "description": "Securities account, entered by hand or valued daily from its positions",
       "title": "Depot Value"
      },
      "invested": {

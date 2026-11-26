@@ -87,6 +87,17 @@ class DepotRead(BaseModel):
     value: float
 
 
+class PositionRead(BaseModel):
+    symbol: str
+    name: str | None
+    quantity: float
+    price: float | None
+
+
+class PositionSet(BaseModel):
+    quantity: float = Field(ge=0, le=1_000_000_000, description="0 removes the position")
+
+
 class FinanceOverview(BaseModel):
     months: list[MonthRead]
     budgets: dict[str, float]
@@ -97,6 +108,7 @@ class FinanceOverview(BaseModel):
     invested: float = Field(description="Money moved to the securities account in the data")
     net_worth: float
     recurring: list[RecurringRead]
+    positions: list[PositionRead] = []
     categories: list[str]
     spending_categories: list[str]
 

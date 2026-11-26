@@ -699,7 +699,9 @@ class RecurringOut(BaseModel):
 class FinanceSummaryOut(BaseModel):
     months: list[FinanceMonthOut] = Field(description="Oldest first; the last one is running")
     accounts: dict[str, float | None] = Field(description="Balance per bank account")
-    depot_value: float | None = Field(description="Securities account, entered by hand")
+    depot_value: float | None = Field(
+        description="Securities account, entered by hand or valued daily from its positions"
+    )
     depot_as_of: date | None
     invested: float = Field(description="Money moved to the securities account in the data")
     net_worth: float

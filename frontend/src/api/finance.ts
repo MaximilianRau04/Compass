@@ -52,6 +52,7 @@ export interface FinanceOverview {
   invested: number
   net_worth: number
   recurring: RecurringPayment[]
+  positions: { symbol: string; name: string | null; quantity: number; price: number | null }[]
   categories: string[]
   spending_categories: string[]
 }
@@ -166,6 +167,16 @@ export function useLogDepot() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (value: number) => post('/finance/depot', { value }),
+    onSettled: () => invalidate(qc),
+  })
+}
+
+/** quantity 0 removes the position. */
+export function useSetPosition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ symbol, quantity }: { symbol: string; quantity: number }) =>
+      put(`/finance/positions/${encodeURIComponent(symbol)}`, { quantity }),
     onSettled: () => invalidate(qc),
   })
 }

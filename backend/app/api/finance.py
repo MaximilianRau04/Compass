@@ -19,6 +19,8 @@ from app.schemas.finance import (
     FinanceStatus,
     ForecastRead,
     MonthRead,
+    PositionRead,
+    PositionSet,
     RecurringRead,
     SavingsGoalCreate,
     SavingsGoalRead,
@@ -176,6 +178,15 @@ def overview(session: SessionDep, months: Annotated[int, Query(ge=1, le=24)] = 6
         invested=o.invested,
         net_worth=round(o.cash + (depot or 0), 2),
         recurring=[RecurringRead(**r.__dict__) for r in o.recurring],
+        positions=[
+            PositionRead(
+                symbol=p.symbol,
+                name=p.name,
+                quantity=float(p.quantity),
+                price=float(p.price) if p.price is not None else None,
+            )
+            for p in o.positions
+        ],
         categories=list(finance.CATEGORIES),
         spending_categories=list(finance.SPENDING),
     )
@@ -231,6 +242,15 @@ def set_budget(category: str, data: BudgetSet, session: SessionDep):
 def log_depot(data: DepotLog, session: SessionDep):
     try:
         finance.log_depot(session, data.value, data.day)
+    except finance.FinanceError as exc:
+        raise _fail(exc) from exc
+    session.commit()
+
+
+@router.put("/positions/{symbol}", status_code=status.HTTP_204_NO_CONTENT)
+def set_position(symbol: str, data: PositionSet, session: SessionDep):
+    try:
+        finance.set_position(session, symbol, data.quantity)
     except finance.FinanceError as exc:
         raise _fail(exc) from exc
     session.commit()

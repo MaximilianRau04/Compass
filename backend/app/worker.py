@@ -86,6 +86,20 @@ def sync_finance() -> None:
         log.info("finance: %s", result)
 
 
+def depot_prices() -> None:
+    from app.services import finance
+
+    with SessionLocal() as session:
+        try:
+            value = finance.refresh_depot(session)
+        except finance.FinanceError as exc:
+            log.warning("depot: %s", exc)
+            return
+        session.commit()
+    if value is not None:
+        log.info("depot: %.2f", value)
+
+
 def notifications() -> None:
     from app.services import notify, push
 
@@ -174,6 +188,17 @@ def main() -> None:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=MISFIRE_GRACE_SECONDS,
+    )
+    # After the close in Frankfurt (17:30) and New York (22:00).
+    scheduler.add_job(
+        depot_prices,
+        "cron",
+        hour=22,
+        minute=30,
+        id="depot",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=6 * 3600,
     )
     scheduler.add_job(
         notifications,

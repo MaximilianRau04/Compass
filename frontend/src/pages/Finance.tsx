@@ -17,6 +17,7 @@ import {
   useFinanceOverview,
   useFinanceStatus,
   useLogDepot,
+  useSetPosition,
   useSavingsGoals,
   useSetBudget,
   useSetSplits,
@@ -25,7 +26,7 @@ import {
   useUpdateSavingsGoal,
 } from '../api/finance'
 import { useTodayDate } from '../api/tasks'
-import { ColumnChart } from '../components/charts'
+import { ColumnChart, LineChart } from '../components/charts'
 import { DataTable, Stat } from '../components/DataBlocks'
 import { SectionLabel } from '../components/Layout'
 import { type Translate, useI18n } from '../i18n/context'
@@ -314,12 +315,82 @@ function Depot({ data }: { data: FinanceOverview }) {
   const currencySymbol = useCurrencySymbol()
   const money = useMoney()
   const log = useLogDepot()
+  const setPosition = useSetPosition()
   const [value, setValue] = useState('')
+  const [symbol, setSymbol] = useState('')
+  const [quantity, setQuantity] = useState('')
   const last = data.depot[data.depot.length - 1]
   const before = data.depot[data.depot.length - 2]
+  const day = (date: string) => parseDate(date).toLocaleDateString(locale)
+  const savePosition = (s: string, q: number, done?: () => void) =>
+    setPosition.mutate(
+      { symbol: s, quantity: q },
+      { onSuccess: () => (done?.(), toast(t('fin.savedToast'))), onError: (err) => toast.error(err.message) },
+    )
   return (
     <section>
       <SectionLabel>{t('fin.depot')}</SectionLabel>
+      {data.depot.length > 1 && (
+        <div className="mt-3">
+          <LineChart
+            data={data.depot.map((d) => ({ key: d.date, date: d.date, value: d.value }))}
+            format={(v) => money(v)}
+            ariaLabel={t('fin.depot')}
+            tooltip={(p) => (
+              <>
+                <strong className="font-semibold">{money(p.value)}</strong>
+                <span className="ml-2 text-muted">{day(p.date)}</span>
+              </>
+            )}
+          />
+        </div>
+      )}
+      {data.positions.length > 0 && (
+        <ul className="mt-3 divide-y divide-rule text-sm">
+          {data.positions.map((p) => (
+            <li key={p.symbol} className="flex items-center gap-3 py-2">
+              <span className="min-w-0 flex-1">
+                <span className="font-mono">{p.symbol}</span>
+                {p.name && <span className="ml-2 truncate text-muted">{p.name}</span>}
+              </span>
+              <span className="font-mono text-xs text-muted tabular-nums">
+                {p.quantity.toLocaleString(locale)} × {p.price !== null ? money(p.price, 2) : '–'}
+              </span>
+              <span className="w-24 text-right font-mono tabular-nums">{p.price !== null ? money(p.quantity * p.price) : '–'}</span>
+              <button
+                type="button"
+                disabled={setPosition.isPending}
+                onClick={() => savePosition(p.symbol, 0)}
+                className={button('quiet', 'sm')}
+                aria-label={t('fin.positionRemove', { symbol: p.symbol })}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="mt-3 flex flex-wrap items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          const q = parseAmount(quantity, locale)
+          if (!symbol.trim() || !Number.isFinite(q) || q <= 0) return
+          savePosition(symbol.trim(), q, () => (setSymbol(''), setQuantity('')))
+        }}
+      >
+        <label className="text-sm">
+          <span className="mb-1 block text-xs text-muted">{t('fin.positionSymbol')}</span>
+          <input value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="EUNL.DE" className={`${INPUT} w-32 uppercase`} />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-xs text-muted">{t('fin.positionQuantity')}</span>
+          <input value={quantity} onChange={(e) => setQuantity(e.target.value)} inputMode="decimal" className={`${INPUT} w-28`} />
+        </label>
+        <button type="submit" disabled={setPosition.isPending || !symbol.trim() || !quantity.trim()} className={button('secondary')}>
+          {t('fin.positionSave')}
+        </button>
+      </form>
       <form
         className="mt-3 flex flex-wrap items-end gap-2"
         onSubmit={(e) => {
@@ -339,11 +410,12 @@ function Depot({ data }: { data: FinanceOverview }) {
       </form>
       <p className="mt-1 font-mono text-2xs text-muted">
         {last
-          ? t('fin.depotLast', { value: money(last.value), day: parseDate(last.date).toLocaleDateString(locale) }) +
+          ? t('fin.depotLast', { value: money(last.value), day: day(last.date) }) +
             (before ? ` · ${t('fin.depotChange', { change: money(last.value - before.value) })}` : '')
           : t('fin.depotHint')}
         {data.invested > 0 && ` · ${t('fin.invested', { value: money(data.invested) })}`}
       </p>
+      <p className="mt-1 text-2xs text-muted">{data.positions.length ? t('fin.positionsHint') : t('fin.positionsIntro')}</p>
     </section>
   )
 }

@@ -25,9 +25,10 @@ def finance_summary(
     months: Annotated[int, Field(ge=1, le=24)] = 3,
 ) -> FinanceSummaryOut:
     """Money per month (income, spending by category against the budgets, saved to the
-    securities account), account balances, the securities account value (entered by hand,
-    brokers have no API here), net worth and recurring payments such as subscriptions. Bank data
-    comes from the user's bank through Enable Banking; amounts in the currency of the account."""
+    securities account), account balances, the securities account value (entered by hand, or
+    valued daily from its positions' closing prices), net worth and recurring payments such as
+    subscriptions. Bank data comes from the user's bank through Enable Banking; amounts in the
+    currency of the account."""
     with session_scope() as session:
         o = finance.overview(session, months)
         currency = finance.currency(session)
