@@ -25,7 +25,8 @@ The screenshots show made-up data.
 - **Today:** the day as a course line from waking up to the evening, events, due and planned tasks,
   important mails, the daily brief and live health tiles.
 - **Notes:** a small knowledge base with tags and full text search; links and text can be shared into it
-  from the phone.
+  from the phone. Optionally, notes and journal entries are also found by meaning (pgvector with an
+  embedding model from Ollama or any OpenAI-compatible endpoint, see `EMBEDDING_URL` in `.env.example`).
 - **Readiness:** a score from 0 to 100 on the Today page and in `get_today`, by fixed rules from last
   night's sleep, the resting heart rate and HRV against their usual, and the training of the last two
   days, with the reasons that took points off.
@@ -45,8 +46,10 @@ The screenshots show made-up data.
   fixed rules.
 - **Mail:** read-only IMAP for any number of accounts, triaged by a cloud model (Anthropic API) or a local Ollama model.
 - **News:** RSS feeds ranked by an interest profile you train with thumbs up and down.
-- **Finance:** bank accounts through Enable Banking, categories, budgets and recurring payments. Only
-  banks in the EU and EEA, see the [note below](#finance).
+- **Finance:** bank accounts through Enable Banking, categories, budgets, transactions split across
+  categories, recurring payments, savings goals and a forecast for the end of the month. The depot is
+  valued daily from its positions with Yahoo Finance closing prices. Bank accounts only in the EU and EEA,
+  see the [note below](#finance).
 - **Export:** everything Compass stores as a zip with one JSON file per table, under Settings or
   `/api/export`; sign-ins, tokens and raw health records stay out.
 - **Push notifications** to the installed PWA: bedtime, deadlines, resting heart rate, bank access,
@@ -278,13 +281,14 @@ in developer mode, should work the same way.
 | Calendar | `get_calendar` |
 | Notes | `search_notes`, `get_note`, `get_context`, `add_note`, `append_note` |
 | Journal | `get_journal`, `write_journal` (appends to the day's text) |
-| Training | `training_summary`, `exercise_progress`, `progression_suggestions` |
-| Health and body | `sleep_summary`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `monthly_review`, `daily_data` (one row per day across all areas) |
+| Training | `training_summary`, `get_training_session`, `exercise_progress`, `progression_suggestions` |
+| Habits | `list_habits`, `check_habit` |
+| Health and body | `sleep_summary`, `log_sleep`, `nutrition_summary`, `set_nutrition_goal`, `body_trend`, `log_body_metric`, `weekly_review`, `monthly_review`, `daily_data` (one row per day across all areas) |
 | Mail | `list_important_mails`, `mails_to_triage`, `save_mail_triage`, `mail_to_task` |
 | News | `get_news_digest`, `feedback_news` |
-| Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `set_budget`, `log_depot_value` |
+| Finance | `finance_summary`, `list_transactions`, `categorize_transactions`, `split_transaction`, `set_budget`, `list_savings_goals`, `save_savings_goal`, `log_depot_value` |
 | Dashboard | `save_brief`, `get_brief`, `send_notification` |
-| Everything | `search` (tasks, notes, calendar events and mails at once) |
+| Everything | `search` (tasks, notes, journal, calendar events and mails at once) |
 
 Prompts: `daily_brief`, `news_report`, `sort_mails`, `weekly_review`, `health_analysis` (patterns across sleep, training, nutrition and weight).
 

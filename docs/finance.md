@@ -6,7 +6,7 @@
 
 Compass reads transactions and balances from your bank through [Enable Banking](https://enablebanking.com) (a PSD2 account information service). You grant access at your bank, and Compass never sees your login. Access lasts at most 180 days (less at some banks). A push notification reminds you a week before it ends.
 
-Brokers without an API for securities accounts (e.g. Trade Republic) are not covered. Enter the depot value on the Finance page or through your AI assistant (`log_depot_value`), about once a month. Compass recognises transfers from the checking account to the depot as "savings".
+Brokers without an API for securities accounts (e.g. Trade Republic) are not covered. Enter your positions (symbol and quantity) on the Finance page instead: Compass values the depot every day with the closing prices from Yahoo Finance (no account needed). Without positions, enter the depot value by hand there or through your AI assistant (`log_depot_value`); a value entered by hand counts for that day. Compass recognises transfers from the checking account to the depot as "savings".
 
 ## 1. Create an application at Enable Banking
 
